@@ -114,7 +114,7 @@
         ${recent.length ? S.h`${S.ui.sectionTitle('كتب أُضيفت حديثاً', '#/library/search?sort=recent')}<div class="hscroll">${recent.map(L.card)}</div>` : ''}
         ${rec.books.length ? S.h`${S.ui.sectionTitle('اقتراحات القراءة اليومية', '#/library/recommended')}<div class="stack s">${rec.books.map(L.row)}</div>` : ''}
         ${notes.length ? S.h`${S.ui.sectionTitle('آخر الإشعارات', '#/notifications')}<div class="list">${notes.slice(0, 3).map((n) => S.h`<div class="li"><span class="li-body"><span class="li-t">${n.title}</span><span class="li-s">${n.body || ''}</span></span><span class="li-end tiny">${S.fmt.dt(n.ts)}</span></div>`)}</div>` : ''}
-        <p class="tiny muted center">نسخة تجريبية ${S.version} — <a href="#/status">حالة التطبيق</a> • <a href="#/about">عن سِراج</a></p>
+        <p class="tiny muted center">الإصدار ${S.version} — <a href="#/status">حالة التطبيق</a> • <a href="#/about">عن سِراج</a></p>
       </div>`,
       mount() { if (!S.settings.onboarded) onboarding(); }
     };
@@ -127,7 +127,7 @@
         ${S.f.text('uname', 'اسمك (يظهر في التحية)', S.settings.userName, { placeholder: 'اختياري' })}
         ${S.f.text('umarja', 'المرجع الذي تقلّده (يُعرض عند الأحكام الشرعية)', S.settings.marja, { placeholder: 'اختياري — لا يضع سِراج فتاوى من عنده' })}
         ${S.f.select('uth', 'المظهر', [{ v: 'auto', t: 'تلقائي' }, { v: 'light', t: 'نهاري' }, { v: 'dark', t: 'ليلي' }], S.settings.theme)}
-        <p class="tiny muted">حدّد مدينتك لاحقاً من «مواقيت الصلاة» لحساب الأوقات والقبلة. هذه نسخة تجريبية: المكتبة محدودة ولا تتضمن نصوصاً دينية غير موثقة.</p>`,
+        <p class="tiny muted">حدّد مدينتك لاحقاً من «مواقيت الصلاة» لحساب الأوقات والقبلة. لا يعرض سِراج نصاً دينياً دون مصدره، وتصل الإضافات عبر «تحديثات المحتوى» الموقّعة.</p>`,
       actions: [{ label: 'لاحقاً', cls: 'ghost', value: 'skip', onClick: () => { S.set('onboarded', true); } }, { label: 'ابدأ', cls: 'primary', value: 'ok', onClick: (box) => { const d = S.f.read(box); S.set({ userName: d.uname.trim(), marja: d.umarja.trim(), theme: d.uth, onboarded: true }); S.router.refresh(); } }]
     });
   }

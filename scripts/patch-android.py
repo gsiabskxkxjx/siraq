@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 يُشغَّل بعد `npx cap add android`:
-  1) صلاحيات: الموقع (القبلة/الأوقات) والاهتزاز.
+  1) صلاحيات: الموقع (القبلة/الأوقات) والاهتزاز، والإشعارات والمنبّهات الدقيقة (الأذان والتذكيرات).
   2) أيقونات التطبيق (عادية/دائرية/تكيّفية) من أيقونة سِراج بدل أيقونة Capacitor.
   3) شاشة البداية بلون سِراج وشعارها.
 أي خطوة تفشل تُسجَّل كتحذير ولا توقف البناء (الـAPK يبقى صالحاً بالأيقونات الافتراضية).
@@ -25,7 +25,9 @@ MANIFEST = os.path.join(AND, "app", "src", "main", "AndroidManifest.xml")
 BG = os.environ.get("SIRAJ_ICON_BG", "#103B2F")  # خلفية الأيقونة التكيّفية
 _sb = os.environ.get("SIRAJ_SPLASH_BG", "#082820").lstrip("#")
 SPLASH_BG = tuple(int(_sb[i:i + 2], 16) for i in (0, 2, 4))  # الافتراضي #082820
-_DEF_PERMS = "android.permission.ACCESS_COARSE_LOCATION,android.permission.ACCESS_FINE_LOCATION,android.permission.VIBRATE"
+_DEF_PERMS = ("android.permission.ACCESS_COARSE_LOCATION,android.permission.ACCESS_FINE_LOCATION,android.permission.VIBRATE,"
+              "android.permission.POST_NOTIFICATIONS,android.permission.SCHEDULE_EXACT_ALARM,android.permission.USE_EXACT_ALARM,"
+              "android.permission.RECEIVE_BOOT_COMPLETED,android.permission.WAKE_LOCK")
 PERMS = [p for p in os.environ.get("SIRAJ_PERMS", _DEF_PERMS).split(",") if p.strip()]
 
 
@@ -104,6 +106,58 @@ def icons():
     print("أيقونات: تم")
 
 
+def status_icon():
+    """أيقونة شريط الإشعارات: أندرويد يرسمها بلون واحد من قناة الشفافية فقط، لذا نصنع قناعاً أبيض من شعار سِراج."""
+    if "android.permission.POST_NOTIFICATIONS" not in PERMS:  # تطبيق التحكم لا يرسل إشعارات
+        return
+    try:
+        from PIL import Image
+    except Exception as e:  # noqa: BLE001
+        warn("Pillow غير متوفر، تُركت أيقونة الإشعارات الافتراضية: %s" % e)
+        return
+    src = os.path.join(IMAGES, "logo-mark.png")
+    if not os.path.exists(src):
+        warn("شعار سِراج غير موجود لأيقونة الإشعارات")
+        return
+    im = Image.open(src).convert("RGBA")
+    a = im.split()[3]
+    # إن كان الشعار معتماً بالكامل (لا شفافية) نستخرج القناع من سطوع الألوان الفاتحة
+    if a.getextrema()[0] > 200:
+        a = im.convert("L").point(lambda v: 255 if v > 90 else 0)
+    box = a.getbbox() or (0, 0, im.width, im.height)
+    a = a.crop(box)
+    side = max(a.size)
+    sq = Image.new("L", (side, side), 0)
+    sq.paste(a, ((side - a.width) // 2, (side - a.height) // 2))
+    for d, px in {"mdpi": 24, "hdpi": 36, "xhdpi": 48, "xxhdpi": 72, "xxxhdpi": 96}.items():
+        folder = os.path.join(RES, "drawable-" + d)
+        os.makedirs(folder, exist_ok=True)
+        inner = int(px * 0.86)
+        m = sq.resize((inner, inner), Image.LANCZOS)
+        out = Image.new("RGBA", (px, px), (255, 255, 255, 0))
+        white = Image.new("RGBA", (inner, inner), (255, 255, 255, 255))
+        out.paste(white, ((px - inner) // 2, (px - inner) // 2), m)
+        out.save(os.path.join(folder, "ic_stat_siraj.png"))
+    print("أيقونة الإشعارات: تم")
+
+
+def adhan_sound():
+    """صوت الأذان داخل إشعار النظام: يُنسخ من android-resources/adhan.(mp3|ogg|wav) إن وضعتَه أنت (ملف مرخّص)؛ لا يحوي المشروع تسجيلاً."""
+    if "android.permission.POST_NOTIFICATIONS" not in PERMS:
+        return
+    src_dir = os.path.join(ROOT, "android-resources")
+    for ext in ("mp3", "ogg", "wav"):
+        p = os.path.join(src_dir, "adhan." + ext)
+        if os.path.exists(p):
+            raw = os.path.join(RES, "raw")
+            os.makedirs(raw, exist_ok=True)
+            import shutil
+            shutil.copyfile(p, os.path.join(raw, "adhan." + ext))
+            print("صوت الأذان: نُسخ", os.path.basename(p), "→ res/raw")
+            return
+    print("صوت الأذان: لا ملف في android-resources — يُستعمل صوت إشعارات الهاتف")
+
+
 def splash():
     try:
         from PIL import Image
@@ -134,7 +188,7 @@ if __name__ == "__main__":
     if not os.path.isdir(AND):
         print("لا يوجد مجلد android — شغّل npx cap add android أولاً")
         sys.exit(1)
-    for fn in (patch_manifest, icons, splash):
+    for fn in (patch_manifest, icons, status_icon, adhan_sound, splash):
         try:
             fn()
         except Exception as e:  # noqa: BLE001

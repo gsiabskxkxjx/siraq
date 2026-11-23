@@ -19,6 +19,13 @@ cpSync(join(root, 'assets'), join(out, 'assets'), { recursive: true });
 
 bundleFonts(root, out);
 
+// أعلام تقرأها native-notify.js في التطبيق الأصلي: هل وُضع ملف أذان مرخّص في android-resources؟ (لا يُضمَّن أي تسجيل افتراضياً)
+{
+  const snd = ['mp3', 'ogg', 'wav'].map((e) => 'adhan.' + e).find((n) => existsSync(join(root, 'android-resources', n))) || '';
+  writeFileSync(join(out, 'assets', 'native-flags.json'), JSON.stringify({ adhanSound: snd }) + '\n');
+  console.log('native-flags.json — صوت الأذان: ' + (snd || 'غير موجود (صوت إشعارات الهاتف)'));
+}
+
 function size(p) {
   let n = 0;
   for (const e of readdirSync(p)) {

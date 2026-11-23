@@ -38,6 +38,12 @@
     const have = new Set((await S.db.all('duas')).map((d) => d.id)); const add = S.data.duas.items.filter((d) => !have.has(d.id) && !(S.packs && S.packs.isWithdrawn('duas', d.id)));
     if (add.length) await S.db.putMany('duas', add);
     await dropLegacyAdmin();
+    await dropTestDua();
+  }
+  /* نسخ سابقة كانت تضمّ عنصراً لاختبار واجهة القراءة (ليس دعاءً)؛ يُحذف من الأجهزة التي ثُبّتت عليها */
+  async function dropTestDua() {
+    if (S.kv.get('mig.testdua')) return;
+    try { await S.db.del('duas', 'demo_reader_test'); await S.kv.set('mig.testdua', 1); } catch (e) { S.log('warn', 'dropTestDua: ' + e.message); }
   }
   /* نسخ أقدم من سِراج كانت تحوي حسابات إدارة تجريبية وجلسة دخول وإعدادات مالك: تُمحى نهائياً عند أول تشغيل بعد التحويل إلى «مستخدم فقط». */
   async function dropLegacyAdmin() {
@@ -107,7 +113,7 @@
       await seed();
       if (S.library) await S.library.init();
       if (S.quran && S.quran.init) await S.quran.init();
-      ['prayer', 'calendar', 'daily', 'worship'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
+      ['prayer', 'calendar', 'daily', 'worship', 'nativeNotify'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
       registerSW(); installBackButton();
       if (S.thaqalayn && S.thaqalayn.init) S.thaqalayn.init();
       S.db.persist();

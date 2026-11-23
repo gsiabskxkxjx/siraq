@@ -3,9 +3,19 @@
   "appName": "سِراج",
   "webDir": "www",
   "backgroundColor": "#082820",
-  "server": { "androidScheme": "https" },
-  "android": { "allowMixedContent": false },
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
   "plugins": {
-    "SystemBars": { "insetsHandling": "css" }
+    "SystemBars": {
+      "insetsHandling": "css"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_siraj",
+      "iconColor": "#C9A24B"
+    }
   }
 }

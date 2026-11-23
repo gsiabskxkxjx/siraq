@@ -104,8 +104,7 @@
   S.ui.bookRow = L.row; S.ui.bookCard = L.card;
 
   function sectionCard(s, cnt) {
-    const pct = Math.min(100, (cnt / TARGET) * 100);
-    return S.h`<a class="sec-card" href="#/library/sec/${s.id}"><span class="sn">${S.icon(S.hasIcon(s.icon) ? s.icon : 'book-open')}</span><span class="grow"><b>${s.n}. ${s.title}</b><span class="small muted" style="display:block">${S.n(cnt)} كتاب في النسخة التجريبية • الهدف ${S.n(TARGET)}</span><span class="bar" style="display:block;margin-top:6px"><i style="width:${pct}%"></i></span></span>${S.icon('chevron-left')}</a>`;
+    return S.h`<a class="sec-card" href="#/library/sec/${s.id}"><span class="sn">${S.icon(S.hasIcon(s.icon) ? s.icon : 'book-open')}</span><span class="grow"><b>${s.n}. ${s.title}</b><span class="small muted" style="display:block">${S.n(cnt)} كتاب</span></span>${S.icon('chevron-left')}</a>`;
   }
 
   /* ---------- صفحة المكتبة ---------- */
@@ -120,7 +119,7 @@
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="lib-q" type="search" placeholder="ابحث في الكتب والمؤلفين والموضوعات…" enterkeyhint="search" autocomplete="off"></div>
         <div class="chips"><a class="chip" href="#/library/search?sort=recent">${S.icon('clock')} الأحدث</a><a class="chip" href="#/library/top">${S.icon('chart')} الأكثر قراءة</a><a class="chip" href="#/library/favorites">${S.icon('heart')} المفضلة</a><a class="chip" href="#/library/history">${S.icon('book-open')} سجل القراءة</a><a class="chip" href="#/library/authors">${S.icon('users')} المؤلفون</a><a class="chip" href="#/library/eras">${S.icon('timeline')} العصور</a><a class="chip" href="#/library/search?sort=alpha">${S.icon('sort')} أبجدياً</a></div>
-        ${S.ui.notice('gold', 'مكتبة تجريبية', S.h`<span>تحتوي هذه النسخة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة فقط (لا نصوص كتب). تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
+        ${S.ui.notice('gold', 'عن المكتبة', S.h`<span>تضم المكتبة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة (عنوان ومؤلف ونبذة) دون نصوص الكتب. تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${last && lastBook ? S.h`<div class="card tap gold-edge" data-act="goto" data-to="/library/read/${lastBook.id}"><div class="card-t">${S.icon('book-open')} تابع القراءة</div><div class="row"><div style="width:54px">${cover(lastBook)}</div><div class="grow"><b>${lastBook.title}</b><div class="small muted">${lastBook.author}${last.page ? ' • صفحة ' + S.n(last.page) : ''}</div></div></div></div>` : ''}
         ${S.ui.sectionTitle('الأقسام (' + S.n(S.sections.length) + ')')}
         <div class="stack s">${S.sections.map((s) => sectionCard(s, counts[s.id] || 0))}</div>
@@ -242,7 +241,7 @@
           <dt>رقم الطبعة</dt><dd>${val(b.edition)}</dd><dt>عدد الصفحات</dt><dd>${val(b.pages && S.n(b.pages))}</dd>
           <dt>اللغة</dt><dd>${val(b.lang)}</dd>
           <dt>حقوق النشر</dt><dd>${b.copyright && b.copyright !== 'غير محدد' ? S.ui.badge(b.copyright, 'ok') : S.ui.badge('غير محدد — لا يُنشر دون ترخيص', 'warn')}</dd>
-          <dt>مراجعة المسؤول</dt><dd>${b.reviewStatus}</dd><dt>تاريخ الإضافة</dt><dd>${b.addedAt ? S.fmt.dt(b.addedAt) : '—'}</dd><dt>حالة النشر</dt><dd>${statusBadge(b)}</dd>
+          <dt>حالة المراجعة</dt><dd>${String(b.reviewStatus || '').replace(/^بيانات تجريبية\s*[–-]\s*/, 'معلومات عامة — ')}</dd><dt>تاريخ الإضافة</dt><dd>${b.addedAt ? S.fmt.dt(b.addedAt) : '—'}</dd><dt>حالة النشر</dt><dd>${statusBadge(b)}</dd>
           ${b.hasPdf && f ? S.h`<dt>الملف المحلي</dt><dd>${S.fmt.bytes(f.size)}</dd>` : ''}
         </dl></div>
         <div class="card"><div class="card-t">${S.icon('link')} المصادر والروابط</div>
@@ -252,7 +251,7 @@
             <details class="acc"><summary>ابحث عن الكتاب في المصادر المقترحة</summary><div class="acc-b stack s">${searchLinks(b).map(([n, u]) => S.h`<a class="btn sm ghost" target="_blank" rel="noopener noreferrer" href="${u}">${n}</a>`)}<p class="tiny muted nm">فتح هذه الروابط يتم خارج التطبيق. تحقّق من حقوق كل كتاب بشكل مستقل؛ وجود PDF ليس دليلاً على جواز إعادة نشره.</p></div></details>
           </div></div>
         ${au ? S.h`<div class="card"><div class="card-t">${S.icon('user')} سيرة المؤلف</div><p class="nm"><b>${au.name}</b>${au.death ? ' — ت ' + S.n(au.death) + ' هـ' : ''}</p>${au.note ? S.h`<p class="small muted nm">${au.note}</p>` : ''}<a class="small" href="#/library/author/${au.id}">كل كتب المؤلف في المكتبة</a></div>` : ''}
-        ${b.demo ? S.ui.notice('warn', 'بيانات تجريبية', 'هذه البيانات عامة ولم تُراجَع على طبعة بعينها. لا تعتمد عليها في التوثيق.') : ''}
+        ${b.demo ? S.ui.notice('warn', 'بيانات لم تُراجَع على طبعة', 'معلومات الكتاب عامة ولم تُراجَع على طبعة بعينها، فلا تعتمد عليها في التوثيق.') : ''}
         ${sim.length ? S.h`${S.ui.sectionTitle('كتب مشابهة')}<div class="hscroll">${sim.map(L.card)}</div>` : ''}
       </div>`
     };

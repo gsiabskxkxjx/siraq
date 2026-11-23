@@ -54,7 +54,7 @@ def mk(i, row, status, proposed=None, ai_note=""):
         section=sec, subcat=sub, desc=desc, tags=tags,
         publisher="", year=None, edition="", pages=None, lang="العربية",
         sourceName="", sourceUrl="", copyright="غير محدد", digitalUrl="",
-        reviewStatus="بيانات تجريبية – لم تُراجع على المصدر", addedAt=t,
+        reviewStatus="معلومات عامة — لم تُراجع على طبعة بعينها", addedAt=t,
         status=status, demo=True, proposedSection=proposed, aiNote=ai_note,
         hasPdf=False, hasCover=False, allowDownload=False, reads=0, downloads=0))
 for i, row in enumerate(BOOKS):
@@ -233,8 +233,8 @@ for a in ASPECTS:
     a["status"] = "تعريف تمهيدي عام، لا يُغني عن الرجوع إلى المصادر المذكورة."
 
 sample = dict(
-    meta=dict(app="سِراج", en="SIRAJ", tagline="نور العلم وهداية الطريق", sub="القرآن • العترة • المعرفة", version="0.1.0-demo",
-              dataNotice="بيانات المكتبة تجريبية ومحدودة، تحتوي معلومات ببليوغرافية عامة فقط (عنوان، مؤلف، سنة وفاة المؤلف، نبذة). لم تُراجَع على المصادر الأصلية ولا تحتوي نصوص كتب."),
+    meta=dict(app="سِراج", en="SIRAJ", tagline="نور العلم وهداية الطريق", sub="القرآن • العترة • المعرفة", version="1.0.0",
+              dataNotice="بيانات المكتبة معلومات ببليوغرافية عامة فقط (عنوان، مؤلف، سنة وفاة المؤلف، نبذة). لم تُراجَع على المصادر الأصلية ولا تحتوي نصوص كتب."),
     sections=SECTIONS, sources=SOURCES, authors=authors, books=books,
     imams=IMAMS, events=EVENTS, occasions=OCCASIONS, hijriMonths=HIJRI_MONTHS, places=PLACES, cities=CITIES,
     dhikr=DHIKR, mustahabb=MUSTAHABB, ahlVerses=AHL_VERSES, aspects=ASPECTS,
@@ -302,11 +302,8 @@ DUAS = [
     d("z_amin", "ziyarah", "زيارة أمين الله", "ziyarat-special", MAF),
     d("z_arbaeen", "ziyarah", "زيارة الأربعين", "ziyarat-special", MAF),
 ]
-DEMO = d("demo_reader_test", "demo", "نص اختبار القارئ (ليس دعاءً)", "daily", "", "لاختبار ميزات القراءة فقط، وليس نصاً دينياً.")
-DEMO.update(demo=True, textStatus="demo", textSource=dict(book="نص تجريبي من إنشاء المشروع", page="", note="ليس دعاءً ولا نصاً دينياً"),
-            text="هذا نص تجريبي لاختبار واجهة القراءة فقط، وليس دعاءً ولا نصاً دينياً.\nيمكنك تكبير الخط وتصغيره، وتبديل الوضع الليلي، وحفظ موضع القراءة، ومشاركة النص، وإضافته إلى المفضلة.\nعند توفر نص موثق لأي دعاء، يُضاف من لوحة الإدارة مع ذكر المصدر والطبعة والصفحة.\nكل سطر في هذا النص يمكن تحديده كموضع قراءة.")
-duas = dict(categories=DUA_CATS, items=DUAS + [DEMO],
-            policy="لا تُنشر نصوص أدعية أو زيارات دون مصدر وطبعة. الفهرس أسماء فقط حتى يضيف محرر نصاً موثقاً.")
+duas = dict(categories=DUA_CATS, items=DUAS,
+            policy="لا تُنشر نصوص أدعية أو زيارات دون مصدر وطبعة. الفهرس أسماء فقط حتى يصل نص موثق عبر تحديثات المحتوى.")
 dump("duas-data", "duas", duas)
 
 # قوالب الاستيراد (docs/import-templates/*.json) تُحرَّر يدوياً وتتحقق منها tests/templates_flow.py؛ لا يكتبها هذا السكربت.

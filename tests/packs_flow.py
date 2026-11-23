@@ -35,9 +35,27 @@ def save(name, env): p = OUT + '/' + name + '.sirajpack'; json.dump(env, open(p,
 def keys_js(keys):
     return 'window.SIRAJ_PUBLISHER_KEYS=' + json.dumps([{'name': n, 'id': k['id'], 'jwk': k['jwk']} for n, k in keys], ensure_ascii=False) + ';'
 
-# ===== أ) بلا أي مفتاح موثوق (الوضع الافتراضي المشحون) =====
+# ===== أ0) المفتاح المشحون مع التطبيق (مفتاح الناشر العام من تطبيق التحكم) =====
+SHIPPED = '9df05ff68810d3a2'
 t = T(); pg = t.pg
-t.check('المشحون: قائمة المفاتيح فارغة', t.ev("(window.SIRAJ_PUBLISHER_KEYS||[]).length") == 0)
+ks = t.ev("window.SIRAJ_PUBLISHER_KEYS")
+t.check('المشحون: مفتاح ناشر واحد ببصمة التحكم المتفق عليها', len(ks) == 1 and ks[0]['id'] == SHIPPED and ks[0]['name'] == 'الناشر', ks)
+chk = t.ev("""(async()=>{const k=window.SIRAJ_PUBLISHER_KEYS[0];const j=k.jwk;
+  const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(j.x+'.'+j.y));
+  const id=[...new Uint8Array(h)].slice(0,8).map(b=>b.toString(16).padStart(2,'0')).join('');
+  let ok=false;try{await crypto.subtle.importKey('jwk',{kty:j.kty,crv:j.crv,x:j.x,y:j.y,ext:true},{name:'ECDSA',namedCurve:'P-256'},false,['verify']);ok=true}catch(e){}
+  return {id,ok,pub:!('d' in j)}})()""")
+t.check('المشحون: البصمة = أول 16 خانة من SHA-256(x.y) والنقطة على المنحنى P-256 ولا مفتاح خاص', chk['id'] == SHIPPED and chk['ok'] and chk['pub'], chk)
+t.go('/updates'); t.check('صفحة التحديثات تعرض بصمة الناشر الموثوق', SHIPPED in t.txt() and 'لا يوجد مفتاح ناشر' not in t.txt(), t.txt()[:200])
+t.b.close(); t.p.stop()
+
+# ===== أ) بلا أي مفتاح موثوق (سيناريو افتراضي بقائمة فارغة: كل حزمة تُرفض) =====
+def empty_keys(r):
+    if r.request.url.endswith('assets/data/publisher-keys.js'):
+        r.fulfill(status=200, content_type='application/javascript', body='window.SIRAJ_PUBLISHER_KEYS=[];'); return True
+    return False
+t = T(override=empty_keys); pg = t.pg
+t.check('بلا مفتاح: القائمة فارغة', t.ev("(window.SIRAJ_PUBLISHER_KEYS||[]).length") == 0)
 t.go('/updates'); t.check('يعرض غياب مفتاح الناشر', 'لا يوجد مفتاح ناشر' in t.txt())
 pg.set_input_files('[name=packfile]', OUT + '/pack1.sirajpack'); pg.click('[data-act=packCheck]'); pg.wait_for_timeout(700)
 t.check('أي حزمة تُرفض بلا مفتاح موثوق', 'لا يوجد مفتاح ناشر موثوق' in t.ev("document.getElementById('pack-res').innerText") and t.ev("document.querySelector('[data-act=packApply]')") is None)

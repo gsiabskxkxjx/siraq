@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   const S = (window.SIRAJ = window.SIRAJ || {});
-  S.version = '0.2.0-demo';
+  S.version = '1.0.0';
   S.isFile = location.protocol === 'file:';
   /* داخل تطبيق أندرويد (Capacitor) تتوفر window.Capacitor وإضافاته. نتحقق عند كل استعمال لا مرة واحدة. */
   Object.defineProperty(S, 'isNative', { get() { try { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); } catch (e) { return false; } } });

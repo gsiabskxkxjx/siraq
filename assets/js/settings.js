@@ -39,7 +39,7 @@
           ${S.f.select('hijriOffset', 'تعديل يدوي (لمطابقة الرؤية في بلدك)', [-2, -1, 0, 1, 2].map((v) => ({ v, t: v === 0 ? 'بلا تعديل' : (v > 0 ? '+' : '') + v + ' يوم' })), st.hijriOffset, { chg: 'pref', k: 'hijriOffset', num: 1, })}
           <p class="tiny muted nm">التقاويم الحسابية تقريبية؛ بداية الشهر الشرعي تثبت بالرؤية عند كثير من المراجع.</p></div>
         <div class="card"><div class="card-t">${S.icon('bell')} التنبيهات والتفاعل</div>
-          ${sw('notifyOcc', 'تنبيه المناسبات', 'عند فتح التطبيق')}${sw('vibrate', 'الاهتزاز')}${sw('sound', 'الأصوات')}
+          ${sw('notifyOcc', 'تنبيه المناسبات', 'قبلها بيوم وفي يومها')}${sw('vibrate', 'الاهتزاز')}${sw('sound', 'الأصوات')}
           <a class="btn block mt" href="#/prayer/settings">إعدادات الصلاة والأذان</a></div>
         <div class="card"><div class="card-t">${S.icon('database')} بياناتك</div>
           <p class="small muted nm">كل بياناتك (المفضلة، الملاحظات، التقدم، المسبحة، القضاء) تُحفظ على هذا الجهاز فقط. النسخة الاحتياطية تضم بياناتك الشخصية فقط، أما المحتوى (كتب/أدعية/مداخل) فيصل عبر «تحديثات المحتوى» الموقّعة.</p>
@@ -115,7 +115,7 @@
     title: 'عن سِراج', nav: 'more', back: '/more',
     html: S.h`<div class="stack">
       <div class="card center"><img src="assets/images/logo.png" alt="سِراج" style="max-width:220px;margin:auto"><p class="gold nm">نور العلم وهداية الطريق</p><p class="small muted nm">القرآن • العترة • المعرفة</p><p class="tiny muted">الإصدار ${S.version}</p></div>
-      ${S.ui.notice('info', 'نسخة تجريبية', S.data.sample.meta.dataNotice)}
+      ${S.ui.notice('info', 'عن بيانات المكتبة', S.data.sample.meta.dataNotice)}
       <div class="card"><div class="card-t">${S.icon('shield')} ضوابط المحتوى</div>
         <ul class="small"><li>لا يُنشئ سِراج كتباً ولا مؤلفين ولا روايات ولا فتاوى. كل مادة دينية تُضاف بمصدرها.</li><li>وجود ملف PDF على الإنترنت لا يعني إذن إعادة نشره؛ لا يُنشر كتاب دون حالة حقوق واضحة.</li><li>الأحكام الشرعية تُنسب لمرجعها؛ والمساعد العلمي لا يُصدر فتاوى.</li><li>لا يُنشر شيء تلقائياً: قرار النشر النهائي لمالك التطبيق افتراضياً.</li></ul></div>
       <div class="card"><div class="card-t">${S.icon('link')} المصادر والتراخيص</div>

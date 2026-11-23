@@ -7,7 +7,7 @@
   'use strict';
   const S = window.SIRAJ;
   const STATUS = { documented: ['نص موثق', 'ok'], missing: ['العنوان فقط', 'warn'], demo: ['نص اختبار للواجهة', 'info'] };
-  const KIND = { dua: 'دعاء', ziyarah: 'زيارة', collection: 'مجموعة', demo: 'تجريبي' };
+  const KIND = { dua: 'دعاء', ziyarah: 'زيارة', collection: 'مجموعة' };
   const badge = (it) => { const [t, k] = STATUS[it.textStatus] || STATUS.missing; return S.ui.badge(t, k); };
   const srcLine = (it) => { const s = it.textSource; if (!s) return it.commonSource || ''; return [s.book, s.author, s.edition && 'طبعة: ' + s.edition, s.part && 'ج' + s.part, s.page && 'ص' + s.page].filter(Boolean).join(' — '); };
 
@@ -28,7 +28,7 @@
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="dq" type="search" value="${term}" placeholder="ابحث في الأدعية والزيارات" enterkeyhint="search"></div>
         ${term ? (res.length ? S.h`<div class="list">${res.map(row)}</div>` : S.ui.empty('search', 'لا نتائج')) : S.h`
-        ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.filter((d) => d.kind !== 'demo').length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. تصل النصوص الجديدة عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
+        ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. تصل النصوص الجديدة عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${qdNotice(all)}
         <div class="chips"><a class="chip" href="#/duas/favorites">${S.icon('heart')} المفضلة (${S.n(favs)})</a></div>
         <div class="grid2">${cats.map((c) => S.h`<a class="card tap" href="#/duas/cat/${c.id}"><b>${c.title}</b><div class="small muted">${S.n(counts[c.id] || 0)} عنوان</div></a>`)}</div>`}

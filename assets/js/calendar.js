@@ -100,7 +100,7 @@
       html: S.h`<div class="stack"><div class="chips"><a class="chip ${!kind ? 'active' : ''}" href="#/calendar/occasions">الكل</a>${kinds.map((k) => S.h`<a class="chip ${kind === k ? 'active' : ''}" href="#/calendar/occasions?kind=${encodeURIComponent(k)}">${k}</a>`)}</div>
         <div class="list">${rows.map(({ o, u }) => S.h`<div class="li"><span class="li-body"><span class="li-t">${o.title}</span><span class="li-s">${S.n(o.d)} ${monthNames()[o.m - 1]}${u ? ' • ' + S.fmt.gdate(u.date, { day: 'numeric', month: 'long', year: 'numeric' }) : ''}</span></span><span class="li-end small">${u ? (u.days === 0 ? 'اليوم' : u.days === 1 ? 'غداً' : S.n(u.days) + ' يوماً') : ''}</span></div>`)}</div>
         ${S.ui.notice('info', 'تنبيه', 'تواريخ المناسبات مشهورة ويقع خلاف في بعضها بين المصادر؛ والتواريخ الميلادية تقريبية بحسب التقويم المختار.')}
-        ${S.h`<div class="setting"><div class="sd">تنبيه المناسبات عند فتح التطبيق<small>يظهر في الإشعارات صباح المناسبة أو قبلها بيوم</small></div><label class="switch"><input type="checkbox" ${S.settings.notifyOcc ? S.raw('checked') : ''} data-chg="pref" data-k="notifyOcc"><i></i></label></div>`}</div>`
+        ${S.h`<div class="setting"><div class="sd">تنبيه المناسبات<small>يظهر في الإشعارات صباح المناسبة أو قبلها بيوم (إشعار نظام في تطبيق أندرويد)</small></div><label class="switch"><input type="checkbox" ${S.settings.notifyOcc ? S.raw('checked') : ''} data-chg="pref" data-k="notifyOcc"><i></i></label></div>`}</div>`
     };
   });
 })();
