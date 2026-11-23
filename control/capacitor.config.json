@@ -1,0 +1,11 @@
+{
+  "appId": "com.siraj.control",
+  "appName": "سِراج — التحكم",
+  "webDir": "www",
+  "backgroundColor": "#0E1722",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css" }
+  }
+}

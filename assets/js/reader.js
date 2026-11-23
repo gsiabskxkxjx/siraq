@@ -25,7 +25,7 @@
     const b = L().byId.get(p.id); const back = '/library/book/' + p.id;
     if (!b || !L().visible(b)) return { title: 'قراءة', bar: true, back: '/library', html: S.ui.empty('alert', 'الكتاب غير متاح') };
     const f = b.hasPdf ? await S.files.get('pdf:' + b.id) : null;
-    if (!f) return { title: b.title, back, html: S.ui.empty('file', 'لا يوجد ملف PDF لهذا الكتاب', 'يمكن للمحرر إرفاق ملف مرخّص من صفحة الكتاب.', S.h`<a class="btn" href="#${back}">العودة</a>`) };
+    if (!f) return { title: b.title, back, html: S.ui.empty('file', 'لا يوجد ملف PDF لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية؛ افتح رابط المصدر من صفحة الكتاب.', S.h`<a class="btn" href="#${back}">العودة</a>`) };
     if (S.isFile) {
       const u = URL.createObjectURL(f.blob);
       return { title: b.title, back, html: S.h`<div class="stack">${S.ui.notice('warn', 'القارئ المدمج غير متاح عند الفتح من ملف', 'يحتاج قارئ سِراج إلى تشغيل التطبيق عبر HTTPS أو localhost (راجع README). يمكنك الآن فتح الملف بتطبيق PDF في جهازك:')}<a class="btn primary block" href="${u}" target="_blank" rel="noopener">${S.icon('file')} فتح الملف خارجياً</a></div>` };

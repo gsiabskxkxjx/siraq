@@ -42,13 +42,14 @@
           ${sw('notifyOcc', 'تنبيه المناسبات', 'عند فتح التطبيق')}${sw('vibrate', 'الاهتزاز')}${sw('sound', 'الأصوات')}
           <a class="btn block mt" href="#/prayer/settings">إعدادات الصلاة والأذان</a></div>
         <div class="card"><div class="card-t">${S.icon('database')} بياناتك</div>
-          <p class="small muted nm">كل بياناتك (المفضلة، الملاحظات، الكتب المرفوعة، التقدم) تُحفظ في هذا المتصفح فقط.</p>
+          <p class="small muted nm">كل بياناتك (المفضلة، الملاحظات، التقدم، المسبحة، القضاء) تُحفظ على هذا الجهاز فقط. النسخة الاحتياطية تضم بياناتك الشخصية فقط، أما المحتوى (كتب/أدعية/مداخل) فيصل عبر «تحديثات المحتوى» الموقّعة.</p>
           <div class="kv"><span>التخزين الدائم</span><b>${info.mem ? 'غير متاح (ذاكرة مؤقتة)' : info.persisted ? 'مُثبَّت' : 'قابل للإزالة عند امتلاء الجهاز'}</b></div>
           ${info.usage != null ? S.h`<div class="kv"><span>المستخدم</span><b class="op-ltr">${S.fmt.bytes(info.usage)} / ${S.fmt.bytes(info.quota)}</b></div>` : ''}
           <div class="grid2 mt"><button class="btn" data-act="backupExport" data-files="0">${S.icon('download')} نسخة احتياطية (بدون ملفات)</button><button class="btn" data-act="backupExport" data-files="1">${S.icon('download')} نسخة كاملة بالملفات</button></div>
           ${S.f.file('bkfile', 'استعادة من نسخة احتياطية', 'application/json,.json')}
           <button class="btn block" data-act="backupImport">${S.icon('upload')} استعادة</button>
-          <button class="btn danger block mt" data-act="resetDemo">${S.icon('refresh')} إعادة البيانات التجريبية إلى أصلها</button>
+          <a class="btn block mt" href="#/updates">${S.icon('download')} تحديثات المحتوى</a>
+          <button class="btn danger block mt" data-act="resetDemo">${S.icon('refresh')} إعادة المحتوى المضمّن إلى أصله</button>
         </div>
         <div class="card"><div class="card-t">${S.icon('download')} التثبيت</div><p class="small muted nm">ثبّت سِراج على الشاشة الرئيسية ليعمل كتطبيق مستقل.</p><button class="btn gold block" data-act="install">تثبيت التطبيق</button></div>
         <div class="list">${S.ui.li({ icon: 'wifi', t: 'حالة الاتصال والتخزين', href: '#/status' })}${S.ui.li({ icon: 'info', t: 'عن سِراج والمصادر والتراخيص', href: '#/about' })}</div>
@@ -56,7 +57,7 @@
     };
   });
   S.act('backupExport', async (el) => {
-    const blob = await S.backup.export({ includeFiles: el.dataset.files === '1', includeUsers: false });
+    const blob = await S.backup.export({ includeFiles: el.dataset.files === '1' });
     S.download(blob, 'siraj-backup-' + S.today() + '.json'); S.toast('تم إنشاء النسخة (' + S.fmt.bytes(blob.size) + ')', 'ok');
   });
   S.act('backupImport', async (el) => {
@@ -66,8 +67,8 @@
     if (S.library) await S.library.init(); S.toast('تمت استعادة ' + S.n(n) + ' سجلاً', 'ok'); S.router.refresh();
   });
   S.act('resetDemo', async () => {
-    if (!(await S.confirm('سيُحذف كل ما أضفته أو عدّلته (كتب، ملفات، أدعية، موسوعات، سجل) وتعود البيانات التجريبية. تبقى المفضلة والإعدادات. متابعة؟', { danger: true, yes: 'نعم، أعد التعيين' }))) return;
-    await S.resetDemo(); S.toast('أُعيدت البيانات التجريبية', 'ok'); S.router.refresh();
+    if (!(await S.confirm('سيُحذف المحتوى الذي وصل عبر تحديثات المحتوى ويعود المحتوى المضمّن في التطبيق كما كان. تبقى مفضلتك وملاحظاتك وإعداداتك. متابعة؟', { danger: true, yes: 'نعم، أعد التعيين' }))) return;
+    await S.resetDemo(); S.toast('أُعيد المحتوى المضمّن', 'ok'); S.router.refresh();
   });
 
   /* ---------- حالة الاتصال والتخزين ---------- */

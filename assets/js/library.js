@@ -6,7 +6,6 @@
   'use strict';
   const S = window.SIRAJ;
   const TARGET = 300, PAGE = 30;
-  const can = (c) => !!(S.auth && S.auth.can(c));
 
   const L = (S.library = {
     books: [], authors: new Map(), pageSize: PAGE, target: TARGET,
@@ -27,7 +26,6 @@
       S.libraryIndex = { byId }; L.byId = byId;
     },
     published: () => L.books.filter((b) => b.status === 'published'),
-    pending: () => L.books.filter((b) => b.status === 'pending' || b.status === 'needs_review'),
     countBySection() { const m = {}; S.sections.forEach((s) => (m[s.id] = 0)); L.published().forEach((b) => { m[b.section] = (m[b.section] || 0) + 1; }); return m; },
     async save(b) { await S.db.put('books', b); const i = L.books.findIndex((x) => x.id === b.id); if (i >= 0) L.books[i] = b; else L.books.push(b); L.reindex(); return b; },
     async remove(id) {
@@ -36,7 +34,7 @@
       await S.db.del('favorites', 'book:' + id); await S.db.del('progress', 'book:' + id);
       const hl = await S.db.where('highlights', 'bookId', id); for (const h of hl) await S.db.del('highlights', h.id);
     },
-    visible: (b) => b.status === 'published' || can('books.view'),
+    visible: (b) => b.status === 'published',
     /* بحث وفلترة وترتيب */
     /* العصر = القرن الهجري لسنة وفاة المؤلف (0 = غير محدد). يُحسب من البيانات ولا يُخمَّن. */
     era(b) { return b.authorDeath > 0 ? Math.ceil(b.authorDeath / 100) : 0; },
@@ -116,20 +114,18 @@
     const recent = L.published().slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || '')).slice(0, 10);
     const last = S.progress.last('book'); const lastBook = last && L.byId.get(last.ref);
     const rec = L.recommended(8);
-    const pend = L.pending().length;
     return {
       title: 'المكتبة', nav: 'library', back: false,
-      actions: [{ icon: 'heart', label: 'المفضلة', href: '#/library/favorites' }, { icon: 'search', label: 'بحث', href: '#/library/search' }].concat(can('books.view') ? [{ icon: 'shield', label: 'الإدارة', href: '#/admin' }] : []),
+      actions: [{ icon: 'heart', label: 'المفضلة', href: '#/library/favorites' }, { icon: 'search', label: 'بحث', href: '#/library/search' }],
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="lib-q" type="search" placeholder="ابحث في الكتب والمؤلفين والموضوعات…" enterkeyhint="search" autocomplete="off"></div>
         <div class="chips"><a class="chip" href="#/library/search?sort=recent">${S.icon('clock')} الأحدث</a><a class="chip" href="#/library/top">${S.icon('chart')} الأكثر قراءة</a><a class="chip" href="#/library/favorites">${S.icon('heart')} المفضلة</a><a class="chip" href="#/library/history">${S.icon('book-open')} سجل القراءة</a><a class="chip" href="#/library/authors">${S.icon('users')} المؤلفون</a><a class="chip" href="#/library/eras">${S.icon('timeline')} العصور</a><a class="chip" href="#/library/search?sort=alpha">${S.icon('sort')} أبجدياً</a></div>
-        ${S.ui.notice('gold', 'مكتبة تجريبية', S.h`<span>تحتوي هذه النسخة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة فقط (لا نصوص كتب). النظام قابل لاستيعاب 1800 كتاب وأكثر. أضِف كتبك وملفات PDF من لوحة الإدارة.</span>`)}
+        ${S.ui.notice('gold', 'مكتبة تجريبية', S.h`<span>تحتوي هذه النسخة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة فقط (لا نصوص كتب). تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${last && lastBook ? S.h`<div class="card tap gold-edge" data-act="goto" data-to="/library/read/${lastBook.id}"><div class="card-t">${S.icon('book-open')} تابع القراءة</div><div class="row"><div style="width:54px">${cover(lastBook)}</div><div class="grow"><b>${lastBook.title}</b><div class="small muted">${lastBook.author}${last.page ? ' • صفحة ' + S.n(last.page) : ''}</div></div></div></div>` : ''}
         ${S.ui.sectionTitle('الأقسام (' + S.n(S.sections.length) + ')')}
         <div class="stack s">${S.sections.map((s) => sectionCard(s, counts[s.id] || 0))}</div>
         ${recent.length ? S.h`${S.ui.sectionTitle('أُضيف حديثاً', '#/library/search?sort=recent')}<div class="hscroll">${recent.map(L.card)}</div>` : ''}
         ${rec.books.length ? S.h`${S.ui.sectionTitle(rec.personalized ? 'مقترحة لك' : 'كتب مقترحة', '#/library/recommended')}<div class="hscroll">${rec.books.map(L.card)}</div><p class="tiny muted">اقتراحات محلية تعتمد على مفضلتك وسجل قراءتك في هذا الجهاز فقط.</p>` : ''}
-        ${pend && can('books.review') ? S.h`<a class="btn gold block" href="#/admin/pending">${S.icon('shield')} الكتب بانتظار الموافقة (${S.n(pend)})</a>` : ''}
       </div>`,
       mount(root) { const f = S.$('#lib-q', root); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') { S.router.go('/library/search?q=' + encodeURIComponent(f.value)); } }); }
     };
@@ -151,7 +147,7 @@
         <div class="row between"><span class="small muted">${S.n(rows.length)} كتاب</span><select class="select" style="width:auto;min-height:38px" data-chg="secSort" data-sec="${sec.id}" data-sub="${sub}">${[['alpha', 'أبجدياً'], ['recent', 'الأحدث'], ['reads', 'الأكثر قراءة'], ['year', 'سنة النشر']].map(([v, t]) => S.h`<option value="${v}" ${v === sort ? S.raw('selected') : ''}>${t}</option>`)}</select></div>
         <div>${rows.slice(0, lim).map(L.row)}</div>
         ${rows.length > lim ? S.h`<a class="btn block" href="#/library/sec/${sec.id}?sub=${encodeURIComponent(sub)}&sort=${sort}&n=${lim + PAGE}&keep=1">عرض المزيد (${S.n(rows.length - lim)})</a>` : ''}
-        ${!rows.length ? S.ui.empty('book-open', 'لا توجد كتب في هذا التصنيف بعد', 'يمكن للمحرر إضافة كتاب من لوحة الإدارة، أو اقتراح كتب عبر SIRAJ AI LIBRARY.') : ''}
+        ${!rows.length ? S.ui.empty('book-open', 'لا توجد كتب في هذا التصنيف بعد', 'ستظهر الكتب هنا عند وصول تحديث محتوى يتضمنها.') : ''}
       </div>`
     };
   });
@@ -226,7 +222,7 @@
     const b = L.byId.get(p.id);
     if (!b || !L.visible(b)) return { title: 'كتاب', back: '/library', html: S.ui.empty('alert', 'الكتاب غير متاح', 'قد يكون قيد المراجعة أو محذوفاً.') };
     const sec = S.sectionById[b.section] || {}; const fav = S.fav.has('book', b.id); const au = L.authors.get(b.authorId);
-    const sim = L.similar(b, 8); const edit = can('books.edit');
+    const sim = L.similar(b, 8);
     const f = b.hasPdf ? await S.files.get('pdf:' + b.id) : null;
     return {
       title: 'تفاصيل الكتاب', nav: 'library', back: '/library/sec/' + b.section,
@@ -235,10 +231,9 @@
         <div class="detail-head">${cover(b)}<div class="grow"><div class="h2">${b.title}</div><a href="#/library/author/${b.authorId}" class="muted">${b.author}</a><div class="row wrap mt-s">${S.ui.badge(sec.title || '', 'gold')}${b.subcat ? S.ui.badge(b.subcat) : ''}${statusBadge(b)}</div>${fav ? S.h`<div class="small mt-s ok">${S.icon('heart', 'fill')} في المفضلة</div>` : ''}</div></div>
         <div class="grid2">
           ${b.hasPdf ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة</a>` : S.h`<button class="btn" disabled>${S.icon('file')} لا يوجد PDF</button>`}
-          ${b.hasPdf && (b.allowDownload || edit) ? S.h`<button class="btn" data-act="bookDownload" data-id="${b.id}">${S.icon('download')} تنزيل</button>` : S.h`<button class="btn" disabled title="التنزيل مسموح فقط عند ثبوت الترخيص">${S.icon('lock')} التنزيل غير مسموح</button>`}
+          ${b.hasPdf && b.allowDownload ? S.h`<button class="btn" data-act="bookDownload" data-id="${b.id}">${S.icon('download')} تنزيل</button>` : S.h`<button class="btn" disabled title="التنزيل مسموح فقط عند ثبوت الترخيص">${S.icon('lock')} التنزيل غير مسموح</button>`}
         </div>
-        ${!b.hasPdf ? S.ui.notice('info', 'لا يوجد ملف محلي لهذا الكتاب', S.h`<span>الكتب في هذه النسخة بيانات ببليوغرافية فقط. ${edit ? 'يمكنك إرفاق ملف PDF من جهازك (يُحفظ في متصفحك فقط).' : 'يمكن للمحرر إرفاق ملف PDF مرخّص.'}</span>`) : ''}
-        ${edit ? S.h`<div class="grid2"><button class="btn sm" data-act="bookAttach" data-id="${b.id}">${S.icon('upload')} إرفاق/استبدال PDF</button><a class="btn sm" href="#/admin/book/${b.id}">${S.icon('edit')} تعديل البيانات</a></div>` : ''}
+        ${!b.hasPdf ? S.ui.notice('info', 'لا يوجد ملف محلي لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية فقط؛ استخدم روابط المصدر أدناه للوصول إلى النسخ المتاحة قانونياً.') : ''}
         <div class="card"><div class="card-t">${S.icon('info')} نبذة تعريفية</div><p class="nm">${b.desc || S.raw('<span class="badge warn">غير موثّقة</span>')}</p></div>
         <div class="card"><div class="card-t">${S.icon('list')} البيانات الببليوغرافية</div><dl class="kv">
           <dt>المؤلف</dt><dd>${b.author}${b.authorDeath ? ' (ت ' + S.n(b.authorDeath) + ' هـ)' : ''}</dd>
@@ -268,5 +263,4 @@
     const b = L.byId.get(el.dataset.id); const f = await S.files.get('pdf:' + b.id); if (!f) return S.toast('الملف غير موجود', 'err');
     S.download(f.blob, (b.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80) || 'book') + '.pdf'); b.downloads = (b.downloads || 0) + 1; await L.save(b); S.stat.inc('downloads:' + b.id);
   });
-  S.act('bookAttach', (el) => S.admin && S.admin.attachPdf(el.dataset.id));
 })();

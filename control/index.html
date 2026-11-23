@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>سِراج — التحكم</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1722">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/responsive.css">
+<link rel="stylesheet" href="assets/css/control.css">
+<script>
+/* المظهر قبل الرسم: افتراضي ليلي لتمييز التطبيق عن سِراج */
+(function () {
+  try {
+    if (!localStorage.getItem('siraj.settings.v1')) localStorage.setItem('siraj.settings.v1', JSON.stringify({ theme: 'dark' }));
+    var s = JSON.parse(localStorage.getItem('siraj.settings.v1') || '{}');
+    var th = s.theme || 'dark';
+    if (th === 'auto') th = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = th;
+  } catch (e) {}
+})();
+window.SIRAJ_DB_NAME = 'siraj-control-db';
+window.SIRAJ_NAVS = [
+  { key: 'home', label: 'الرئيسية', icon: 'home', href: '#/home' },
+  { key: 'content', label: 'المحتوى', icon: 'library', href: '#/content' },
+  { key: 'publish', label: 'الإصدار', icon: 'upload', href: '#/publish' },
+  { key: 'key', label: 'المفتاح', icon: 'key', href: '#/key' }
+];
+</script>
+</head>
+<body class="ctl">
+<div id="app">
+  <header class="appbar" id="appbar">
+    <button class="iconbtn" id="ab-back" data-act="back" aria-label="رجوع" hidden><svg class="i" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+    <div class="title" id="ab-title">سِراج — التحكم</div>
+    <div class="ab-actions" id="ab-actions"></div>
+  </header>
+  <main class="view" id="view" tabindex="-1"></main>
+  <nav class="bottomnav" id="bottomnav" aria-label="التنقل الرئيسي"></nav>
+</div>
+<div id="overlay-root"></div>
+<div id="splash" role="status" aria-label="جارٍ التحميل">
+  <img src="assets/images/logo-mark.png" alt="" width="96" height="96">
+  <b>سِراج — التحكم</b>
+  <small>أداة الناشر: محتوى موقّع</small>
+</div>
+<noscript><p style="padding:24px;text-align:center">يتطلب التطبيق تفعيل JavaScript.</p></noscript>
+
+<script src="data/refs.js"></script>
+<script src="data/build-info.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/schema.js"></script>
+<script src="assets/js/packcrypto.js"></script>
+<script src="assets/js/navigation.js"></script>
+<script src="js/keys.js"></script>
+<script src="js/content.js"></script>
+<script src="js/entries.js"></script>
+<script src="js/publish.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

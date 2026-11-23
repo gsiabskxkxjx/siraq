@@ -12,7 +12,6 @@
   const marja = () => (S.settings.marja || '').trim();
   const P5 = [['fajr', 'الفجر'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['maghrib', 'المغرب'], ['isha', 'العشاء']];
   const ruleEntries = async (topic) => (await S.db.where('entries', 'collection', 'rulings')).filter((e) => !topic || e.extra.topic === topic);
-  const canEdit = () => !!(S.auth && S.auth.can('content.edit'));
 
   /* ---------------- قضاء الصلاة والصيام ---------------- */
   const QK = 'qada';
@@ -105,17 +104,16 @@
       const T = TOPICS[tp]; const rows = await ruleEntries(tp); const mine = rows.filter((e) => marja() && S.norm(e.extra.marja) === S.norm(marja())); const others = rows.filter((e) => !mine.includes(e));
       return {
         title: T.t, nav: 'more', back: '/worship',
-        html: S.h`<div class="stack">${S.ui.notice('warn', 'مصدر الأحكام', 'لا يضع سِراج أحكاماً من عنده ولا يولّدها بالذكاء الاصطناعي. تُعرض هنا فقط أحكام أدخلها المحررون بنصها من رسالة المرجع المسمّى مع رقم المسألة. للحكم المعتمد لديك ارجع إلى رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '.')}
-          ${mine.length ? S.h`${S.ui.sectionTitle('أحكام مرجعك: ' + marja())}${mine.map(ruleCard)}` : marja() ? S.ui.notice('info', 'لا أحكام موثقة لمرجعك في هذا الباب بعد', 'ارجع إلى رسالته العملية. يمكن للمحررين إضافة مداخل بمصدرها.') : S.ui.notice('info', 'سجّل مرجعك', 'ضع اسم المرجع في الإعدادات لتظهر أحكامه أولاً.')}
+        html: S.h`<div class="stack">${S.ui.notice('warn', 'مصدر الأحكام', 'لا يضع سِراج أحكاماً من عنده ولا يولّدها بالذكاء الاصطناعي. تُعرض هنا فقط أحكام وصلت من الناشر بنصها من رسالة المرجع المسمّى مع رقم المسألة. للحكم المعتمد لديك ارجع إلى رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '.')}
+          ${mine.length ? S.h`${S.ui.sectionTitle('أحكام مرجعك: ' + marja())}${mine.map(ruleCard)}` : marja() ? S.ui.notice('info', 'لا أحكام موثقة لمرجعك في هذا الباب بعد', 'ارجع إلى رسالته العملية. يصل المحتوى الموثق من الناشر عبر «تحديثات المحتوى».') : S.ui.notice('info', 'سجّل مرجعك', 'ضع اسم المرجع في الإعدادات لتظهر أحكامه أولاً.')}
           ${others.length ? S.h`${S.ui.sectionTitle('أحكام منسوبة لمراجع آخرين')}${others.map(ruleCard)}` : ''}
           ${tp === 'wudu' || tp === 'salat' ? teachBlock(tp) : ''}
-          ${canEdit() ? S.h`<a class="btn block" href="#/research/rulings/new?topic=${tp}">${S.icon('plus')} إضافة حكم موثق (باسم مرجعه)</a>` : ''}
           <a class="btn block" href="#/istifta?topic=${tp}">${S.icon('help-circle')} صياغة استفتاء حول هذا الباب</a></div>`
       };
     });
   });
   const WUDU = [['الوجه', ''], ['اليدان إلى المرافق', ''], ['الرأس', ''], ['الرجلان إلى الكعبين', '']];
-  const teachBlock = (tp) => (tp === 'wudu' ? S.h`<div class="card"><div class="card-t">${S.icon('droplet')} الأعضاء المذكورة في آية الوضوء — للتعلّم لا للفتوى</div><p class="small muted nm">الأصل القرآني: سورة المائدة، الآية 6. اضغط للانتقال إلى الآية (يظهر نصها بعد تنزيل المصحف). نذكر هنا أسماء الأعضاء الواردة في الآية فقط دون وصف الفعل أو حدوده.</p><div class="chips"><a class="chip" href="#/quran/ayah/5/6">المائدة ٦</a></div><ol class="list-b">${WUDU.map(([a, b]) => S.h`<li><b>${a}</b></li>`)}</ol><p class="tiny muted nm">كيفية الفعل وحدوده والترتيب والموالاة والنية وشروط الوضوء وأحكام الجبيرة والخلل تؤخذ كلها من رسالة مرجعك أو من معلم موثوق. هذه القائمة لا تغني عن الرسالة.</p></div>` : S.h`<div class="card"><div class="card-t">${S.icon('mosque')} تعلّم الصلاة</div><p class="small nm">نصوص الأذكار والقراءة وتفصيل الأفعال تُؤخذ من «رسالة مرجعك» أو من معلم موثوق. لم يُضمَّن هنا نص تعليمي للصلاة لأن صيغه وتفاصيله تُنقل من مصادر موثقة ولم يضف المحررون بعد مدخلاً بمصدره.</p><a class="btn sm" href="#/duas">الأدعية الموثقة</a></div>`);
+  const teachBlock = (tp) => (tp === 'wudu' ? S.h`<div class="card"><div class="card-t">${S.icon('droplet')} الأعضاء المذكورة في آية الوضوء — للتعلّم لا للفتوى</div><p class="small muted nm">الأصل القرآني: سورة المائدة، الآية 6. اضغط للانتقال إلى الآية (يظهر نصها بعد تنزيل المصحف). نذكر هنا أسماء الأعضاء الواردة في الآية فقط دون وصف الفعل أو حدوده.</p><div class="chips"><a class="chip" href="#/quran/ayah/5/6">المائدة ٦</a></div><ol class="list-b">${WUDU.map(([a, b]) => S.h`<li><b>${a}</b></li>`)}</ol><p class="tiny muted nm">كيفية الفعل وحدوده والترتيب والموالاة والنية وشروط الوضوء وأحكام الجبيرة والخلل تؤخذ كلها من رسالة مرجعك أو من معلم موثوق. هذه القائمة لا تغني عن الرسالة.</p></div>` : S.h`<div class="card"><div class="card-t">${S.icon('mosque')} تعلّم الصلاة</div><p class="small nm">نصوص الأذكار والقراءة وتفصيل الأفعال تُؤخذ من «رسالة مرجعك» أو من معلم موثوق. لم يُضمَّن هنا نص تعليمي للصلاة لأن صيغه وتفاصيله تُنقل من مصادر موثقة ولم يصل بعد من الناشر مدخل بمصدره.</p><a class="btn sm" href="#/duas">الأدعية الموثقة</a></div>`);
 
   /* ---------------- المركز: /worship ---------------- */
   S.router.add('/worship', async () => {

@@ -138,7 +138,7 @@
     return {
       title: 'الإشعارات', nav: 'home', back: '/home',
       actions: list.length ? [{ icon: 'trash', label: 'مسح الكل', act: 'notifClear' }] : [],
-      html: list.length ? S.h`<div class="list">${list.map((n) => S.h`<div class="li"><span class="li-ico">${S.icon(n.kind === 'prayer' ? 'mosque' : n.kind === 'review' ? 'shield' : 'bell')}</span><span class="li-body"><span class="li-t">${n.title}</span><span class="li-s">${n.body || ''}</span></span><span class="li-end tiny">${S.fmt.dt(n.ts)}</span></div>`)}</div>` : S.ui.empty('bell', 'لا توجد إشعارات', 'تظهر هنا تنبيهات الصلاة والمناسبات ومراجعات الكتب.')
+      html: list.length ? S.h`<div class="list">${list.map((n) => S.h`<div class="li"><span class="li-ico">${S.icon(n.kind === 'prayer' ? 'mosque' : n.kind === 'review' ? 'shield' : 'bell')}</span><span class="li-body"><span class="li-t">${n.title}</span><span class="li-s">${n.body || ''}</span></span><span class="li-end tiny">${S.fmt.dt(n.ts)}</span></div>`)}</div>` : S.ui.empty('bell', 'لا توجد إشعارات', 'تظهر هنا تنبيهات الصلاة والمناسبات وتحديثات المحتوى.')
     };
   });
   S.act('notifClear', async () => { if (await S.confirm('مسح كل الإشعارات؟')) { await S.notify.clear(); S.router.refresh(); } });
@@ -148,7 +148,7 @@
     ['العبادة والمواقيت', [['mosque', 'مواقيت الصلاة', 'حساب فلكي حسب موقعك', '/prayer'], ['compass', 'اتجاه القبلة', 'من إحداثياتك إلى الكعبة', '/qibla'], ['calendar', 'التقويم الهجري والمناسبات', 'وأيام الصيام المستحب', '/calendar'], ['check-circle', 'جدول قضاء الصلاة', 'تتبّع ما عليك قضاؤه', '/qada'], ['calc', 'حاسبة الخمس والزكاة', 'حساب مع بيان المرجع', '/worship/calc'], ['droplet', 'الوضوء والصلاة والأحكام', 'مع نسبة كل حكم لمرجعه', '/worship']]],
     ['القرآن والدعاء', [['book-open', 'القرآن الكريم', '114 سورة • 30 جزءاً', '/quran'], ['heart-handshake', 'الأدعية والزيارات', 'فهرس بمصادر موثقة', '/duas'], ['beads', 'المسبحة', 'عدّاد وأهداف وإحصاءات', '/tasbeeh'], ['sparkle', 'الأوراد والأعمال اليومية', 'ورد، تحدي قراءة، أذكار', '/daily'], ['notebook', 'دفتر التدبر', 'ملاحظاتك على الآيات', '/tadabbur']]],
     ['الموسوعات', [['star', 'العقائد', 'أصول الدين والإمامة', '/aqeedah'], ['users', 'الأئمة الاثنا عشر (ع)', 'سِيَر وجدول زمني', '/imams'], ['network', 'موسوعة الأبحاث العلمية', '20 وحدة بحثية', '/research'], ['sparkle', 'مساعد سِراج العلمي', 'يجيب من المكتبة مع الإحالة', '/assistant']]],
-    ['المكتبة والإدارة', [['library', 'المكتبة', 'أقسام موضوعية', '/library'], ['search', 'سِراج AI LIBRARY', 'اكتشاف الكتب ومراجعتها', '/ailibrary'], ['shield', 'إدارة سِراج', 'كتب، مراجعة، مستخدمون، سجل', '/admin']]],
+    ['المكتبة والتحديثات', [['library', 'المكتبة', 'أقسام موضوعية', '/library'], ['download', 'تحديثات المحتوى', 'حزم موقّعة من الناشر', '/updates']]],
     ['التطبيق', [['settings', 'الإعدادات', 'المظهر والخط والنسخ الاحتياطي', '/settings'], ['wifi', 'حالة الاتصال والتخزين', 'التشخيص', '/status'], ['info', 'عن سِراج والمصادر والتراخيص', '', '/about']]]
   ];
   S.router.add('/more', () => ({

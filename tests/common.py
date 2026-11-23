@@ -7,14 +7,14 @@ class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *x): pass
     def end_headers(self): self.send_header('Cache-Control', 'no-store'); super().end_headers()
 
-def serve():
-    srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(H, directory=ROOT))
+def serve(root=ROOT):
+    srv = socketserver.ThreadingTCPServer(('127.0.0.1', 0), functools.partial(H, directory=root))
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, srv.server_address[1]
 
 class T:
-    def __init__(self, w=390, h=844, dark=False, mock=None, loc=True, init_js=None, override=None):
-        self.fails = []; self.srv, self.port = serve(); self.base = f'http://127.0.0.1:{self.port}/index.html'
+    def __init__(self, w=390, h=844, dark=False, mock=None, loc=True, init_js=None, override=None, root=ROOT):
+        self.fails = []; self.srv, self.port = serve(root); self.base = f'http://127.0.0.1:{self.port}/index.html'
         self.p = sync_playwright().start(); self.b = self.p.chromium.launch(args=['--no-sandbox', '--autoplay-policy=no-user-gesture-required'])
         self.ctx = self.b.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2, locale='ar', timezone_id='Asia/Baghdad', is_mobile=True, has_touch=True, accept_downloads=True, color_scheme='dark' if dark else 'light')
         loc_js = ",cityId:'najaf',cityName:'النجف',lat:32.0,lng:44.336,tz:'Asia/Baghdad'" if loc else ''

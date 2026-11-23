@@ -8,13 +8,14 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = 'f3615127e3';
+const VERSION = 'ae4478da01';
 const PRECACHE = [
   './',
   './assets/css/responsive.css',
   './assets/css/style.css',
   './assets/data/duas-data.js',
   './assets/data/duas-data.json',
+  './assets/data/publisher-keys.js',
   './assets/data/quran-data.js',
   './assets/data/quran-data.json',
   './assets/data/sample-data.js',
@@ -30,8 +31,6 @@ const PRECACHE = [
   './assets/images/logo-mark.png',
   './assets/images/logo-mark.svg',
   './assets/images/logo.png',
-  './assets/js/admin.js',
-  './assets/js/ailibrary.js',
   './assets/js/app.js',
   './assets/js/assistant.js',
   './assets/js/calendar.js',
@@ -41,11 +40,14 @@ const PRECACHE = [
   './assets/js/home.js',
   './assets/js/library.js',
   './assets/js/navigation.js',
+  './assets/js/packcrypto.js',
+  './assets/js/packs.js',
   './assets/js/prayer.js',
   './assets/js/quran-audio.js',
   './assets/js/quran-duas.js',
   './assets/js/quran.js',
   './assets/js/reader.js',
+  './assets/js/schema.js',
   './assets/js/settings.js',
   './assets/js/storage.js',
   './assets/js/tasbeeh.js',

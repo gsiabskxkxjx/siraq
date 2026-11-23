@@ -1,12 +1,11 @@
 /* =====================================================================
    سِراج — duas.js : الأدعية والزيارات
-   الفهرس يحتوي العناوين فقط. لا يظهر نص دعاء أو زيارة إلا إذا أُضيف بمصدر (كتاب/طبعة/صفحة) من لوحة الإدارة أو الاستيراد،
-   وحينها تكون حالته «موثق». أي نص بلا مصدر يُرفض عند الحفظ.
+   الفهرس يحتوي العناوين فقط. لا يظهر نص دعاء أو زيارة إلا إذا وصل بمصدر (كتاب/طبعة/صفحة) ضمن حزمة موقّعة من الناشر أو من نص المصحف،
+   وحينها تكون حالته «موثق». أي نص بلا مصدر يُرفض عند الاستيراد.
    ===================================================================== */
 (function () {
   'use strict';
   const S = window.SIRAJ;
-  const can = (c) => !!(S.auth && S.auth.can(c));
   const STATUS = { documented: ['نص موثق', 'ok'], missing: ['العنوان فقط', 'warn'], demo: ['نص اختبار للواجهة', 'info'] };
   const KIND = { dua: 'دعاء', ziyarah: 'زيارة', collection: 'مجموعة', demo: 'تجريبي' };
   const badge = (it) => { const [t, k] = STATUS[it.textStatus] || STATUS.missing; return S.ui.badge(t, k); };
@@ -15,16 +14,7 @@
   const D = (S.duas = {
     cats: () => S.data.duas.categories,
     async all() { return (await S.db.all('duas')).sort((a, b) => (a.order || 0) - (b.order || 0)); },
-    validate(it) {
-      const errs = [];
-      if (!it.title || !it.title.trim()) errs.push('العنوان مطلوب');
-      if (it.text && it.text.trim()) {
-        const s = it.textSource || {};
-        if (!s.book || !String(s.book).trim()) errs.push('اسم الكتاب المصدر مطلوب لأي نص');
-        if (!s.page && !s.part && !s.url) errs.push('أضف رقم الصفحة أو الجزء أو رابطاً للتحقق');
-      }
-      return errs;
-    }
+    validate: (it) => S.schema.validateDua(it)
   });
 
   S.router.add('/duas', async (p, q) => {
@@ -34,11 +24,11 @@
     const res = term ? all.filter((d) => S.norm(d.title + ' ' + (d.textStatus !== 'missing' ? d.text : '')).includes(S.norm(term))) : [];
     return {
       title: 'الأدعية والزيارات', nav: 'more', back: '/more',
-      actions: can('content.edit') ? [{ icon: 'edit', label: 'إدارة الأدعية', href: '#/admin/duas' }] : [],
+      actions: [],
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="dq" type="search" value="${term}" placeholder="ابحث في الأدعية والزيارات" enterkeyhint="search"></div>
         ${term ? (res.length ? S.h`<div class="list">${res.map(row)}</div>` : S.ui.empty('search', 'لا نتائج')) : S.h`
-        ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.filter((d) => d.kind !== 'demo').length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. يمكن للمحرّر إضافة النصوص من <a href="#/admin/duas">لوحة الإدارة</a> أو استيرادها من ملف.</span>`)}
+        ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.filter((d) => d.kind !== 'demo').length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. تصل النصوص الجديدة عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${qdNotice(all)}
         <div class="chips"><a class="chip" href="#/duas/favorites">${S.icon('heart')} المفضلة (${S.n(favs)})</a></div>
         <div class="grid2">${cats.map((c) => S.h`<a class="card tap" href="#/duas/cat/${c.id}"><b>${c.title}</b><div class="small muted">${S.n(counts[c.id] || 0)} عنوان</div></a>`)}</div>`}
@@ -66,7 +56,7 @@
 
   /* ---------- قارئ الدعاء ---------- */
   let tts = null;
-  /* تكرار مقطع (A–B) على التسجيل الصوتي الذي أضافه المحرّر */
+  /* تكرار مقطع (A–B) على التسجيل الصوتي المرتبط بالدعاء إن وُجد */
   const AB = { a: null, b: null }; const fmtT = (x) => (x == null ? '—' : Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0'));
   const abPaint = () => { const A = S.$('#dua-a'), B = S.$('#dua-b'), st = S.$('#dua-abst'); if (!A) return; A.textContent = fmtT(AB.a); B.textContent = fmtT(AB.b); st.textContent = AB.a != null && AB.b != null ? 'يتكرر المقطع من ' + fmtT(AB.a) + ' إلى ' + fmtT(AB.b) : 'لا مقطع محدد.'; };
   S.act('duaA', () => { const au = S.$('#dua-au'); if (!au) return; AB.a = au.currentTime; if (AB.b != null && AB.b <= AB.a) AB.b = null; abPaint(); });
@@ -82,7 +72,7 @@
     const ok = d.textStatus !== 'missing' && lines.length; const cat = D.cats().find((c) => c.id === d.cat);
     return {
       title: d.title, nav: 'more', back: '/duas/cat/' + d.cat,
-      actions: [{ icon: 'heart', label: 'مفضلة', act: 'duaFav', attrs: 'data-id="' + S.esc(d.id) + '"' }].concat(can('content.edit') ? [{ icon: 'edit', label: 'تعديل', href: '#/admin/dua/' + d.id }] : []),
+      actions: [{ icon: 'heart', label: 'مفضلة', act: 'duaFav', attrs: 'data-id="' + S.esc(d.id) + '"' }],
       html: S.h`<div class="stack">
         <div class="card"><div class="row between"><div><b class="h2">${d.title}</b><div class="small muted">${KIND[d.kind] || ''}${cat ? ' • ' + cat.title : ''}</div></div>${badge(d)}</div></div>
         ${d.textStatus === 'demo' ? S.ui.notice('warn', 'نص اختبار', 'هذا النص مخصص لاختبار واجهة القراءة فقط وليس دعاءً ولا نصاً دينياً.') : ''}
@@ -91,8 +81,8 @@
           <div class="card"><div class="dua-text" id="duatext">${lines.map((ln, i) => S.h`<span class="dua-line ${prog && prog.pos === i ? 'mark' : ''}" data-act="duaMark" data-id="${d.id}" data-i="${i}" id="dl-${i}">${ln}</span>`)}</div></div>
           ${audioUrl ? S.h`<div class="card"><div class="card-t">${S.icon('volume')} تسجيل صوتي</div><audio controls preload="none" id="dua-au" src="${audioUrl}" style="width:100%"></audio>
             <div class="card flat mt"><div class="small"><b>تكرار مقطع</b> — شغّل التسجيل ثم حدّد بداية المقطع ونهايته ليتكرر</div><div class="grid3 mt-s"><button class="btn sm" data-act="duaA">بداية: <b id="dua-a">—</b></button><button class="btn sm" data-act="duaB">نهاية: <b id="dua-b">—</b></button><button class="btn sm" data-act="duaABclr">إلغاء</button></div><label class="check"><input type="checkbox" id="dua-all" data-chg="duaLoopAll"><span>تكرار التسجيل كاملاً</span></label><div class="tiny muted" id="dua-abst">لا مقطع محدد.</div></div>
-            <div class="tiny muted">${d.audioNote || 'ملف صوتي أضافه المحرّر. تأكد من ترخيصه.'}</div></div>` : ''}`
-          : S.ui.empty('scroll', 'النص الموثق غير مضاف بعد', 'لا يُنشئ سِراج نصوص الأدعية من عنده. عند إضافة النص من كتاب معتمد (مثل مفاتيح الجنان أو الصحيفة السجادية) مع الطبعة والصفحة يظهر هنا للقراءة.', can('content.edit') ? S.h`<a class="btn gold" href="#/admin/dua/${d.id}">${S.icon('plus')} إضافة النص الموثق</a>` : S.h`<a class="btn" href="#/admin">تسجيل دخول المحرر</a>`)}
+            <div class="tiny muted">${d.audioNote || 'ملف صوتي مرتبط بالدعاء. تأكد من ترخيصه.'}</div></div>` : ''}`
+          : S.ui.empty('scroll', 'النص الموثق غير مضاف بعد', 'لا يُنشئ سِراج نصوص الأدعية من عنده. عند إضافة النص من كتاب معتمد (مثل مفاتيح الجنان أو الصحيفة السجادية) مع الطبعة والصفحة يظهر هنا للقراءة.', S.h`<a class="btn" href="#/updates">تحديثات المحتوى</a>`)}
         <div class="card"><div class="card-t">${S.icon('link')} المصدر</div><p class="nm">${srcLine(d) || 'غير محدد'}</p>${d.textSource && d.textSource.url ? S.h`<a class="small" href="${d.textSource.url}" target="_blank" rel="noopener noreferrer">رابط المصدر</a>` : ''}<p class="tiny muted nm mt">${d.note || ''}</p></div>
         ${ok ? S.h`<a class="btn block" href="#/daily/reminders?dua=${d.id}">${S.icon('bell')} جدولة قراءة هذا الدعاء</a>` : ''}
       </div>`,

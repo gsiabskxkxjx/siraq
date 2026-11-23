@@ -59,9 +59,6 @@ def mk(i, row, status, proposed=None, ai_note=""):
         hasPdf=False, hasCover=False, allowDownload=False, reads=0, downloads=0))
 for i, row in enumerate(BOOKS):
     mk(i, row, "published")
-for j, row in enumerate(PROPOSALS):
-    mk(len(BOOKS) + j, row[:7], "pending", proposed=row[7],
-       ai_note="اقتراح تجريبي لعرض سير العمل (ليس نتيجة بحث حقيقي). القسم المقترح مبني على قواعد كلمات مفتاحية. الحقوق غير محددة ويجب التحقق من المصدر والطبعة قبل أي نشر.")
 
 authors = [dict(id=a[0], name=a[1], death=a[2], note=a[3]) for a in AUTHORS]
 
@@ -235,27 +232,12 @@ for a in ASPECTS:
     a.setdefault("disputed", False)
     a["status"] = "تعريف تمهيدي عام، لا يُغني عن الرجوع إلى المصادر المذكورة."
 
-# ---------------------------------------------------------------- مستخدمون تجريبيون
-USERS = [
-    dict(id="u_owner", name="المالك (تجريبي)", username="owner", pin="1111", role="owner"),
-    dict(id="u_manager", name="المدير (تجريبي)", username="manager", pin="2222", role="manager"),
-    dict(id="u_editor", name="المحرر (تجريبي)", username="editor", pin="3333", role="editor"),
-    dict(id="u_reviewer", name="المراجع (تجريبي)", username="reviewer", pin="4444", role="reviewer"),
-]
-ROLES = {
-    "owner": dict(title="المالك", caps=["*"]),
-    "manager": dict(title="المدير", caps=["books.view", "books.add", "books.edit", "books.review", "content.edit", "audio.manage", "notifications.manage", "stats.view", "audit.view"]),
-    "editor": dict(title="المحرر", caps=["books.view", "books.add", "books.edit", "content.edit"]),
-    "reviewer": dict(title="المراجع", caps=["books.view", "books.review", "stats.view"]),
-    "user": dict(title="المستخدم", caps=[]),
-}
-
 sample = dict(
     meta=dict(app="سِراج", en="SIRAJ", tagline="نور العلم وهداية الطريق", sub="القرآن • العترة • المعرفة", version="0.1.0-demo",
               dataNotice="بيانات المكتبة تجريبية ومحدودة، تحتوي معلومات ببليوغرافية عامة فقط (عنوان، مؤلف، سنة وفاة المؤلف، نبذة). لم تُراجَع على المصادر الأصلية ولا تحتوي نصوص كتب."),
     sections=SECTIONS, sources=SOURCES, authors=authors, books=books,
     imams=IMAMS, events=EVENTS, occasions=OCCASIONS, hijriMonths=HIJRI_MONTHS, places=PLACES, cities=CITIES,
-    dhikr=DHIKR, mustahabb=MUSTAHABB, ahlVerses=AHL_VERSES, aspects=ASPECTS, users=USERS, roles=ROLES,
+    dhikr=DHIKR, mustahabb=MUSTAHABB, ahlVerses=AHL_VERSES, aspects=ASPECTS,
     ayatSectionHint="اعرض الآيات والنصوص مع مصادرها، وفرّق بين المتفق عليه ومحل الخلاف البحثي.",
 )
 dump("sample-data", "sample", sample)
@@ -329,4 +311,4 @@ dump("duas-data", "duas", duas)
 
 # قوالب الاستيراد (docs/import-templates/*.json) تُحرَّر يدوياً وتتحقق منها tests/templates_flow.py؛ لا يكتبها هذا السكربت.
 
-print("OK: books=%d (published=%d pending=%d) authors=%d surahs=%d" % (len(books), len(BOOKS), len(PROPOSALS), len(authors), len(surahs)))
+print("OK: books=%d (published=%d) authors=%d surahs=%d" % (len(books), len(BOOKS), len(authors), len(surahs)))

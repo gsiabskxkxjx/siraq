@@ -7,8 +7,6 @@
   S.online = navigator.onLine;
   S.installEvent = null;
 
-  async function hashPin(pin, salt) { return S.sha256(salt + ':' + pin); }
-
   const CATALOG_V = 3; /* ارفعه عند توسيع الكتالوج المضمَّن ليصل التحديث إلى من ثبّت نسخة أقدم */
   async function seed() {
     const D = S.data.sample; const done = S.kv.get('seed.v', 0);
@@ -18,7 +16,7 @@
       const addB = [], mv = [];
       for (const b of D.books) {
         const o = have.get(b.id);
-        if (!o) addB.push(Object.assign({}, b));
+        if (!o && !(S.packs && S.packs.isWithdrawn('books', b.id))) addB.push(Object.assign({}, b));
         else if (o.demo && (o.section !== b.section || o.subcat !== b.subcat)) mv.push(Object.assign({}, o, { section: b.section, subcat: b.subcat }));
       }
       if (addB.length) await S.db.putMany('books', addB);
@@ -33,19 +31,29 @@
       await S.db.putMany('books', D.books.map((b) => Object.assign({}, b)));
       await S.db.putMany('authors', D.authors);
       await S.db.putMany('sources', D.sources);
-      const users = [];
-      for (const u of D.users) { const salt = S.uid('s'); users.push({ id: u.id, name: u.name, username: u.username, role: u.role, salt, hash: await hashPin(u.pin, salt), grants: [], active: true, demo: true }); }
-      await S.db.putMany('users', users);
-      await S.notify.add({ title: 'أهلاً بك في سِراج', body: 'هذه نسخة HTML تجريبية. بياناتك تُحفظ في هذا المتصفح فقط ولا تُرفع إلى أي خادم.', kind: 'info' });
+      await S.notify.add({ title: 'أهلاً بك في سِراج', body: 'بياناتك (المفضلة والملاحظات والتقدم) تُحفظ على هذا الجهاز فقط ولا تُرفع إلى أي خادم. يصل المحتوى الجديد عبر «تحديثات المحتوى» الموقّعة من الناشر.', kind: 'info' });
       await S.kv.set('seed.v', CATALOG_V);
     }
     // فهرس الأدعية: يُضاف الناقص فقط دون المساس بتعديلات المستخدم
-    const have = new Set((await S.db.all('duas')).map((d) => d.id)); const add = S.data.duas.items.filter((d) => !have.has(d.id));
+    const have = new Set((await S.db.all('duas')).map((d) => d.id)); const add = S.data.duas.items.filter((d) => !have.has(d.id) && !(S.packs && S.packs.isWithdrawn('duas', d.id)));
     if (add.length) await S.db.putMany('duas', add);
-    if (!S.kv.get('settings.owner')) await S.kv.set('settings.owner', { requireOwnerApproval: true, maxCoverMB: 5 });
+    await dropLegacyAdmin();
+  }
+  /* نسخ أقدم من سِراج كانت تحوي حسابات إدارة تجريبية وجلسة دخول وإعدادات مالك: تُمحى نهائياً عند أول تشغيل بعد التحويل إلى «مستخدم فقط». */
+  async function dropLegacyAdmin() {
+    if (S.kv.get('legacy.admin.dropped')) return;
+    try {
+      await S.db.clear('users'); await S.db.clear('audit');
+      for (const k of ['auth.session', 'settings.owner', 'ailib.log']) if (S.kv.get(k) !== undefined) await S.kv.del(k);
+      /* كتب كانت مسودات/بانتظار موافقة (من حسابات المحرر المحلية) لا تُعرض لأحد؛ تُحذف حتى لا تتراكم */
+      const stale = (await S.db.all('books')).filter((b) => !b.pack && b.status !== 'published' && b.status !== 'withdrawn');
+      for (const b of stale) { await S.db.del('books', b.id); await S.files.del('pdf:' + b.id).catch(() => {}); await S.files.del('cover:' + b.id).catch(() => {}); }
+      await S.kv.set('legacy.admin.dropped', { at: Date.now(), books: stale.length });
+    } catch (e) { S.log('warn', 'dropLegacyAdmin: ' + e.message); }
   }
   S.resetDemo = async function () {
-    for (const st of ['books', 'authors', 'sources', 'duas', 'entries', 'users', 'notifications', 'audit', 'files']) await S.db.clear(st);
+    for (const st of ['books', 'authors', 'sources', 'duas', 'entries', 'notifications', 'audit', 'files']) await S.db.clear(st);
+    for (const k of ['packs.state', 'thaqalaynImport', 'quranDuas']) if (S.kv.get(k) !== undefined) await S.kv.del(k);
     await S.kv.set('seed.v', 0); await seed(); if (S.library) await S.library.init();
   };
 
@@ -98,7 +106,6 @@
       await S.kv.load(); await S.fav.load(); await S.progress.load();
       await seed();
       if (S.library) await S.library.init();
-      if (S.auth) await S.auth.restore();
       if (S.quran && S.quran.init) await S.quran.init();
       ['prayer', 'calendar', 'daily', 'worship'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
       registerSW(); installBackButton();

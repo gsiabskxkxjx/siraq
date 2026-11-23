@@ -93,8 +93,8 @@
     const card = (d) => S.h`<a class="li" href="#/duas/item/${d.id}"><span class="li-body"><span class="li-t">${d.title}</span><span class="li-s">${(d.textSource || {}).book || ''}</span></span>${S.icon('chevron-left')}</a>`;
     return {
       title: 'أذكار الصباح والمساء', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${S.ui.notice('info', 'من الأدعية الموثقة فقط', 'لا يكتب سِراج أذكاراً من عنده. تظهر هنا العناصر التي أدخلها المحررون بنصها ومصدرها وطبعتها.')}
-        ${[['sun', 'الصباح', m], ['moon', 'المساء', e]].map(([ic, t, l]) => S.h`<div class="card"><div class="card-t">${S.icon(ic)} ${t}</div>${l.length ? l.map(card) : S.h`<p class="small muted nm">لم يُضَف بعد نص موثق لأذكار ${t}. (للمحرر: «إدارة الأدعية» ← إضافة مع المصدر.)</p>`}</div>`)}
+      html: S.h`<div class="stack">${S.ui.notice('info', 'من الأدعية الموثقة فقط', 'لا يكتب سِراج أذكاراً من عنده. تظهر هنا العناصر التي وصلت بنصها ومصدرها وطبعتها.')}
+        ${[['sun', 'الصباح', m], ['moon', 'المساء', e]].map(([ic, t, l]) => S.h`<div class="card"><div class="card-t">${S.icon(ic)} ${t}</div>${l.length ? l.map(card) : S.h`<p class="small muted nm">لم يُضَف بعد نص موثق لأذكار ${t}. (يصل المحتوى الموثق عبر «تحديثات المحتوى».)</p>`}</div>`)}
         ${cat.length ? S.h`<div class="card"><div class="card-t">${S.icon('heart-handshake')} أدعية يومية موثقة</div>${cat.map(card)}</div>` : ''}<a class="btn block" href="#/daily/reminders">${S.icon('bell')} ضبط تذكير</a></div>`
     };
   });
@@ -121,7 +121,7 @@
 
   /* ---------------- 10: هدية كتاب رقمي ---------------- */
   S.router.add('/daily/gift', () => {
-    const ok = L().published().filter((b) => b.hasPdf && b.allowDownload && S.admin && S.admin.copyOk(b.copyright)); const pick = ok.length ? ok[S.dayIdx() % ok.length] : null;
+    const ok = L().published().filter((b) => b.hasPdf && b.allowDownload && S.schema.copyOk(b.copyright)); const pick = ok.length ? ok[S.dayIdx() % ok.length] : null;
     return {
       title: 'هدية اليوم', nav: 'more', back: '/daily',
       html: S.h`<div class="stack">${pick ? S.h`<div class="card gold-edge"><div class="small gold">هدية اليوم</div><b class="q-name">${pick.title}</b><div class="small muted">${pick.author}</div><div class="tiny muted">الرخصة: ${pick.copyright}</div><div class="grid2 mt"><a class="btn primary" href="#/library/book/${pick.id}">${S.icon('book-open')} فتح الكتاب</a><button class="btn" data-act="bookDownload" data-id="${pick.id}">${S.icon('download')} تنزيل</button></div></div>` : S.ui.empty('heart', 'لا هدية اليوم', 'تظهر هدايا الكتب فقط للكتب التي رُفع ملفها وكانت رخصتها (ملك عام/Creative Commons/بإذن) تسمح بالنشر والتنزيل. لا توجد كتب بهذه الشروط حالياً.')}
@@ -134,7 +134,7 @@
     const rows = (await S.db.all('audiolib')).sort((a, b) => b.ts - a.ts); const urls = rows.map((r) => (r.blob ? URL.createObjectURL(r.blob) : null)); const au = await S.db.count('audio');
     return {
       title: 'المكتبة الصوتية', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${rows.length ? rows.map((r, i) => S.h`<div class="card"><b>${r.title}</b><div class="small muted">${r.by || ''} • ${({ recitation: 'تلاوة', dua: 'دعاء/زيارة', lecture: 'محاضرة', adhan: 'أذان' })[r.kind] || r.kind}</div><audio controls preload="none" src="${urls[i]}" style="width:100%;margin-top:6px"></audio><div class="tiny muted">الترخيص: ${r.license}</div></div>`) : S.ui.empty('volume', 'لا تسجيلات بعد', 'يضيف المحررون تسجيلات مرخّصة من «إدارة سِراج ← الصوتيات».')}
+      html: S.h`<div class="stack">${rows.length ? rows.map((r, i) => S.h`<div class="card"><b>${r.title}</b><div class="small muted">${r.by || ''} • ${({ recitation: 'تلاوة', dua: 'دعاء/زيارة', lecture: 'محاضرة', adhan: 'أذان' })[r.kind] || r.kind}</div><audio controls preload="none" src="${urls[i]}" style="width:100%;margin-top:6px"></audio><div class="tiny muted">الترخيص: ${r.license}</div></div>`) : S.ui.empty('volume', 'لا تسجيلات بعد', 'تظهر هنا تسجيلاتك الصوتية، مثل الأذان المخصص الذي تضيفه من إعدادات مواقيت الصلاة.')}
         <div class="card"><div class="kv"><span>تلاوات قرآنية منزَّلة على جهازك</span><b>${S.n(au)}</b></div><a class="btn block mt-s" href="#/quran/download">إدارة التنزيلات</a></div></div>`,
       unmount() { urls.forEach((u) => u && URL.revokeObjectURL(u)); }
     };

@@ -18,7 +18,7 @@ noauth = t.ev("SIRAJ.library.books.filter(b=>!b.author||!b.authorId).map(b=>b.id
 t.check('لكل كتاب مؤلف', noauth == [], noauth[:5])
 t.check('لا كتاب منشور فيه ملف أو رابط أو ناشر غير موثق', t.ev("SIRAJ.library.books.filter(b=>b.status==='published').every(b=>!b.hasPdf&&!b.digitalUrl&&!b.publisher&&b.copyright==='غير محدد')"))
 t.check('كل الكتب موسومة بأنها غير مراجَعة', t.ev("SIRAJ.library.books.every(b=>/لم تُراجع/.test(b.reviewStatus))"))
-t.check('لا ارتباط وهمي: الاقتراحات الأربعة معلّقة', t.ev("SIRAJ.library.books.filter(b=>b.status==='pending').length")==4)
+t.check('لا مسودات ولا اقتراحات وهمية في الكتالوج المشحون', t.ev("SIRAJ.library.books.filter(b=>b.status!=='published').length")==0)
 t.check('لا نص ديني منقول: لا حقل text في الكتب', t.ev("SIRAJ.library.books.every(b=>!('text' in b))"))
 
 # صفحة الرئيسية للمكتبة تعرض الأقسام العشرة

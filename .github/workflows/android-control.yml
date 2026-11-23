@@ -1,0 +1,121 @@
+name: Build Control APK
+
+# تطبيق «سِراج — التحكم»: أداة الناشر التي توقّع حزم المحتوى. يُبنى منفصلاً عن تطبيق سِراج (workflow آخر)،
+# وله معرّف حزمة مختلف (com.siraj.control) فيُثبَّت إلى جانب سِراج، ويُنشر في Releases بوسم control-<رقم>.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-control-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SIRAJ_ANDROID_DIR: control/android
+      SIRAJ_IMAGES_DIR: control/assets/images
+      SIRAJ_ICON_BG: "#0E1722"
+      SIRAJ_SPLASH_BG: "#0E1722"
+      SIRAJ_PERMS: ""
+    steps:
+      - name: جلب المستودع
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Python (لتوليد الأيقونات)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: حزم Python
+        run: pip install pillow
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+
+      - name: تثبيت اعتماديات Capacitor (تطبيق التحكم)
+        working-directory: control
+        run: npm install --no-audit --no-fund
+
+      - name: تجهيز ملفات الويب (control/www)
+        working-directory: control
+        run: node ../scripts/prepare-control.mjs
+
+      - name: إنشاء مشروع أندرويد
+        working-directory: control
+        run: npx cap add android
+
+      - name: تخصيص الأيقونة وشاشة البداية
+        run: python3 scripts/patch-android.py
+
+      - name: مزامنة Capacitor
+        working-directory: control
+        run: npx cap sync android
+
+      - name: بناء APK
+        working-directory: control/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: رفع تقارير الفشل (عند الفشل فقط)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-build-reports
+          path: |
+            control/android/app/build/reports
+            control/android/build/reports
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: توقيع APK بمفتاح ثابت
+        run: |
+          APK="$(find control/android/app/build/outputs/apk/debug -name '*.apk' | head -1)"
+          echo "APK المبني: $APK"
+          mkdir -p dist
+          if bash scripts/sign-apk.sh "$APK" dist/SIRAJ-Control.apk; then
+            echo "تم التوقيع بالمفتاح الثابت."
+          else
+            echo "::warning title=التوقيع::فشل التوقيع بالمفتاح الثابت؛ استُخدم توقيع التصحيح التلقائي. ثبّته بعد حذف النسخة القديمة إن وُجدت."
+            cp "$APK" dist/SIRAJ-Control.apk
+          fi
+
+      - name: رفع الملف كـ Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIRAJ-Control-apk
+          path: dist/SIRAJ-Control.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: نشر الملف في Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: control-${{ github.run_number }}
+          name: سِراج — التحكم، بناء رقم ${{ github.run_number }}
+          body: |
+            ملف التثبيت: **SIRAJ-Control.apk** — أداة الناشر (تُنشئ مفتاح التوقيع وتُصدر حزم المحتوى لتطبيق سِراج).
+            تُثبَّت إلى جانب سِراج (معرّف مختلف). افتحها ← «المفتاح» ← أنشئ مفتاحك واحفظ النسخة الاحتياطية.
+            الالتزام: ${{ github.sha }}
+          make_latest: "false"
+          files: dist/SIRAJ-Control.apk

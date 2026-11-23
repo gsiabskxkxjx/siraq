@@ -28,7 +28,7 @@
       const haveD = new Map((await S.db.all('duas')).filter((d) => /^nth_/.test(d.id)).map((d) => [d.id, d]));
       const ents = [], keep = new Set();
       items.forEach((it, i) => {
-        const id = 'nth_' + it.id; keep.add(id); const cur = have.get(id); if (cur && cur.status !== 'imported') return; // عدّله محرّر أو اعتمده مراجع: لا نمسه
+        const id = 'nth_' + it.id; if (S.packs && S.packs.isWithdrawn('entries', id)) return; keep.add(id); const cur = have.get(id); if (cur && cur.status !== 'imported') return; // اعتُمد أو عُدّل: لا نمسه
         ents.push({
           id, collection: 'narrations', title: it.book + ' — حديث ' + it.number + (it.chapter ? ' (' + it.chapter + ')' : ''), text: it.text, verses: [], tags: ['مستورد'],
           sources: [{ book: it.book, author: str(it.author), edition: '', volume: '', page: '', number: it.number, url: it.url }],
@@ -38,7 +38,7 @@
       });
       const ds = [], keepD = new Set();
       duas.forEach((it, i) => {
-        const id = 'nth_' + it.id; keepD.add(id); const cur = haveD.get(id); if (cur && !cur.bundled) return;
+        const id = 'nth_' + it.id; if (S.packs && S.packs.isWithdrawn('duas', id)) return; keepD.add(id); const cur = haveD.get(id); if (cur && !cur.bundled) return;
         ds.push({
           id, kind: 'dua', title: it.book + ' — ' + it.number, cat: /صحيفة/.test(it.book) ? 'sahifa' : 'books', commonSource: it.book, note: 'مستورد آلياً من Thaqalayn ولم يُراجَع في سِراج.',
           text: it.text, textSource: { book: it.book, author: str(it.author), edition: '', part: '', page: '', url: it.url }, textStatus: 'documented', audio: null, demo: false, bundled: true, imported: true, order: 2000 + i

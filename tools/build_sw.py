@@ -5,7 +5,7 @@
 """
 import hashlib, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {'tests', 'tools', 'docs', 'scripts', 'www', 'android', 'android-signing', 'dist', '.git', 'node_modules', '__pycache__'}
+SKIP_DIRS = {'tests', 'tools', 'docs', 'scripts', 'www', 'www-control', 'control', 'android', 'android-signing', 'dist', '.git', 'node_modules', '__pycache__'}
 SKIP_FILES = {'package.json', 'package-lock.json', 'capacitor.config.json'}
 SKIP_EXT = {'.zip', '.md', '.py', '.map', '.txt'}
 KEEP_TXT = {os.path.join('assets', 'lib', 'pdfjs', 'LICENSE-pdfjs.txt')}

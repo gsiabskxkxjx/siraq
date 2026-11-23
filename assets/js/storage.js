@@ -6,7 +6,7 @@
 (function () {
   'use strict';
   const S = window.SIRAJ;
-  const NAME = 'siraj-db', VER = 1;
+  const NAME = window.SIRAJ_DB_NAME || 'siraj-db', VER = 1; /* تطبيق التحكم يضبط اسماً مختلفاً */
   const STORES = {
     books: { kp: 'id', idx: ['status', 'section'] }, files: { kp: 'id' }, authors: { kp: 'id' }, publishers: { kp: 'id' },
     sources: { kp: 'id' }, quran: { kp: 'id' }, audio: { kp: 'id' }, audiolib: { kp: 'id' }, duas: { kp: 'id' },
@@ -123,10 +123,9 @@
     async clear() { await DB.clear('notifications'); S.updateBell && S.updateBell(); }
   };
 
-  /* ---------- سجل العمليات الإدارية ---------- */
+  /* ---------- سجل العمليات المحلي (تحديثات المحتوى وما شابه) ---------- */
   S.audit = async function (action, target, details) {
-    const u = (S.auth && S.auth.user && S.auth.user()) || null;
-    const rec = { id: S.uid('a'), ts: Date.now(), user: u ? u.name : 'زائر', role: u ? u.role : 'user', action, target: target || '', details: details || '' };
+    const rec = { id: S.uid('a'), ts: Date.now(), user: S.auditUser || 'هذا الجهاز', role: 'user', action, target: target || '', details: details || '' };
     try { await DB.put('audit', rec); } catch (e) { S.log('warn', 'تعذّر تسجيل العملية'); }
     return rec;
   };
@@ -154,40 +153,43 @@
     }
   };
 
-  /* ---------- نسخ احتياطي / استعادة ---------- */
+  /* ---------- نسخ احتياطي / استعادة ----------
+     النسخة تضم بيانات المستخدم الشخصية فقط (مفضلة، ملاحظات، تقدّم، مسبحة، قضاء…). لا تدخل فيها الكتب ولا الأدعية ولا المداخل:
+     المحتوى يصل فقط عبر حزم موقّعة، فلا يجوز أن يكون ملف «نسخة احتياطية» قناةً لحقن محتوى غير موقّع. */
+  const USER_STORES = ['favorites', 'bookmarks', 'progress', 'notes', 'highlights', 'tasbeeh', 'prayerlog', 'qada', 'stats'];
+  const FILE_STORES = ['audio', 'audiolib']; /* تلاوات منزَّلة وأذان مخصص من المستخدم */
+  const KV_RESERVED = /^(seed\.v|packs\.|thaqalaynImport|quranDuas|settings\.owner|auth\.|ailib\.)/;
   const b2b64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
   const b64tob = async (u) => (await fetch(u)).blob();
   S.backup = {
+    USER_STORES,
     async export(opts) {
-      opts = opts || {}; const out = { app: 'SIRAJ', version: S.version, exportedAt: new Date().toISOString(), includeFiles: !!opts.includeFiles, stores: {}, settings: S.settings };
-      for (const s of S.STORES) {
-        if (s === 'files' && !opts.includeFiles) continue;
-        if (s === 'audio' && !opts.includeFiles) continue;
-        if (s === 'audiolib' && !opts.includeFiles) continue;
-        if (s === 'users' && !opts.includeUsers) continue;
+      opts = opts || {}; const out = { app: 'SIRAJ', kind: 'user-data', version: S.version, exportedAt: new Date().toISOString(), includeFiles: !!opts.includeFiles, stores: {}, kv: {}, settings: S.settings };
+      const stores = USER_STORES.concat(opts.includeFiles ? FILE_STORES : []);
+      for (const s of stores) {
         let rows = await DB.all(s);
-        if (s === 'files' || s === 'audio' || s === 'audiolib') {
+        if (FILE_STORES.includes(s)) {
           const conv = [];
           for (const r of rows) { const c = Object.assign({}, r); if (c.blob) { c.blob = await b2b64(c.blob); c.__blob = true; } conv.push(c); }
           rows = conv;
         }
-        if (s === 'quran') rows = rows.map((r) => r); // النص يُعاد تحميله من المصدر الموثق؛ نحفظه كما هو
         out.stores[s] = rows;
       }
+      const kv = S.kv.all(); Object.keys(kv).forEach((k) => { if (!KV_RESERVED.test(k)) out.kv[k] = kv[k]; });
       return new Blob([JSON.stringify(out)], { type: 'application/json' });
     },
     async import(text, opts) {
       opts = opts || {}; let data; try { data = JSON.parse(text); } catch (e) { throw new Error('الملف ليس JSON صالحاً'); }
       if (!data || data.app !== 'SIRAJ' || !data.stores) throw new Error('هذا ليس ملف نسخة احتياطية من سِراج');
-      let n = 0;
+      let n = 0; const allowed = USER_STORES.concat(FILE_STORES);
       for (const [s, rows] of Object.entries(data.stores)) {
-        if (!STORES[s]) continue;
-        if (s === 'users' && !opts.includeUsers) continue;
+        if (!allowed.includes(s) || !Array.isArray(rows)) continue; /* أي مخزن آخر (كتب/أدعية/مداخل…) يُتجاهل عمداً */
         const conv = [];
         for (const r of rows) { const c = Object.assign({}, r); if (c.__blob) { c.blob = await b64tob(c.blob); delete c.__blob; } conv.push(c); }
         if (opts.replace) await DB.clear(s);
         await DB.putMany(s, conv); n += conv.length;
       }
+      if (data.kv && typeof data.kv === 'object') for (const [k, v] of Object.entries(data.kv)) { if (!KV_RESERVED.test(k)) { await S.kv.set(k, v); n++; } }
       if (data.settings && opts.settings) S.set(data.settings);
       return n;
     }

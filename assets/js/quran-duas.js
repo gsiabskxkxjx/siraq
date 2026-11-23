@@ -125,6 +125,7 @@
       if (!force && st && st.key === key) return { n: st.n, cached: true };
       const items = []; QD.skipped = [];
       LIST.forEach((row, i) => { const r = build(Q, row, i); if (!r) QD.skipped.push({ ref: row[0], why: 'مرجع غير صالح' }); else if (r.skipped) QD.skipped.push({ ref: r.skipped, why: r.why }); else items.push(r); });
+      for (let i = items.length - 1; i >= 0; i--) if (S.packs && S.packs.isWithdrawn('duas', items[i].id)) items.splice(i, 1);
       const keep = new Set(items.map((x) => x.id));
       const old = (await S.db.all('duas')).filter((d) => /^qd_/.test(d.id) && !keep.has(d.id));
       for (const d of old) await S.db.del('duas', d.id);

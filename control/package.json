@@ -1,0 +1,25 @@
+{
+  "name": "siraj-control-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "سِراج — التحكم: تطبيق الناشر الذي يوقّع حزم المحتوى لتطبيق سِراج (غلاف أندرويد Capacitor)",
+  "scripts": {
+    "prepare:www": "node ../scripts/prepare-control.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@fontsource/amiri": "^5.0.0",
+    "@fontsource/amiri-quran": "^5.0.0",
+    "@fontsource/cairo": "^5.0.0"
+  }
+}

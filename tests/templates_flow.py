@@ -1,43 +1,42 @@
-"""اختبار أن قوالب docs/import-templates تُقبل فعلاً من شاشات الاستيراد (وأن غير الموثق يُرفض)"""
-import os, json, tempfile
+"""اختبار أن قوالب docs/import-templates تُقبل من شاشة «استيراد من ملف» في تطبيق التحكم (كمسودات) وأن غير الموثّق يُرفض"""
+import os, json, tempfile, subprocess
 from common import T, ROOT
-t = T(); pg = t.pg
+WWW = '/tmp/ctl-www-tpl'
+subprocess.run(['node', os.path.join(ROOT, 'scripts', 'prepare-control.mjs'), '--out', WWW], check=True, capture_output=True)
+t = T(root=WWW); pg = t.pg
 TP = os.path.join(ROOT, 'docs', 'import-templates')
+def imp(kind, path, col=None):
+    t.go('/import'); pg.select_option('#f_imptype', kind)
+    if col: pg.select_option('#f_impcol', col)
+    pg.set_input_files('[name=jf]', path); pg.click('[data-act=impRun]'); pg.wait_for_timeout(1000)
+    return t.ev("document.getElementById('imp-out').innerText")
 
-def login(u, p):
-    t.go('/admin'); pg.fill('#f_lu', u); pg.fill('#f_lp', p); pg.click('[data-act=admLogin]'); pg.wait_for_timeout(800)
-login('owner', '1111')
-
-# كتب: تدخل pending لا published
-t.go('/admin/import')
-pg.set_input_files('[name=jf]', os.path.join(TP, 'books-import.template.json')); pg.click('[data-act=admImportBooks]'); pg.wait_for_timeout(900)
-b = t.ev("SIRAJ.library.books.filter(b=>b.title==='عنوان الكتاب')")
-t.check('استيراد كتب: أُضيف الكتاب', len(b) == 1, t.txt()[-200:])
-t.check('استيراد كتب: حالته بانتظار الموافقة وليس منشوراً', b and b[0]['status'] == 'pending')
+# كتب: تدخل مسودة لا «جاهز»
+out = imp('books', os.path.join(TP, 'books-import.template.json'))
+b = t.ev("SIRAJ.db.all('books').then(a=>a.filter(b=>b.title==='عنوان الكتاب'))")
+t.check('استيراد كتب: أُضيف الكتاب', len(b) == 1, out)
+t.check('استيراد كتب: مسودة وليس جاهزاً', b and b[0]['ready'] is False)
 t.check('استيراد كتب: حالة الحقوق «غير محدد» ولا ملف', b and b[0]['copyright'] == 'غير محدد' and not b[0].get('hasPdf'))
-pg.set_input_files('[name=jf]', os.path.join(TP, 'books-import.template.json')); pg.click('[data-act=admImportBooks]'); pg.wait_for_timeout(900)
-t.check('استيراد كتب: التكرار يُتخطى', len(t.ev("SIRAJ.library.books.filter(b=>b.title==='عنوان الكتاب')")) == 1)
+out = imp('books', os.path.join(TP, 'books-import.template.json'))
+t.check('استيراد كتب: التكرار يُرفض', len(t.ev("SIRAJ.db.all('books').then(a=>a.filter(b=>b.title==='عنوان الكتاب'))")) == 1 and 'مكرر' in out, out)
 
 # أدعية
-t.go('/admin/duas/import')
-pg.set_input_files('[name=jf]', os.path.join(TP, 'duas-import.template.json')); pg.click('[data-act=admImportDuas]'); pg.wait_for_timeout(900)
+out = imp('duas', os.path.join(TP, 'duas-import.template.json'))
 d = t.ev("SIRAJ.db.all('duas').then(a=>a.filter(x=>x.title==='عنوان الدعاء'))")
-t.check('استيراد أدعية: قُبل القالب (له مصدر)', len(d) == 1, t.txt()[-200:])
-# دعاء بلا مصدر يُرفض
+t.check('استيراد أدعية: قُبل القالب (له مصدر) كمسودة', len(d) == 1 and d[0]['ready'] is False, out)
 tmp = os.path.join(tempfile.mkdtemp(), 'bad.json')
 json.dump([{"title": "بلا مصدر", "kind": "dua", "cat": "daily", "text": "نص"}], open(tmp, 'w', encoding='utf8'), ensure_ascii=False)
-pg.set_input_files('[name=jf]', tmp); pg.click('[data-act=admImportDuas]'); pg.wait_for_timeout(900)
-t.check('استيراد أدعية: بلا مصدر يُرفض', len(t.ev("SIRAJ.db.all('duas').then(a=>a.filter(x=>x.title==='بلا مصدر'))")) == 0 and 'رُفض' in t.txt(), t.txt()[-200:])
+out = imp('duas', tmp)
+t.check('استيراد أدعية: بلا مصدر يُرفض', len(t.ev("SIRAJ.db.all('duas').then(a=>a.filter(x=>x.title==='بلا مصدر'))")) == 0 and 'رُفض' in out, out)
 
 # الموسوعات: روايات وتفسير
-for col, tpl, title in [('narrations', 'narrations-import.template.json', 'عنوان وصفي'), ('tafsir', 'tafsir-import.template.json', None)]:
-    t.go('/research/docs')
-    pg.select_option('#f_impcol', col)
-    pg.set_input_files('[name=impf]', os.path.join(TP, tpl)); pg.click('[data-act=entImport]'); pg.wait_for_timeout(900)
-    n = t.ev("SIRAJ.db.where('entries','collection','%s').then(a=>a.length)" % col)
-    t.check('استيراد %s: قُبل القالب' % col, n == 1, t.txt()[-250:])
-# رواية بلا مصدر تُرفض
+for col, tpl in [('narrations', 'narrations-import.template.json'), ('tafsir', 'tafsir-import.template.json')]:
+    imp('entries', os.path.join(TP, tpl), col)
+    es = t.ev("SIRAJ.db.all('entries').then(a=>a.filter(x=>x.collection==='%s'))" % col)
+    t.check('استيراد %s: قُبل القالب كمسودة' % col, len(es) == 1 and es[0]['ready'] is False, t.ev("document.getElementById('imp-out').innerText"))
+t.check('التفسير: العنوان والمفسّر من القالب', t.ev("SIRAJ.db.all('entries').then(a=>a.find(x=>x.collection==='tafsir'))")['extra']['mufassir'] == 'اسم كتاب التفسير')
 json.dump([{"title": "رواية بلا مصدر", "text": "نص", "sources": []}], open(tmp, 'w', encoding='utf8'), ensure_ascii=False)
-t.go('/research/docs'); pg.select_option('#f_impcol', 'narrations'); pg.set_input_files('[name=impf]', tmp); pg.click('[data-act=entImport]'); pg.wait_for_timeout(900)
-t.check('استيراد روايات: بلا مصدر يُرفض', t.ev("SIRAJ.db.where('entries','collection','narrations').then(a=>a.length)") == 1)
+imp('entries', tmp, 'narrations')
+t.check('استيراد روايات: بلا مصدر يُرفض', t.ev("SIRAJ.db.all('entries').then(a=>a.filter(x=>x.collection==='narrations').length)") == 1)
+t.check('لا شيء من المستورد «جاهز» تلقائياً', t.ev("Promise.all(['books','duas','entries'].map(s=>SIRAJ.db.all(s))).then(r=>r.flat().filter(x=>x.ready).length)") == 0)
 t.done()

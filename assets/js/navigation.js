@@ -6,7 +6,7 @@
   'use strict';
   const S = window.SIRAJ;
   const routes = []; const scrollMap = {}; let token = 0; let curView = null;
-  const NAVS = [
+  const NAVS = window.SIRAJ_NAVS || [ /* تطبيق التحكم يعرّف قائمته الخاصة قبل تحميل هذا الملف */
     { key: 'home', label: 'الرئيسية', icon: 'home', href: '#/home' },
     { key: 'quran', label: 'القرآن', icon: 'book-open', href: '#/quran' },
     { key: 'library', label: 'المكتبة', icon: 'library', href: '#/library' },

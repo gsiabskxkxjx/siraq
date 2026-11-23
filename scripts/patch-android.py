@@ -13,11 +13,20 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-AND = os.path.join(ROOT, "android")
+# يخدم التطبيقين: سِراج (الافتراضي) و«سِراج — التحكم» عبر متغيرات بيئة:
+#   SIRAJ_ANDROID_DIR  مجلد مشروع أندرويد (الافتراضي android)
+#   SIRAJ_IMAGES_DIR   مجلد الأيقونات والشعار (الافتراضي assets/images)
+#   SIRAJ_ICON_BG      لون الأيقونة التكيّفية    SIRAJ_SPLASH_BG  لون شاشة البداية (#RRGGBB)
+#   SIRAJ_PERMS        صلاحيات مفصولة بفاصلة؛ فارغ = لا شيء (الافتراضي: الموقع والاهتزاز)
+AND = os.path.abspath(os.path.join(ROOT, os.environ.get("SIRAJ_ANDROID_DIR", "android")))
+IMAGES = os.path.abspath(os.path.join(ROOT, os.environ.get("SIRAJ_IMAGES_DIR", os.path.join("assets", "images"))))
 RES = os.path.join(AND, "app", "src", "main", "res")
 MANIFEST = os.path.join(AND, "app", "src", "main", "AndroidManifest.xml")
-BG = "#103B2F"          # خلفية الأيقونة التكيّفية
-SPLASH_BG = (8, 40, 32)  # #082820
+BG = os.environ.get("SIRAJ_ICON_BG", "#103B2F")  # خلفية الأيقونة التكيّفية
+_sb = os.environ.get("SIRAJ_SPLASH_BG", "#082820").lstrip("#")
+SPLASH_BG = tuple(int(_sb[i:i + 2], 16) for i in (0, 2, 4))  # الافتراضي #082820
+_DEF_PERMS = "android.permission.ACCESS_COARSE_LOCATION,android.permission.ACCESS_FINE_LOCATION,android.permission.VIBRATE"
+PERMS = [p for p in os.environ.get("SIRAJ_PERMS", _DEF_PERMS).split(",") if p.strip()]
 
 
 def warn(msg):
@@ -29,11 +38,7 @@ def patch_manifest():
         warn("AndroidManifest.xml غير موجود")
         return
     s = open(MANIFEST, encoding="utf-8").read()
-    want = [
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.VIBRATE",
-    ]
+    want = PERMS
     add = ""
     for p in want:
         if p not in s:
@@ -53,8 +58,8 @@ def icons():
     except Exception as e:  # noqa: BLE001
         warn("Pillow غير متوفر، تُركت الأيقونات الافتراضية: %s" % e)
         return
-    src_m = os.path.join(ROOT, "assets", "images", "icon-maskable-512.png")
-    src_a = os.path.join(ROOT, "assets", "images", "icon-512.png")
+    src_m = os.path.join(IMAGES, "icon-maskable-512.png")
+    src_a = os.path.join(IMAGES, "icon-512.png")
     if not (os.path.exists(src_m) and os.path.exists(src_a)):
         warn("أيقونات المصدر غير موجودة")
         return
@@ -105,7 +110,7 @@ def splash():
     except Exception as e:  # noqa: BLE001
         warn("Pillow غير متوفر، تُركت شاشة البداية الافتراضية: %s" % e)
         return
-    logo_p = os.path.join(ROOT, "assets", "images", "logo-mark.png")
+    logo_p = os.path.join(IMAGES, "logo-mark.png")
     if not os.path.exists(logo_p):
         warn("شعار سِراج غير موجود لشاشة البداية")
         return
