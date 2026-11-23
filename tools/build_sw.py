@@ -5,7 +5,8 @@
 """
 import hashlib, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP_DIRS = {'tests', 'tools', 'docs', '.git', 'node_modules', '__pycache__'}
+SKIP_DIRS = {'tests', 'tools', 'docs', 'scripts', 'www', 'android', 'android-signing', 'dist', '.git', 'node_modules', '__pycache__'}
+SKIP_FILES = {'package.json', 'package-lock.json', 'capacitor.config.json'}
 SKIP_EXT = {'.zip', '.md', '.py', '.map', '.txt'}
 KEEP_TXT = {os.path.join('assets', 'lib', 'pdfjs', 'LICENSE-pdfjs.txt')}
 SW = os.path.join(ROOT, 'service-worker.js')
@@ -15,7 +16,7 @@ for d, ds, fs in os.walk(ROOT):
     ds[:] = sorted(x for x in ds if x not in SKIP_DIRS and not x.startswith('.'))
     for f in sorted(fs):
         rel = os.path.relpath(os.path.join(d, f), ROOT)
-        if f.startswith('.') or f == 'service-worker.js': continue
+        if f.startswith('.') or f == 'service-worker.js' or f in SKIP_FILES: continue
         if os.path.splitext(f)[1].lower() in SKIP_EXT and rel not in KEEP_TXT: continue
         files.append(rel.replace(os.sep, '/'))
 files.sort()

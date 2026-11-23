@@ -7,6 +7,7 @@
 
   const sw = (k, label, sub) => S.h`<div class="setting"><div class="sd">${label}${sub ? S.h`<small>${sub}</small>` : ''}</div><label class="switch"><input type="checkbox" ${S.settings[k] ? S.raw('checked') : ''} data-chg="pref" data-k="${k}" aria-label="${label}"><i></i></label></div>`;
 
+  S.act('toggleTheme', () => S.toggleTheme());
   S.onChange('pref', (el) => {
     const k = el.dataset.k; let v;
     if (el.type === 'checkbox') v = el.checked; else if (el.type === 'range' || el.type === 'number' || el.dataset.num) v = Number(el.value); else v = el.value;

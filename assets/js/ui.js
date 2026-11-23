@@ -206,8 +206,18 @@
     root.style.setProperty('--fscale', String(st.fontScale));
     root.style.setProperty('--q-scale', String(st.quranScale));
     const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = th === 'dark' ? '#082820' : '#103B2F';
+    S.theme = th; S.syncBars(th);
+    S.$$ && S.$$('[data-act=toggleTheme]').forEach((b) => { b.innerHTML = S.icon(th === 'dark' ? 'sun' : 'moon'); b.setAttribute('aria-label', th === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'); });
     document.dispatchEvent(new CustomEvent('siraj:settings'));
   };
+  /* ألوان أيقونات شريطي النظام في أندرويد: شريط الحالة فوق ترويسة خضراء داكنة دائماً، وشريط التنقل تحت الشريط السفلي */
+  S.syncBars = function (th) {
+    if (!S.isNative) return;
+    const sb = cap('SystemBars'); if (!sb || !sb.setStyle) return;
+    try { Promise.resolve(sb.setStyle({ style: 'DARK', bar: 'StatusBar' })).catch(() => {}); } catch (e) { /* */ }
+    try { Promise.resolve(sb.setStyle({ style: th === 'dark' ? 'DARK' : 'LIGHT', bar: 'NavigationBar' })).catch(() => {}); } catch (e) { /* */ }
+  };
+  S.toggleTheme = function () { S.set('theme', (S.theme || 'light') === 'dark' ? 'light' : 'dark'); };
 
   /* ---------- الأرقام والتواريخ ---------- */
   const AR_DIG = '٠١٢٣٤٥٦٧٨٩';
@@ -353,6 +363,7 @@
       try { window.addEventListener('popstate', done, { once: true }); history.back(); setTimeout(done, 300); } catch (e) { ignorePop--; done(); }
     } else m.resolve(val);
   }
+  S.hasModal = () => modals.length > 0;
   S.closeAllModals = () => { modals.slice().forEach((m) => { m.skipBack = true; closeModal(m); }); };
   window.addEventListener('popstate', () => {
     if (ignorePop > 0) { ignorePop--; return; }

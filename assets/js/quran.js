@@ -30,7 +30,15 @@
       return t;
     },
     translationAyah(s, a) { return Q.tr && Q.tr[s - 1] ? Q.tr[s - 1][a - 1] : ''; },
-    async init() { try { await Q.loadLocal(); if (!Q.text) await Q.importBundled(); } catch (e) { S.log('warn', 'quran init: ' + e.message); } },
+    /* القراءة من التخزين سريعة فتُنتظر؛ أما استيراد النص المضمَّن (أول تشغيل فقط) فيجري في الخلفية كي لا تتأخر شاشة البدء */
+    async init() {
+      try { await Q.loadLocal(); } catch (e) { S.log('warn', 'quran init: ' + e.message); }
+      Q.ready = (!Q.text && S.isNative)
+        ? Q.importBundled().then((ok) => { if (ok) Q.afterImport(); return ok; }).catch((e) => { S.log('warn', 'quran bundled: ' + e.message); return false; })
+        : Promise.resolve(false);
+    },
+    ready: Promise.resolve(false),
+    afterImport() { const p = (S.router && S.router.cur && S.router.cur.path) || ''; if (/^\/(home|quran|daily)/.test(p)) { try { S.router.refresh(); } catch (e) { /* */ } } },
     async loadLocal() {
       const rec = await S.db.get('quran', 'text');
       if (rec && rec.ayahs && rec.ayahs.length === 114) { Q.text = rec.ayahs; Q.pages = rec.pages || null; Q.edition = rec.edition; Q.fp = rec.fp || ''; Q.fetchedAt = rec.fetchedAt || 0; }
@@ -133,7 +141,8 @@
   const noText = () => S.h`<div class="stack">${S.ui.empty('book-open', 'نص المصحف غير محمّل بعد', 'لا يتضمن سِراج نصاً قرآنياً مكتوباً داخل شيفرته. يُحمَّل مرة واحدة من مصدر موثق (Tanzil) ثم يعمل التطبيق دون إنترنت.', S.h`<a class="btn gold" href="#/quran/download">${S.icon('download')} تحميل المصحف الشريف</a>`)}</div>`;
 
   /* ---------- الصفحة الرئيسية للقرآن ---------- */
-  S.router.add('/quran', (p, q) => {
+  const addQ = (pat, h) => S.router.add(pat, async (p, q) => { await Q.ready; return h(p, q); });
+  addQ('/quran', (p, q) => {
     const tab = q.tab || 'surahs'; const last = S.progress.last('quran'); const k = Q.khatma(); const J = D().juzStarts;
     const surahs = D().surahs;
     const body = tab === 'juz'
@@ -205,7 +214,7 @@
   const scrollToAyah = (s, a) => { const el = document.getElementById(`ay-${s}-${a}`); if (el) { el.scrollIntoView({ block: 'center' }); flash(el); } return el; };
   Q.currentCtx = null;
 
-  S.router.add('/quran/surah/:n', async (p, q) => {
+  addQ('/quran/surah/:n', async (p, q) => {
     const n = +p.n; if (!(n >= 1 && n <= 114)) return { title: 'سورة', back: '/quran', html: S.ui.empty('alert', 'رقم سورة غير صحيح') };
     const su = Q.surah(n);
     if (!Q.hasText()) return { title: 'سورة ' + su.name, nav: 'quran', back: '/quran', html: noText() };
@@ -222,7 +231,7 @@
       unmount() { stopTrack(); }
     };
   });
-  S.router.add('/quran/juz/:n', async (p) => {
+  addQ('/quran/juz/:n', async (p) => {
     const n = +p.n; const J = D().juzStarts; if (!(n >= 1 && n <= 30)) return { title: 'جزء', back: '/quran', html: S.ui.empty('alert', 'رقم جزء غير صحيح') };
     if (!Q.hasText()) return { title: 'الجزء ' + S.n(n), nav: 'quran', back: '/quran', html: noText() };
     const st = Q.gid(J[n - 1][0], J[n - 1][1]); const en = n < 30 ? Q.gid(J[n][0], J[n][1]) - 1 : D().totalAyahs;
@@ -235,7 +244,7 @@
       mount(view) { lastPos = null; trackPosition(view); if (Q.audio && Q.audio.attach) Q.audio.attach(); }, unmount() { stopTrack(); }
     };
   });
-  S.router.add('/quran/page/:n', async (p) => {
+  addQ('/quran/page/:n', async (p) => {
     const n = +p.n; if (!Q.hasText()) return { title: 'صفحة', nav: 'quran', back: '/quran', html: noText() };
     if (!Q.pages) return { title: 'صفحة', back: '/quran', html: S.ui.empty('info', 'بيانات الصفحات غير متوفرة', 'أعد تحميل المصحف من صفحة التنزيلات.') };
     if (!(n >= 1 && n <= 604)) return { title: 'صفحة', back: '/quran', html: S.ui.empty('alert', 'رقم صفحة غير صحيح (1 - 604)') };
@@ -306,7 +315,7 @@
   /* ---------- صفحة الآية: تفسير وأسباب نزول وروايات (من مصادر مضافة فقط) ---------- */
   function matchVerse(v, s, a) { const m = /^(\d+):(\d+)(?:-(\d+))?$/.exec(String(v).trim()); if (!m) return false; return +m[1] === s && a >= +m[2] && a <= +(m[3] || m[2]); }
   Q.entriesFor = async (s, a) => (await S.db.all('entries')).filter((e) => (e.verses || []).some((v) => matchVerse(v, s, a)));
-  S.router.add('/quran/ayah/:s/:a', async (p) => {
+  addQ('/quran/ayah/:s/:a', async (p) => {
     const s = +p.s, a = +p.a; const su = Q.surah(s); if (!su || !(a >= 1 && a <= su.ayahs)) return { title: 'آية', back: '/quran', html: S.ui.empty('alert', 'آية غير موجودة') };
     const ents = await Q.entriesFor(s, a); const notes = (await S.db.where('notes', 'type', 'quran')).filter((n) => n.ref === s + ':' + a);
     const ahl = S.data.sample.ahlVerses.filter((v) => v.s === s && v.a === a); const L = S.library;
@@ -327,7 +336,7 @@
   });
 
   /* ---------- البحث ---------- */
-  S.router.add('/quran/search', (p, q) => {
+  addQ('/quran/search', (p, q) => {
     const term = (q.q || '').trim(); const lim = +(q.n || 30); const sf = +(q.s || 0);
     const res = term && Q.hasText() ? Q.search(term, { s: sf || undefined, inTranslation: !!(Q.tr && S.settings.showTranslation) }) : [];
     return {
@@ -341,7 +350,7 @@
   });
 
   /* ---------- الإشارات والمفضلة والملاحظات ---------- */
-  S.router.add('/quran/bookmarks', async (p, q) => {
+  addQ('/quran/bookmarks', async (p, q) => {
     const tab = q.tab || 'marks'; const marks = await S.bm.list('quran'); const favs = await S.fav.list('ayah'); const notes = (await S.db.where('notes', 'type', 'quran')).sort((a, b) => b.ts - a.ts);
     const item = (s, a, sub, extra) => S.h`<a class="li" href="#/quran/surah/${s}?a=${a}"><span class="li-ico">${S.icon(tab === 'favs' ? 'heart' : tab === 'notes' ? 'notebook' : 'bookmark')}</span><span class="li-body"><span class="li-t">${refStr(s, a)}</span>${sub ? S.h`<span class="li-s">${sub}</span>` : ''}</span>${extra || ''}</a>`;
     const list = tab === 'favs' ? favs.map((f) => { const [s, a] = f.ref.split(':').map(Number); return item(s, a, Q.hasText() ? Q.display(s, a).slice(0, 70) + '…' : ''); }) : tab === 'notes' ? notes.map((n) => { const [s, a] = n.ref.split(':').map(Number); return item(s, a, n.text); }) : marks.map((m) => { const [s, a] = m.ref.split(':').map(Number); return item(s, a, S.fmt.dt(m.ts)); });
@@ -349,7 +358,7 @@
   });
 
   /* ---------- الختمة ---------- */
-  S.router.add('/quran/khatma', () => {
+  addQ('/quran/khatma', () => {
     const k = Q.khatma(); const hist = S.kv.get('khatma.history', []);
     if (!k) return { title: 'ختمة القرآن', nav: 'quran', back: '/quran', html: S.h`<div class="stack"><div class="card"><div class="card-t">${S.icon('target')} ابدأ ختمة</div><p class="small muted nm">اختر الخطة. يُوزَّع القرآن على أجزاء الأيام بحسب تقسيم الأجزاء (30 يوماً) أو المنازل السبعة (7 أيام)، ويُحتسب تقدمك تلقائياً عند قراءة الورد في المصحف، أو يدوياً.</p><div class="grid2 mt"><button class="btn primary" data-act="khStart" data-plan="30">ختمة في 30 يوماً<br><small>جزء يومياً</small></button><button class="btn gold" data-act="khStart" data-plan="7">ختمة في 7 أيام<br><small>منزل يومياً</small></button></div></div>${hist.length ? S.h`<div class="notice ok">${S.icon('trophy')}<div>أتممتَ ${S.n(hist.length)} ختمة سابقة.</div></div>` : ''}</div>` };
     return {
@@ -365,7 +374,7 @@
   S.act('khReset', async () => { if (await S.confirm('إنهاء خطة الختمة الحالية وحذف تقدّمها؟', { danger: true })) { await S.kv.del('khatma'); S.router.refresh(); } });
 
   /* ---------- التنزيلات ---------- */
-  S.router.add('/quran/download', async () => {
+  addQ('/quran/download', async () => {
     const trs = await Q.translationList(); const rec = Q.hasText(); const au = await S.db.all('audio'); const size = au.reduce((a, r) => a + (r.size || 0), 0);
     const groups = {}; au.forEach((r) => { const [rc, g] = r.id.split(':'); const ref = Q.ref(+g); const k = rc + '|' + ref.s; groups[k] = (groups[k] || 0) + 1; });
     return {

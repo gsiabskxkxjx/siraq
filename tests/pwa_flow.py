@@ -50,4 +50,11 @@ t.go('/status', 600)
 t.check('صفحة الحالة تذكر الخدمة/التخزين', 'service' in t.txt().lower() or 'Service' in t.txt() or 'دون اتصال' in t.txt() or 'الذاكرة' in t.txt(), t.txt()[:200])
 t.shot('offline-status')
 t.ctx.set_offline(False)
+# كل ملفات PRECACHE موجودة فعلاً (وإلا فشل تثبيت Service Worker كله)
+import re as _re
+_sw = open(os.path.join(ROOT, 'service-worker.js'), encoding='utf8').read()
+_urls = _re.findall(r"^  '(\./[^']*)'", _sw, _re.M)
+_missing = [u for u in _urls if u != './' and not os.path.exists(os.path.join(ROOT, u[2:]))]
+t.check('كل ملفات PRECACHE موجودة على القرص', len(_urls) > 30 and not _missing, _missing[:5])
+t.check('PRECACHE لا يضم ملفات بناء أندرويد', not [u for u in _urls if _re.search(r'^\./(www|android|scripts|dist)/|package\.json|capacitor\.config', u)])
 t.done()

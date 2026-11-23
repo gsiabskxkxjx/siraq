@@ -17,8 +17,9 @@
 <link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- الخطوط من Google Fonts (Cairo للواجهة، Amiri للنصوص، Amiri Quran للمصحف). عند انقطاع الاتصال تُستخدم خطوط النظام العربية. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap">
+<!-- الخطوط من Google Fonts (Cairo للواجهة، Amiri للنصوص، Amiri Quran للمصحف) تُحمَّل دون حجب الرسم؛ حتى تصل تُستخدم خطوط النظام العربية. في APK تُضمَّن الخطوط محلياً وقت البناء. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap"></noscript>
 <link rel="stylesheet" href="assets/css/style.css">
 <link rel="stylesheet" href="assets/css/responsive.css">
 <script>

@@ -97,7 +97,7 @@
       html: S.h`<div class="stack">
         <div class="hero">
           <div class="row between"><div class="brand"><img src="assets/images/logo-mark.png" alt="" width="46" height="46"><div><b>سِراج</b><small>نور العلم وهداية الطريق</small></div></div>
-            <div class="row"><a class="iconbtn" href="#/notifications" aria-label="الإشعارات" style="position:relative">${S.icon('bell')}<span class="dot" data-bell hidden></span></a><a class="iconbtn" href="#/settings" aria-label="الإعدادات">${S.icon('settings')}</a></div></div>
+            <div class="row"><button class="iconbtn" data-act="toggleTheme" aria-label="${S.theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}">${S.icon(S.theme === 'dark' ? 'sun' : 'moon')}</button><a class="iconbtn" href="#/notifications" aria-label="الإشعارات" style="position:relative">${S.icon('bell')}<span class="dot" data-bell hidden></span></a><a class="iconbtn" href="#/settings" aria-label="الإعدادات">${S.icon('settings')}</a></div></div>
           <div class="greet mt">${greeting()}</div>
           <div class="dates"><span class="dchip">${S.icon('moon')} ${S.hijriStr(now)}</span><span class="dchip">${S.fmt.gdate(now)}</span></div>
           ${nb}
