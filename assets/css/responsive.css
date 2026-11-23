@@ -1,0 +1,40 @@
+/* سِراج — استجابة الشاشات: 360 / 390 / 430 بكسل ثم الأجهزة الأكبر. Mobile First. */
+
+/* هواتف صغيرة (≤ 360) */
+@media (max-width:374px){
+  html{font-size:calc(15px * var(--fscale))}
+  .view{padding-inline:11px}
+  .hero{margin-inline:-11px;padding-inline:13px}
+  .hscroll,.chips{margin-inline:-11px;padding-inline:11px}
+  .quick{gap:6px} .qk{font-size:.72rem;padding:10px 2px}
+  .ptimes{gap:4px} .ptimes .pt b{font-size:.7rem} .ptimes .pt span{font-size:.86rem}
+  .bookcard{width:120px} .detail-head .cover{width:96px}
+  .t-count{font-size:3.6rem}
+}
+/* هواتف متوسطة (390 تقريباً) */
+@media (min-width:375px) and (max-width:419px){ .view{padding-inline:14px} }
+/* هواتف كبيرة (430 تقريباً) */
+@media (min-width:420px) and (max-width:599px){
+  html{font-size:calc(16.5px * var(--fscale))}
+  .quick{gap:12px} .bookcard{width:144px}
+}
+/* أجهزة لوحية وشاشات أعرض: عمود مركزي مريح */
+@media (min-width:600px){
+  .view{padding-inline:max(18px,calc((100vw - 640px)/2))}
+  .hero{margin-inline:calc(-1 * max(18px,calc((100vw - 640px)/2)))}
+  .hscroll,.chips,.q-bar{margin-inline:calc(-1 * max(18px,calc((100vw - 640px)/2)));padding-inline:max(18px,calc((100vw - 640px)/2))}
+  .player,.chatbar{inset-inline:max(10px,calc((100vw - 640px)/2))}
+  .grid-books{grid-template-columns:repeat(3,1fr)}
+}
+@media (min-width:900px){
+  html{font-size:calc(17px * var(--fscale))}
+  .bottomnav{inset-inline:calc((100vw - 640px)/2);border-radius:20px 20px 0 0;border:1px solid var(--border-strong)}
+}
+/* الوضع الأفقي القصير */
+@media (max-height:480px) and (orientation:landscape){
+  :root{--bar-h:46px;--nav-h:52px}
+  .bottomnav .nb{font-size:.66rem;flex-direction:row;gap:6px;justify-content:center}
+  .t-btn{width:150px}
+}
+.grid-books{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.grid-books .bookcard{width:100%}

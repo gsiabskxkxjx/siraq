@@ -1,0 +1,11 @@
+node_modules/
+android/
+www/
+dist/
+*.log
+__pycache__/
+*.pyc
+.DS_Store
+tests/out/
+tests/__pycache__/
+tests/shots/

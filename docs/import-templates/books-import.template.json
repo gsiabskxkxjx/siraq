@@ -1,0 +1,17 @@
+[
+  {
+    "title": "عنوان الكتاب",
+    "author": "اسم المؤلف",
+    "section": "fiqh",
+    "subcat": "الصلاة",
+    "desc": "نبذة",
+    "publisher": "",
+    "year": null,
+    "edition": "",
+    "pages": null,
+    "lang": "العربية",
+    "sourceName": "اسم المصدر",
+    "sourceUrl": "https://example.org/book",
+    "copyright": "غير محدد"
+  }
+]

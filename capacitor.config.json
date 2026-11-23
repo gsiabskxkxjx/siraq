@@ -1,0 +1,11 @@
+{
+  "appId": "com.siraj.app",
+  "appName": "سِراج",
+  "webDir": "www",
+  "backgroundColor": "#082820",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css" }
+  }
+}

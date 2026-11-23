@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>سِراج — موسوعة العلم والتراث الإسلامي</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="سِراج — نور العلم وهداية الطريق: القرآن • العترة • المعرفة. نسخة HTML/PWA تجريبية.">
+<meta name="theme-color" content="#103B2F">
+<meta name="color-scheme" content="light dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="سِراج">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/svg+xml" href="assets/images/icon.svg">
+<link rel="apple-touch-icon" href="assets/images/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- الخطوط من Google Fonts (Cairo للواجهة، Amiri للنصوص، Amiri Quran للمصحف). عند انقطاع الاتصال تُستخدم خطوط النظام العربية. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/responsive.css">
+<script>
+/* تطبيق المظهر قبل الرسم لتفادي وميض الأبيض في الوضع الليلي */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('siraj.settings.v1') || '{}');
+    var th = s.theme || 'auto';
+    if (th === 'auto') th = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = th;
+    if (s.elder) document.documentElement.dataset.elder = '1';
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<div id="app">
+  <header class="appbar" id="appbar">
+    <button class="iconbtn" id="ab-back" data-act="back" aria-label="رجوع" hidden><svg class="i" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+    <div class="title" id="ab-title">سِراج</div>
+    <div class="ab-actions" id="ab-actions"></div>
+  </header>
+  <main class="view" id="view" tabindex="-1"></main>
+  <nav class="bottomnav" id="bottomnav" aria-label="التنقل الرئيسي"></nav>
+</div>
+<div id="overlay-root"></div>
+<div id="splash" role="status" aria-label="جارٍ التحميل">
+  <img src="assets/images/logo-mark.png" alt="" width="96" height="96">
+  <b>سِراج</b>
+  <small>نور العلم وهداية الطريق</small>
+</div>
+<noscript><p style="padding:24px;text-align:center">يتطلب سِراج تفعيل JavaScript في المتصفح.</p></noscript>
+
+<!-- البيانات المضمّنة (نفس محتوى ملفات .json؛ تُحمَّل كسكربت ليعمل التطبيق أيضاً عند فتحه من file://) -->
+<script src="assets/data/sample-data.js"></script>
+<script src="assets/data/quran-data.js"></script>
+<script src="assets/data/duas-data.js"></script>
+<!-- النواة -->
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/storage.js"></script>
+<script src="assets/js/navigation.js"></script>
+<!-- الأقسام -->
+<script src="assets/js/library.js"></script>
+<script src="assets/js/home.js"></script>
+<script src="assets/js/settings.js"></script>
+<script src="assets/js/quran.js"></script>
+<script src="assets/js/quran-audio.js"></script>
+<script src="assets/js/duas.js"></script>
+<script src="assets/js/prayer.js"></script>
+<script src="assets/js/calendar.js"></script>
+<script src="assets/js/tasbeeh.js"></script>
+<script src="assets/js/reader.js"></script>
+<script src="assets/js/admin.js"></script>
+<script src="assets/js/ailibrary.js"></script>
+<script src="assets/js/encyclopedia.js"></script>
+<script src="assets/js/assistant.js"></script>
+<script src="assets/js/daily.js"></script>
+<script src="assets/js/worship.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

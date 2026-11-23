@@ -1,0 +1,30 @@
+[
+  {
+    "title": "عنوان وصفي",
+    "text": "<نص الرواية كما في المصدر>",
+    "verses": [
+      "33:33"
+    ],
+    "sources": [
+      {
+        "book": "الكتاب",
+        "author": "المؤلف",
+        "edition": "الطبعة",
+        "volume": "1",
+        "page": "123",
+        "number": "",
+        "url": ""
+      }
+    ],
+    "isnads": [],
+    "variants": [],
+    "scholarRulings": [
+      {
+        "scholar": "اسم العالم",
+        "ruling": "نص الحكم كما قاله",
+        "source": "الكتاب/الصفحة"
+      }
+    ],
+    "tags": []
+  }
+]

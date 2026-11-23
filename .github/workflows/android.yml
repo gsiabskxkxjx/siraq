@@ -1,0 +1,112 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: جلب المستودع
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Python (لتوليد الأيقونات)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: حزم Python
+        run: pip install pillow
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+
+      - name: تثبيت اعتماديات Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: تجهيز ملفات الويب (www)
+        run: node scripts/prepare-www.mjs
+
+      - name: تضمين نص المصحف وقت البناء (اختياري)
+        continue-on-error: true
+        run: node scripts/fetch-quran.mjs
+
+      - name: إنشاء مشروع أندرويد
+        run: npx cap add android
+
+      - name: تخصيص الأيقونة والصلاحيات وشاشة البداية
+        run: python3 scripts/patch-android.py
+
+      - name: مزامنة Capacitor
+        run: npx cap sync android
+
+      - name: بناء APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: رفع تقارير الفشل (عند الفشل فقط)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            android/app/build/reports
+            android/build/reports
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: توقيع APK بمفتاح ثابت
+        run: |
+          APK="$(find android/app/build/outputs/apk/debug -name '*.apk' | head -1)"
+          echo "APK المبني: $APK"
+          mkdir -p dist
+          if bash scripts/sign-apk.sh "$APK" dist/SIRAJ.apk; then
+            echo "تم التوقيع بالمفتاح الثابت."
+          else
+            echo "::warning title=التوقيع::فشل التوقيع بالمفتاح الثابت؛ استُخدم توقيع التصحيح التلقائي. ثبّته بعد حذف النسخة القديمة إن وُجدت."
+            cp "$APK" dist/SIRAJ.apk
+          fi
+
+      - name: رفع الملف كـ Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIRAJ-apk
+          path: dist/SIRAJ.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: نشر الملف في Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: سِراج — بناء رقم ${{ github.run_number }}
+          body: |
+            ملف التثبيت: **SIRAJ.apk** (نسخة تجريبية شخصية).
+            حمّله من قسم Assets أسفل هذه الصفحة، ثم افتحه على الهاتف واسمح بالتثبيت من هذا المصدر.
+            الالتزام: ${{ github.sha }}
+          files: dist/SIRAJ.apk

@@ -1,0 +1,275 @@
+/* =====================================================================
+   سِراج — prayer.js : مواقيت الصلاة (حساب فلكي حقيقي محلي)، القبلة، التنبيهات
+   لا توجد مواقيت أو اتجاه قبلة وهميان: كل شيء يُحسب من إحداثيات الموقع المختار وتاريخ اليوم.
+   الخوارزمية مبنية على معادلات PrayTimes.org (موضع الشمس، زوايا الفجر والعشاء).
+   طرق الحساب الجعفرية: ليفا/قم (فجر 16°، مغرب 4°، عشاء 14°) ومعهد الجيوفيزياء طهران (17.7° / 4.5° / 14°).
+   ===================================================================== */
+(function () {
+  'use strict';
+  const S = window.SIRAJ;
+  const DR = Math.PI / 180;
+  const sin = (d) => Math.sin(d * DR), cos = (d) => Math.cos(d * DR), tan = (d) => Math.tan(d * DR);
+  const asin = (x) => Math.asin(x) / DR, acos = (x) => Math.acos(x) / DR, atan2 = (y, x) => Math.atan2(y, x) / DR, acot = (x) => Math.atan(1 / x) / DR;
+  const fix = (a, b) => a - b * Math.floor(a / b); const fixA = (a) => fix(a, 360), fixH = (a) => fix(a, 24);
+
+  const METHODS = {
+    Jafari: { name: 'الجعفري — معهد ليفا، قم (فجر 16°، مغرب 4°، عشاء 14°)', fajr: 16, isha: 14, maghrib: 4, midnight: 'Jafari' },
+    Tehran: { name: 'معهد الجيوفيزياء — جامعة طهران (فجر 17.7°، مغرب 4.5°، عشاء 14°)', fajr: 17.7, isha: 14, maghrib: 4.5, midnight: 'Jafari' },
+    MWL: { name: 'رابطة العالم الإسلامي (فجر 18°، عشاء 17°)', fajr: 18, isha: 17, maghrib: '0 min', midnight: 'Standard' },
+    Makkah: { name: 'أم القرى — مكة (فجر 18.5°، عشاء 90 دقيقة)', fajr: 18.5, isha: '90 min', maghrib: '0 min', midnight: 'Standard' },
+    ISNA: { name: 'أمريكا الشمالية ISNA (15° / 15°)', fajr: 15, isha: 15, maghrib: '0 min', midnight: 'Standard' },
+    Egypt: { name: 'الهيئة المصرية (19.5° / 17.5°)', fajr: 19.5, isha: 17.5, maghrib: '0 min', midnight: 'Standard' },
+    Karachi: { name: 'جامعة العلوم الإسلامية — كراتشي (18° / 18°)', fajr: 18, isha: 18, maghrib: '0 min', midnight: 'Standard' }
+  };
+  const KAABA = { lat: 21.4225, lng: 39.8262 };
+
+  function julian(y, m, d) { if (m <= 2) { y -= 1; m += 12; } const A = Math.floor(y / 100); const B = 2 - A + Math.floor(A / 4); return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5; }
+  function sunPos(jd) {
+    const D = jd - 2451545.0; const g = fixA(357.529 + 0.98560028 * D); const q = fixA(280.459 + 0.98564736 * D);
+    const L = fixA(q + 1.915 * sin(g) + 0.020 * sin(2 * g)); const e = 23.439 - 0.00000036 * D;
+    const RA = atan2(cos(e) * sin(L), cos(L)) / 15; return { decl: asin(sin(e) * sin(L)), eqt: q / 15 - fixH(RA) };
+  }
+  const isMin = (v) => typeof v === 'string' && /min/.test(v); const num = (v) => parseFloat(v);
+
+  /* يحسب أوقات يوم معيّن بالساعات العشرية بالتوقيت المحلي للمدينة (tz بالساعات) */
+  function compute(y, m, d, lat, lng, tz, o) {
+    o = o || {}; const p = METHODS[o.method] || METHODS.Jafari; const elev = o.elevation || 0;
+    const jd = julian(y, m, d) - lng / (15 * 24);
+    const midDay = (t) => fixH(12 - sunPos(jd + t).eqt);
+    const angleTime = (angle, t, ccw) => {
+      const decl = sunPos(jd + t).decl; const v = (-sin(angle) - sin(decl) * sin(lat)) / (cos(decl) * cos(lat));
+      if (v > 1 || v < -1) return NaN; const tt = acos(v) / 15; return midDay(t) + (ccw ? -tt : tt);
+    };
+    const asrTime = (f, t) => { const decl = sunPos(jd + t).decl; return angleTime(-acot(f + tan(Math.abs(lat - decl))), t); };
+    const riseSet = 0.0347 * Math.sqrt(elev) + 0.833;
+    let T = { imsak: 5, fajr: 5, sunrise: 6, dhuhr: 12, asr: 13, sunset: 18, maghrib: 18, isha: 18 };
+    const dp = (t) => { const r = {}; Object.keys(t).forEach((k) => (r[k] = t[k] / 24)); return r; };
+    const P = dp(T);
+    const imsakMin = 10;
+    T = {
+      imsak: angleTime(num(p.fajr) + 0, P.imsak, true), fajr: angleTime(p.fajr, P.fajr, true), sunrise: angleTime(riseSet, P.sunrise, true),
+      dhuhr: midDay(P.dhuhr), asr: asrTime(o.asr === 'Hanafi' ? 2 : 1, P.asr), sunset: angleTime(riseSet, P.sunset),
+      maghrib: isMin(p.maghrib) ? NaN : angleTime(num(p.maghrib), P.maghrib), isha: isMin(p.isha) ? NaN : angleTime(num(p.isha), P.isha)
+    };
+    const off = tz - lng / 15; Object.keys(T).forEach((k) => (T[k] += off));
+    // خطوط العرض العالية: منتصف الليل
+    const diff = (a, b) => fixH(b - a); const night = diff(T.sunset, T.sunrise);
+    const hl = (time, base, angle, ccw) => { const portion = night / 2; const df = ccw ? diff(time, base) : diff(base, time); if (isNaN(time) || df > portion) return base + (ccw ? -portion : portion); return time; };
+    T.fajr = hl(T.fajr, T.sunrise, p.fajr, true);
+    T.imsak = T.fajr - imsakMin / 60;
+    if (isMin(p.maghrib)) T.maghrib = T.sunset + num(p.maghrib) / 60; else T.maghrib = hl(T.maghrib, T.sunset, p.maghrib, false);
+    if (isMin(p.isha)) T.isha = T.maghrib + num(p.isha) / 60; else T.isha = hl(T.isha, T.sunset, p.isha, false);
+    T.midnight = p.midnight === 'Jafari' ? T.sunset + diff(T.sunset, T.fajr) / 2 : T.sunset + diff(T.sunset, T.sunrise) / 2;
+    // ضبط المستخدم بالدقائق
+    const tune = o.tune || {}; Object.keys(T).forEach((k) => { if (tune[k]) T[k] += tune[k] / 60; T[k] = fixH(T[k]); });
+    return T;
+  }
+
+  function tzOffsetHours(instant, tz) {
+    try {
+      const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' });
+      const pr = f.formatToParts(instant); const g = (t) => +pr.find((x) => x.type === t).value;
+      const asUTC = Date.UTC(g('year'), g('month') - 1, g('day'), g('hour'), g('minute'), g('second'));
+      return (asUTC - Math.floor(instant.getTime() / 1000) * 1000) / 3600000;
+    } catch (e) { return -instant.getTimezoneOffset() / 60; }
+  }
+  function cityToday(tz, now) {
+    try {
+      const pr = new Intl.DateTimeFormat('en-US', { timeZone: tz, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(now || new Date());
+      const g = (t) => +pr.find((x) => x.type === t).value; return { y: g('year'), m: g('month'), d: g('day') };
+    } catch (e) { const n = now || new Date(); return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() }; }
+  }
+  const NAMES = [['fajr', 'الفجر'], ['sunrise', 'الشروق'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['maghrib', 'المغرب'], ['isha', 'العشاء']];
+  const FIVE = [['fajr', 'الفجر'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['maghrib', 'المغرب'], ['isha', 'العشاء']];
+
+  const P = (S.prayer = {
+    METHODS, KAABA, FIVE, NAMES,
+    loc() { const st = S.settings; if (st.lat == null || st.lng == null) return null; return { lat: +st.lat, lng: +st.lng, tz: st.tz || Intl.DateTimeFormat().resolvedOptions().timeZone, name: st.cityName || 'موقعي' }; },
+    /* يعيد الأوقات ليوم (y,m,d) في موقع المستخدم، مع لحظات UTC لكل وقت */
+    times(ymd) {
+      const loc = P.loc(); if (!loc) return null; const st = S.settings;
+      const day = ymd || cityToday(loc.tz);
+      const noon = new Date(Date.UTC(day.y, day.m - 1, day.d, 12)); const tz = tzOffsetHours(noon, loc.tz);
+      const T = compute(day.y, day.m, day.d, loc.lat, loc.lng, tz, { method: st.calcMethod, asr: st.asr, tune: st.tune });
+      const inst = {}; Object.keys(T).forEach((k) => { inst[k] = isNaN(T[k]) ? null : new Date(Date.UTC(day.y, day.m - 1, day.d) + (T[k] - tz) * 3600000); });
+      // منتصف الليل قد يقع بعد منتصف الليل التقويمي
+      if (inst.midnight && inst.maghrib && inst.midnight < inst.maghrib) inst.midnight = new Date(inst.midnight.getTime() + 86400000);
+      return { day, tz, loc, hours: T, at: inst };
+    },
+    fmtHours(h) { if (h == null || isNaN(h)) return '—'; let mins = Math.round(h * 60); mins = ((mins % 1440) + 1440) % 1440; return S.n(S.fmt.pad(Math.floor(mins / 60)) + ':' + S.fmt.pad(mins % 60)); },
+    /* يعرض لحظة مطلقة بتوقيت المدينة المختارة (مقرّبة لأقرب دقيقة، كما في جدول المواقيت) */
+    fmtAt(at, tz) { try { return S.n(new Intl.DateTimeFormat('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(Math.round(at.getTime() / 60000) * 60000))); } catch (e) { return S.fmt.time(at); } },
+    next(now) {
+      now = now || new Date(); const t0 = P.times(); if (!t0) return null;
+      const list = []; const add = (t) => FIVE.forEach(([k, n]) => { if (t.at[k]) list.push({ key: k, name: n, at: t.at[k] }); });
+      add(t0);
+      const loc = t0.loc; const tmr = new Date(Date.UTC(t0.day.y, t0.day.m - 1, t0.day.d + 1, 12)); const t1 = P.times({ y: tmr.getUTCFullYear(), m: tmr.getUTCMonth() + 1, d: tmr.getUTCDate() }); add(t1);
+      const nx = list.filter((x) => x.at > now).sort((a, b) => a.at - b.at)[0]; return nx ? Object.assign(nx, { today: t0, loc, time: P.fmtAt(nx.at, loc.tz) }) : null;
+    },
+    qibla(lat, lng) {
+      const φ1 = lat * DR, φ2 = KAABA.lat * DR, Δ = (KAABA.lng - lng) * DR;
+      const y = Math.sin(Δ) * Math.cos(φ2), x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δ);
+      return (atan2(y, x) + 360) % 360;
+    },
+    distKm(lat, lng) {
+      const φ1 = lat * DR, φ2 = KAABA.lat * DR, Δφ = φ2 - φ1, Δλ = (KAABA.lng - lng) * DR;
+      const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2; return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    },
+    _compute: compute, _tzOffsetHours: tzOffsetHours, _cityToday: cityToday,
+    init() {
+      let fired = {};
+      S.onTick((now) => {
+        // العدّ التنازلي في الواجهة
+        const nx = P.next(now); S.$$('[data-countdown]').forEach((el) => { el.textContent = nx ? S.fmt.hm(nx.at - now) : '—'; });
+        if (!nx) return;
+        const st = S.settings; const left = nx.at - now;
+        const key = nx.key + nx.at.getTime();
+        if (st.preMin > 0 && left <= st.preMin * 60000 && left > (st.preMin * 60000 - 1500) && !fired['pre' + key]) { fired['pre' + key] = 1; P.alert('اقترب وقت صلاة ' + nx.name, 'متبقٍّ ' + S.n(st.preMin) + ' دقيقة', false); }
+        if (left <= 1000 && left > -1500 && !fired['at' + key]) { fired['at' + key] = 1; P.alert('حان وقت صلاة ' + nx.name, nx.loc.name, true); }
+        if (Object.keys(fired).length > 50) fired = {};
+      });
+    },
+    async alert(title, body, isAdhan) {
+      if (!S.settings.adhanOn) return;
+      S.toast(title + ' — ' + body, 'ok'); S.vibrate([200, 100, 200]);
+      let played = false;
+      if (isAdhan) { try { const custom = (await S.db.all('audiolib')).find((a) => a.kind === 'adhan' && a.blob); if (custom) { const au = new Audio(URL.createObjectURL(custom.blob)); await au.play(); played = true; } } catch (e) { /* قد يمنع المتصفح التشغيل التلقائي */ } }
+      if (!played) { S.beep(523, 220, 0.2); setTimeout(() => S.beep(659, 220, 0.2), 260); setTimeout(() => S.beep(784, 380, 0.2), 520); }
+      try { if (window.Notification && Notification.permission === 'granted') { const reg = S.sw || (navigator.serviceWorker && (await navigator.serviceWorker.getRegistration())); if (reg && reg.showNotification) reg.showNotification(title, { body, icon: 'assets/images/icon-192.png', tag: 'siraj-prayer' }); else new Notification(title, { body }); } } catch (e) { /* */ }
+      S.notify.add({ title, body, kind: 'prayer' });
+    }
+  });
+
+  /* ---------- صفحة المواقيت ---------- */
+  function ymdAdd(day, n) { const d = new Date(Date.UTC(day.y, day.m - 1, day.d + n, 12)); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() }; }
+  S.router.add('/prayer', async (p, q) => {
+    const loc = P.loc();
+    if (!loc) return { title: 'مواقيت الصلاة', nav: 'more', back: '/more', html: S.h`<div class="stack">${S.ui.empty('map-pin', 'حدّد موقعك لحساب المواقيت', 'لا يعرض سِراج مواقيت افتراضية؛ تُحسب فلكياً من إحداثيات مدينتك.', S.h`<a class="btn primary" href="#/prayer/location">${S.icon('map-pin')} اختيار الموقع</a>`)}</div>` };
+    const today = P.times(); let day = today.day; if (q.off) day = ymdAdd(day, +q.off);
+    const T = P.times(day); const off = +(q.off || 0); const nx = P.next();
+    const gd = new Date(day.y, day.m - 1, day.d, 12);
+    const log = await S.db.where('prayerlog', 'date', `${day.y}-${S.fmt.pad(day.m)}-${S.fmt.pad(day.d)}`); const done = new Set(log.filter((l) => l.done).map((l) => l.prayer));
+    const rows = [['imsak', 'الإمساك'], ['fajr', 'الفجر'], ['sunrise', 'الشروق'], ['dhuhr', 'الظهر'], ['asr', 'العصر'], ['sunset', 'الغروب'], ['maghrib', 'المغرب'], ['isha', 'العشاء'], ['midnight', 'نصف الليل الشرعي']];
+    return {
+      title: 'مواقيت الصلاة', nav: 'more', back: '/more',
+      actions: [{ icon: 'settings', label: 'إعدادات الصلاة', href: '#/prayer/settings' }, { icon: 'map-pin', label: 'الموقع', href: '#/prayer/location' }],
+      html: S.h`<div class="stack">
+        <div class="card center"><div class="muted small">${loc.name}</div><div class="h2 nm">${S.fmt.gdate(gd)}</div><div class="gold">${S.hijriStr(gd)}</div>
+          <div class="row between mt"><a class="btn sm" href="#/prayer?off=${off - 1}">${S.icon('chevron-right')} أمس</a>${off ? S.h`<a class="btn sm ghost" href="#/prayer">اليوم</a>` : ''}<a class="btn sm" href="#/prayer?off=${off + 1}">غداً ${S.icon('chevron-left')}</a></div></div>
+        ${!off && nx ? S.h`<div class="card gold-edge center"><div class="muted small">الصلاة القادمة</div><div class="h1 nm gold">${nx.name}</div><div class="op-ltr" style="font-size:1.8rem;font-weight:800;font-variant-numeric:tabular-nums" data-countdown>—</div></div>` : ''}
+        <div class="card">${rows.map(([k, n]) => S.h`<div class="prow ${!off && nx && nx.key === k ? 'next' : ''}"><span class="pn">${n}</span><span class="pv">${T.at[k] ? P.fmtHours(T.hours[k]) : '—'}</span></div>`)}</div>
+        <div class="card"><div class="card-t">${S.icon('check-circle')} متابعة الصلاة اليومية</div><div class="chips" style="flex-wrap:wrap;overflow:visible;margin:0;padding:0">${FIVE.map(([k, n]) => S.h`<button class="chip ${done.has(k) ? 'active' : ''}" data-act="prayerDone" data-p="${k}" data-date="${day.y}-${S.fmt.pad(day.m)}-${S.fmt.pad(day.d)}">${done.has(k) ? S.icon('check') : ''}${n}</button>`)}</div><a class="small" href="#/qada">جدول قضاء الصلاة</a> • <a class="small" href="#/prayer/stats">سجل الصلوات</a></div>
+        ${S.ui.notice('info', 'عن هذه المواقيت', S.h`<span>حساب فلكي تقريبي بطريقة «${METHODS[S.settings.calcMethod].name}». للاحتياط في الصلاة والصيام راجع التقويم المعتمد لدى مرجعك أو مكتبه، ويمكنك ضبط الدقائق من <a href="#/prayer/settings">إعدادات الصلاة</a>.</span>`)}
+      </div>`
+    };
+  });
+  S.act('prayerDone', async (el) => {
+    const id = el.dataset.date + ':' + el.dataset.p; const cur = await S.db.get('prayerlog', id);
+    const done = !(cur && cur.done); await S.db.put('prayerlog', { id, date: el.dataset.date, prayer: el.dataset.p, done, ts: Date.now() });
+    S.router.refresh();
+  });
+  S.router.add('/prayer/stats', async () => {
+    const all = (await S.db.all('prayerlog')).filter((l) => l.done); const byDate = {}; all.forEach((l) => (byDate[l.date] = (byDate[l.date] || 0) + 1));
+    const days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); const k = S.fmt.day(d); days.push({ k, n: byDate[k] || 0, l: ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'][d.getDay()] }); }
+    const total = all.length;
+    return { title: 'سجل الصلوات', nav: 'more', back: '/prayer', html: S.h`<div class="stack"><div class="grid2"><div class="stat"><b>${S.n(total)}</b><span>صلوات مسجّلة (الإجمالي)</span></div><div class="stat"><b>${S.n(days.reduce((a, d) => a + d.n, 0))}</b><span>آخر 7 أيام (من 35)</span></div></div><div class="card"><div class="card-t">${S.icon('chart')} آخر 7 أيام</div><div class="barchart">${days.map((d) => S.h`<div class="bc"><em>${S.n(d.n)}</em><i style="height:${Math.max(3, d.n * 16)}px"></i><span>${d.l}</span></div>`)}</div></div></div>` };
+  });
+
+  /* ---------- الموقع ---------- */
+  S.router.add('/prayer/location', (p, q) => {
+    const cities = S.data.sample.cities; const cur = S.settings.cityId;
+    return {
+      title: 'اختيار الموقع', nav: 'more', back: '/prayer',
+      html: S.h`<div class="stack">
+        <button class="btn gold block" data-act="useGPS">${S.icon('map-pin')} استخدم موقعي الحالي (GPS)</button>
+        <p class="tiny muted nm">يطلب المتصفح إذنك. يعمل GPS عبر HTTPS فقط. الإحداثيات تُحفظ في هذا الجهاز ولا تُرسل لأي جهة.</p>
+        <div class="searchbox">${S.icon('search')}<input class="input" id="cityq" data-inp="cityFilter" placeholder="ابحث عن مدينة" autocomplete="off"></div>
+        <div class="list" id="citylist">${cities.map((c) => cityItem(c, cur)).join('')}</div>
+        <details class="acc"><summary>إدخال إحداثيات يدوياً</summary><div class="acc-b" id="manual">${S.f.text('mname', 'اسم الموقع', S.settings.cityId ? '' : S.settings.cityName, {})}${S.f.text('mlat', 'خط العرض (مثال 32.0)', S.settings.cityId ? '' : S.settings.lat, { type: 'number', step: 'any', ltr: true })}${S.f.text('mlng', 'خط الطول (مثال 44.33)', S.settings.cityId ? '' : S.settings.lng, { type: 'number', step: 'any', ltr: true })}${S.f.text('mtz', 'المنطقة الزمنية IANA (مثال Asia/Baghdad)', S.settings.tz || Intl.DateTimeFormat().resolvedOptions().timeZone, { ltr: true })}<button class="btn primary block" data-act="saveManualLoc">حفظ</button></div></details>
+      </div>`
+    };
+  });
+  function cityItem(c, cur) { return `<button class="li" data-act="pickCity" data-id="${S.esc(c.id)}" data-n="${S.esc(S.norm(c.name + ' ' + c.country))}"><span class="li-ico">${S.icon('map-pin')}</span><span class="li-body"><span class="li-t">${S.esc(c.name)}</span><span class="li-s">${S.esc(c.country)}</span></span>${cur === c.id ? '<span class="li-end">' + S.icon('check') + '</span>' : ''}</button>`; }
+  S.onInput('cityFilter', (el) => { const q = S.norm(el.value); S.$$('#citylist .li').forEach((b) => (b.hidden = q && !b.dataset.n.includes(q))); });
+  S.act('pickCity', (el) => { const c = S.data.sample.cities.find((x) => x.id === el.dataset.id); S.set({ cityId: c.id, cityName: c.name, lat: c.lat, lng: c.lng, tz: c.tz }); S.toast('تم اختيار ' + c.name, 'ok'); S.router.go('/prayer'); });
+  S.act('saveManualLoc', (el) => {
+    const d = S.f.read(el.closest('#manual')); const lat = +d.mlat, lng = +d.mlng;
+    if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180 || d.mlat === '' || d.mlng === '') return S.toast('أدخل إحداثيات صحيحة', 'err');
+    try { new Intl.DateTimeFormat('en', { timeZone: d.mtz }); } catch (e) { return S.toast('المنطقة الزمنية غير صحيحة', 'err'); }
+    S.set({ cityId: '', cityName: d.mname || 'موقعي', lat, lng, tz: d.mtz }); S.toast('تم حفظ الموقع', 'ok'); S.router.go('/prayer');
+  });
+  S.act('useGPS', () => new Promise((resolve) => {
+    if (!navigator.geolocation) { S.toast('المتصفح لا يدعم تحديد الموقع', 'err'); return resolve(); }
+    S.toast('جارٍ تحديد موقعك…');
+    navigator.geolocation.getCurrentPosition((pos) => {
+      S.set({ cityId: '', cityName: 'موقعي الحالي', lat: +pos.coords.latitude.toFixed(4), lng: +pos.coords.longitude.toFixed(4), tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+      S.toast('تم تحديد موقعك', 'ok'); S.router.go('/prayer'); resolve();
+    }, (err) => { S.toast(err.code === 1 ? 'رُفض إذن الموقع. اختر مدينتك يدوياً.' : 'تعذّر تحديد الموقع (يتطلب HTTPS وإشارة GPS).', 'err'); resolve(); }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+  }));
+
+  /* ---------- إعدادات الصلاة ---------- */
+  S.router.add('/prayer/settings', () => {
+    const st = S.settings;
+    return {
+      title: 'إعدادات الصلاة', nav: 'more', back: '/prayer',
+      html: S.h`<div class="stack"><div class="card" id="ps">
+        ${S.f.select('calcMethod', 'طريقة الحساب', Object.keys(METHODS).map((k) => ({ v: k, t: METHODS[k].name })), st.calcMethod, { chg: 'psChange' })}
+        ${S.f.select('madhab', 'المذهب (للعرض والإعداد الافتراضي)', [{ v: 'jafari', t: 'الإمامي الجعفري' }, { v: 'other', t: 'أخرى' }], st.madhab, { chg: 'psChange' })}
+        ${S.f.select('asr', 'وقت العصر', [{ v: 'Standard', t: 'ظل المثل (الجمهور والجعفري)' }, { v: 'Hanafi', t: 'ظل المثلين (الحنفي)' }], st.asr, { chg: 'psChange' })}
+        <div class="field"><label>ضبط الدقائق لكل وقت (احتياط)</label><div class="grid3">${['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'].map((k) => S.h`<div class="field nm"><label class="tiny">${({ fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' })[k]}</label><input class="input ltr" type="number" step="1" min="-30" max="30" value="${st.tune[k] || 0}" data-chg="psTune" data-k="${k}"></div>`)}</div><span class="hint">تُضاف الدقائق إلى الوقت المحسوب (مثلاً +3 للمغرب احتياطاً عند من يرى ذلك).</span></div>
+        <div class="setting"><div class="sd">التنبيه عند دخول الوقت<small>يعمل أثناء فتح التطبيق فقط (قيد من المتصفح)</small></div><label class="switch"><input type="checkbox" ${st.adhanOn ? S.raw('checked') : ''} data-chg="psAdhan"><i></i></label></div>
+        <div class="field"><label>التنبيه المسبق (بالدقائق، 0 للإيقاف)</label><input class="input ltr" type="number" min="0" max="60" value="${st.preMin}" data-chg="psPre"></div>
+        <div class="grid2"><button class="btn" data-act="notifPerm">${S.icon('bell')} السماح بإشعارات النظام</button><button class="btn" data-act="testAdhan">${S.icon('volume')} تجربة التنبيه</button></div>
+        ${S.f.file('adhanFile', 'ملف صوتي للأذان (اختياري، من جهازك)', 'audio/*', 'لا يتضمن سِراج تسجيل أذان. يمكنك رفع تسجيل مرخّص لديك؛ يُحفظ في متصفحك فقط.')}
+        <button class="btn block" data-act="saveAdhan">${S.icon('upload')} حفظ ملف الأذان</button>
+      </div></div>`
+    };
+  });
+  S.onChange('psChange', (el) => { S.set(el.name, el.value); S.toast('تم الحفظ', 'ok'); });
+  S.onChange('psTune', (el) => { const t = Object.assign({}, S.settings.tune); t[el.dataset.k] = Math.round(+el.value || 0); S.set('tune', t); });
+  S.onChange('psAdhan', (el) => { S.set('adhanOn', el.checked); });
+  S.onChange('psPre', (el) => { S.set('preMin', S.clamp(Math.round(+el.value || 0), 0, 60)); });
+  S.act('notifPerm', async () => { if (!window.Notification) return S.toast('المتصفح لا يدعم الإشعارات', 'err'); const r = await Notification.requestPermission(); S.toast(r === 'granted' ? 'تم السماح بالإشعارات' : 'لم يُسمح بالإشعارات', r === 'granted' ? 'ok' : 'err'); });
+  S.act('testAdhan', () => { const was = S.settings.adhanOn; S.settings.adhanOn = true; P.alert('تجربة التنبيه', 'هذا اختبار فقط', false).finally(() => { S.settings.adhanOn = was; }); });
+  S.act('saveAdhan', async (el) => {
+    const f = S.$('[name=adhanFile]', el.closest('.card')).files[0]; if (!f) return S.toast('اختر ملفاً صوتياً', 'err');
+    if (!/^audio\//.test(f.type)) return S.toast('الملف ليس صوتياً', 'err'); if (f.size > 8 * 1048576) return S.toast('الحد الأقصى 8 ميغابايت', 'err');
+    const old = (await S.db.all('audiolib')).filter((a) => a.kind === 'adhan'); for (const o of old) await S.db.del('audiolib', o.id);
+    await S.db.put('audiolib', { id: S.uid('au'), kind: 'adhan', title: f.name, blob: f, size: f.size, source: 'رفع المستخدم', license: 'مسؤولية المستخدم', ts: Date.now() });
+    S.toast('تم حفظ ملف الأذان', 'ok');
+  });
+
+  /* ---------- القبلة ---------- */
+  S.router.add('/qibla', () => {
+    const loc = P.loc();
+    if (!loc) return { title: 'اتجاه القبلة', nav: 'more', back: '/more', html: S.ui.empty('compass', 'حدّد موقعك أولاً', 'تُحسب القبلة من إحداثياتك إلى الكعبة المشرفة.', S.h`<a class="btn primary" href="#/prayer/location">اختيار الموقع</a>`) };
+    const b = P.qibla(loc.lat, loc.lng); const km = P.distKm(loc.lat, loc.lng);
+    return {
+      title: 'اتجاه القبلة', nav: 'more', back: '/more',
+      html: S.h`<div class="stack center"><div class="muted small">${loc.name}</div><div class="h1 nm gold">${S.n(b.toFixed(1))}°</div><div class="small muted">من الشمال باتجاه عقارب الساعة • المسافة ≈ ${S.n(Math.round(km).toLocaleString('en'))} كم</div>
+        <div class="compass" id="compass"><div class="face" id="cface"><span class="north">ش</span><div class="needle" id="needle" style="transform:rotate(${b}deg)"></div></div></div>
+        <div id="hdg" class="small muted">البوصلة غير مفعّلة — الاتجاه الثابت أعلاه (زاوية ${S.n(b.toFixed(1))}°) محسوب بدقة.</div>
+        <button class="btn primary" data-act="startCompass">${S.icon('compass')} تفعيل بوصلة الجهاز</button>
+        ${S.ui.notice('warn', 'ملاحظة', 'المستشعرات تتأثر بالمعادن والمغناطيس القريب. اضبط الهاتف أفقياً وحرّكه على شكل 8 لمعايرته، وتأكد باستخدام علامة المحراب في المسجد. تحتاج البوصلة إلى HTTPS وجهاز بمستشعر اتجاه.')}</div>`,
+      unmount() { stopCompass(); }
+    };
+  });
+  let compassHandler = null;
+  function stopCompass() { if (compassHandler) { window.removeEventListener('deviceorientationabsolute', compassHandler, true); window.removeEventListener('deviceorientation', compassHandler, true); compassHandler = null; } }
+  S.act('startCompass', async () => {
+    const loc = P.loc(); const b = P.qibla(loc.lat, loc.lng);
+    try { if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return S.toast('لم يُسمح بالوصول للمستشعر', 'err'); } } catch (e) { return S.toast('تعذّر طلب الإذن', 'err'); }
+    if (!('DeviceOrientationEvent' in window)) return S.toast('الجهاز لا يدعم مستشعر الاتجاه', 'err');
+    stopCompass(); let got = false;
+    compassHandler = (ev) => {
+      let hd = null; if (typeof ev.webkitCompassHeading === 'number') hd = ev.webkitCompassHeading; else if (ev.absolute && ev.alpha != null) hd = (360 - ev.alpha) % 360; else if (ev.type === 'deviceorientationabsolute' && ev.alpha != null) hd = (360 - ev.alpha) % 360;
+      if (hd == null) return; got = true;
+      const face = S.$('#cface'), needle = S.$('#needle'), lbl = S.$('#hdg'); if (!face) return;
+      face.style.transform = `rotate(${-hd}deg)`; needle.style.transform = `rotate(${b}deg)`;
+      const diff = Math.abs(((b - hd + 540) % 360) - 180); lbl.innerHTML = `اتجاه الهاتف ${S.n(Math.round(hd))}° — ${diff < 5 ? '<b class="ok">أنت متجه نحو القبلة</b>' : 'أدر الهاتف حتى يشير السهم للأعلى'}`;
+      if (diff < 3) S.vibrate(30);
+    };
+    window.addEventListener('deviceorientationabsolute', compassHandler, true); window.addEventListener('deviceorientation', compassHandler, true);
+    setTimeout(() => { if (!got) S.toast('لم تصل قراءات من المستشعر. استخدم الزاوية الثابتة.', 'err'); }, 3500);
+  });
+})();
