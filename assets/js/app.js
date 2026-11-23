@@ -9,7 +9,7 @@
 
   async function hashPin(pin, salt) { return S.sha256(salt + ':' + pin); }
 
-  const CATALOG_V = 2; /* ارفعه عند توسيع الكتالوج المضمَّن ليصل التحديث إلى من ثبّت نسخة أقدم */
+  const CATALOG_V = 3; /* ارفعه عند توسيع الكتالوج المضمَّن ليصل التحديث إلى من ثبّت نسخة أقدم */
   async function seed() {
     const D = S.data.sample; const done = S.kv.get('seed.v', 0);
     if (done >= 1 && done < CATALOG_V) {
@@ -102,6 +102,7 @@
       if (S.quran && S.quran.init) await S.quran.init();
       ['prayer', 'calendar', 'daily', 'worship'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
       registerSW(); installBackButton();
+      if (S.thaqalayn && S.thaqalayn.init) S.thaqalayn.init();
       S.db.persist();
       await S.router.start();
       if (!ok) S.toast('تعذّر استخدام التخزين الدائم — البيانات ستُفقد عند الإغلاق', 'err');

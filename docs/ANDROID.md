@@ -19,6 +19,7 @@
 |---|---|
 | نسخ التطبيق إلى `www/` | `scripts/prepare-www.mjs` |
 | جلب نص المصحف (Tanzil عبر AlQuran.cloud) والتحقق منه (114 سورة، 6236 آية) وتضمينه | `scripts/fetch-quran.mjs` (فشله غير قاتل) |
+| جلب أحاديث عربية من Thaqalayn API وتضمينها (عيّنة ≤ 1500) | `scripts/fetch-thaqalayn.mjs` (فشله غير قاتل؛ يطبع العدد في سجل البناء) |
 | إنشاء مشروع أندرويد | `npx cap add android` |
 | الصلاحيات والأيقونة وشاشة البداية | `scripts/patch-android.py` |
 | بناء APK | `./gradlew assembleDebug` |
@@ -45,6 +46,7 @@
 npm install
 node scripts/prepare-www.mjs
 node scripts/fetch-quran.mjs        # اختياري
+node scripts/fetch-thaqalayn.mjs    # اختياري (أحاديث)
 npx cap add android
 python3 scripts/patch-android.py
 npx cap sync android

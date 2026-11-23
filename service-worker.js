@@ -8,7 +8,7 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = '867887363c';
+const VERSION = 'f3615127e3';
 const PRECACHE = [
   './',
   './assets/css/responsive.css',
@@ -43,11 +43,13 @@ const PRECACHE = [
   './assets/js/navigation.js',
   './assets/js/prayer.js',
   './assets/js/quran-audio.js',
+  './assets/js/quran-duas.js',
   './assets/js/quran.js',
   './assets/js/reader.js',
   './assets/js/settings.js',
   './assets/js/storage.js',
   './assets/js/tasbeeh.js',
+  './assets/js/thaqalayn.js',
   './assets/js/ui.js',
   './assets/js/worship.js',
   './assets/lib/pdfjs/LICENSE-pdfjs.txt',

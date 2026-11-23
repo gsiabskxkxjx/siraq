@@ -294,6 +294,7 @@ DUA_CATS = [
     dict(id="daily", title="الأدعية اليومية"), dict(id="week", title="أدعية الأسبوع"), dict(id="ramadan", title="شهر رمضان"),
     dict(id="muharram", title="محرم وصفر"), dict(id="occasions", title="المناسبات"), dict(id="ziyarat-jamia", title="الزيارات الجامعة"),
     dict(id="ziyarat-special", title="زيارات مخصوصة"), dict(id="sahifa", title="الصحيفة السجادية"), dict(id="books", title="كتب الأدعية"),
+    dict(id="quran", title="الأدعية القرآنية"),
 ]
 MAF = "ورد في مفاتيح الجنان للشيخ عباس القمي (يُراجَع موضع النص والطبعة)"
 def d(i, kind, title, cat, src="", note=""):

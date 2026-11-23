@@ -39,12 +39,21 @@
         <div class="searchbox">${S.icon('search')}<input class="input" id="dq" type="search" value="${term}" placeholder="ابحث في الأدعية والزيارات" enterkeyhint="search"></div>
         ${term ? (res.length ? S.h`<div class="list">${res.map(row)}</div>` : S.ui.empty('search', 'لا نتائج')) : S.h`
         ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.filter((d) => d.kind !== 'demo').length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. يمكن للمحرّر إضافة النصوص من <a href="#/admin/duas">لوحة الإدارة</a> أو استيرادها من ملف.</span>`)}
+        ${qdNotice(all)}
         <div class="chips"><a class="chip" href="#/duas/favorites">${S.icon('heart')} المفضلة (${S.n(favs)})</a></div>
         <div class="grid2">${cats.map((c) => S.h`<a class="card tap" href="#/duas/cat/${c.id}"><b>${c.title}</b><div class="small muted">${S.n(counts[c.id] || 0)} عنوان</div></a>`)}</div>`}
       </div>`,
       mount() { const f = S.$('#dq'); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') S.router.go('/duas?q=' + encodeURIComponent(f.value)); }); }
     };
   });
+  /* الأدعية القرآنية تُبنى من نص المصحف؛ إن لم يُحمَّل المصحف نقول ذلك بصراحة بدل إظهار قائمة فارغة */
+  function qdNotice(all) {
+    const Q = S.quran, QD = S.quranDuas; if (!QD) return '';
+    const have = all.filter((d) => /^qd_/.test(d.id)).length;
+    if (have) return S.ui.notice('ok', 'الأدعية القرآنية', S.h`<span><b>${S.n(have)}</b> دعاءً من القرآن الكريم بنصّ المصحف المحمَّل على جهازك، مع السورة والآية لكل دعاء. <a href="#/duas/cat/quran">عرضها</a></span>`);
+    if (!Q || !Q.text) return S.h`<div class="card"><div class="card-t">${S.icon('book-open')} الأدعية القرآنية (${S.n(QD.total())} موضعاً)</div><p class="small muted nm">تظهر نصوصها بعد تحميل المصحف الشريف على جهازك، لأن سِراج لا يكتب آيات يدوياً بل يأخذها من المصحف ويتحقق منها.</p><a class="btn sm gold" href="#/quran/download">${S.icon('download')} تحميل المصحف</a></div>`;
+    return '';
+  }
   const row = (d) => S.h`<a class="li" href="#/duas/item/${d.id}"><span class="li-ico">${S.icon(d.kind === 'ziyarah' ? 'mosque' : d.kind === 'collection' ? 'book-open' : 'heart-handshake')}</span><span class="li-body"><span class="li-t">${d.title}</span><span class="li-s">${KIND[d.kind] || ''}${d.commonSource ? ' • ' + d.commonSource : ''}</span></span><span class="li-end">${badge(d)}</span></a>`;
   S.router.add('/duas/cat/:id', async (p) => {
     const c = D.cats().find((x) => x.id === p.id); const all = (await D.all()).filter((d) => d.cat === p.id);

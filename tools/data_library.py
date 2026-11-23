@@ -242,3 +242,21 @@ for _r in BOOKS:
         _r = (_r[0], _r[1], _r[2], _sec, _sub) + tuple(_r[5:])
     _moved.append(_r)
 BOOKS = _moved + _x.BOOKS
+
+# ---------------------------------------------------------------- الدفعة الثالثة (ext2/ext3/ext4): تُدمج مع فحص التكرار
+import data_library_ext2 as _x2
+import data_library_ext3 as _x3
+import data_library_ext4 as _x4
+for _m in (_x2, _x3, _x4):
+    _have = {a[0] for a in AUTHORS}
+    AUTHORS = AUTHORS + [a for a in _m.AUTHORS if a[0] not in _have]
+    BOOKS = BOOKS + list(_m.BOOKS)
+_ids = [b[0] for b in BOOKS]
+_dup = sorted({i for i in _ids if _ids.count(i) > 1} | {i for i in _ids if i in {p[0] for p in PROPOSALS}} if 'PROPOSALS' in globals() else set())
+assert not _dup, "معرّفات كتب مكررة أو متعارضة مع الاقتراحات: %s" % _dup
+_aids = {a[0] for a in AUTHORS}
+_miss = sorted({b[2] for b in BOOKS if b[2] not in _aids})
+assert not _miss, "مؤلفون غير معرّفين: %s" % _miss
+_sec = {s["id"]: set(s["subcats"]) for s in SECTIONS}
+_badsub = [(b[0], b[3], b[4]) for b in BOOKS if b[4] not in _sec.get(b[3], set())]
+assert not _badsub, "تصنيف فرعي غير موجود في القسم: %s" % _badsub

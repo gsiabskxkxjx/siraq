@@ -9,7 +9,7 @@ t.check('عشرة أقسام', len(secs) == 10 and set(['hadith', 'rijal', 'aqee
 cnt = t.ev("SIRAJ.library.countBySection()")
 t.check('كل قسم فيه كتب منشورة', all(cnt.get(s, 0) > 0 for s in secs), cnt)
 tot = sum(cnt.values())
-t.check('عدد الكتب المنشورة >= 220', tot >= 220, tot)
+t.check('عدد الكتب المنشورة >= 440', tot >= 440, tot)
 t.check('قسم الحديث يضم الكافي وبحار الأنوار (بعد النقل)', t.ev("['b_kafi','b_bihar','b_wasail','b_faqih'].every(i=>SIRAJ.library.byId.get(i).section==='hadith')"))
 t.check('قسم العقيدة يضم كشف المراد', t.ev("SIRAJ.library.byId.get('b_kashf-murad').section==='aqeedah'"))
 bad = t.ev("SIRAJ.library.books.filter(b=>{const s=SIRAJ.sectionById[b.section];return !s||!s.subcats.includes(b.subcat)}).map(b=>b.id)")
@@ -27,7 +27,7 @@ t.check('الصفحة الرئيسية للمكتبة تعرض الأقسام ا
 t.shot('catalog-library')
 
 for sid, must in [('hadith', 'الكافي'), ('rijal', 'رجال النجاشي'), ('aqeedah', 'تجريد الاعتقاد'), ('duas', 'الصحيفة السجادية'), ('fiqh', 'تذكرة الفقهاء'), ('tafsir', 'تسنيم')]:
-    t.go('/library/sec/' + sid, 800)
+    t.go('/library/sec/' + sid + '?n=400', 800)
     x = t.txt()
     t.check(f'قسم {sid} يعرض «{must}»', must in x, x[:120])
 t.go('/library/sec/rijal', 800); t.shot('catalog-rijal')

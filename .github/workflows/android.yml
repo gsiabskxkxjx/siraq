@@ -54,6 +54,10 @@ jobs:
         continue-on-error: true
         run: node scripts/fetch-quran.mjs
 
+      - name: تضمين أحاديث من Thaqalayn وقت البناء (اختياري)
+        continue-on-error: true
+        run: node scripts/fetch-thaqalayn.mjs
+
       - name: إنشاء مشروع أندرويد
         run: npx cap add android
 
