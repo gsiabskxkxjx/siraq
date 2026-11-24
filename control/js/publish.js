@@ -28,6 +28,7 @@
       const f = await S.files.get('ctl.pdf.' + b.id);
       if (!f) { errs.push('كتاب «' + b.title + '»: ملف PDF مفقود — أعد إرفاقه'); continue; }
       if (!SC.copyOk(b.copyright)) errs.push('كتاب «' + b.title + '»: إرفاق PDF يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»');
+      if (f.size > 25 * 1048576) errs.push('كتاب «' + b.title + '»: ملف PDF حجمه ' + Math.round(f.size / 1048576) + ' م.ب ولا يمكن إرساله داخل الحزمة (الحد 25 م.ب). أزل الملف وضع رابط «العرض بالبث» بدلاً منه.');
       pdfTotal += f.size;
     }
     if (pdfTotal > 60 * 1048576) errs.push('مجموع ملفات PDF في الحزمة ' + Math.round(pdfTotal / 1048576) + ' م.ب ويتجاوز الحد (60 م.ب). اجعل بعض الكتب مسودات أو صغّر الملفات.');

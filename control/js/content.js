@@ -104,9 +104,9 @@
           <p class="tiny muted nm">لا تُنشر ملفات كتب عبر الحزم؛ الرابط الخارجي فقط.</p></div>
         <div class="card"><div class="card-t">${S.icon('file')} ملف PDF للكتاب</div>
           <p class="small muted nm">${pdf ? 'المرفق الحالي: ' + esc(pdf.name || 'book.pdf') + ' — ' + S.fmt.bytes(pdf.size) : 'لا يوجد ملف مرفق.'}</p>
-          ${S.f.file('pdfFile', 'اختر ملف PDF (حتى 25 م.ب)', 'application/pdf,.pdf')}
+          ${S.f.file('pdfFile', 'اختر ملف PDF (حتى 1 غيغابايت)', 'application/pdf,.pdf')}
           ${S.f.check('allowDownload', 'السماح للمستخدم بتنزيل الملف (وإلا يقرأه داخل سِراج فقط)', b.allowDownload)}${pdf ? S.f.check('pdfDel', 'إزالة الملف المرفق', false) : ''}
-          <p class="tiny muted nm">الكتب الأكبر من 25 م.ب (مثل 300 م.ب) لا تُرفق هنا: ارفعها على استضافة (مثل Archive.org للكتب العامة أو Google Drive) وضع الرابط في حقل «رابط نسخة رقمية قانونية» أعلاه، فيظهر للمستخدم زر «فتح الكتاب (رابط خارجي)». أو صغّر الملف بضاغط PDF.</p>
+          <p class="tiny muted nm">يُحفظ الملف في هذا التطبيق حتى 1 غيغابايت. لكن الملف الذي يتجاوز 25 م.ب لا يمكن إرساله داخل الحزمة (حد ذاكرة هاتف المستخدم)؛ ارفعه على استضافة تدعم البث (مثل Archive.org للكتب العامة) وضع رابطه في «رابط PDF مباشر للعرض بالبث» ليقرأه المستخدم بدون تحميل.</p>
           <p class="tiny muted nm">لا يُرفق PDF إلا إذا كانت حالة حقوق النشر أعلاه «ملك عام» أو «مرخّص» أو «بإذن خطي». يصل المستخدم داخل الحزمة الموقّعة عند وسم الكتاب «جاهز للنشر».</p></div>
         <div class="card">${S.f.check('ready', 'جاهز للنشر (يدخل الحزمة القادمة)', b.ready)}<p class="tiny muted nm">يُفحص الكتاب عند الحفظ؛ إن لم يجتز الفحص يُحفظ مسودة.</p></div>
         <button class="btn primary block" data-act="bkSave">${S.icon('check')} حفظ</button>
@@ -130,7 +130,7 @@
     if (d.pdfDel && old && old.hasPdf) { await S.files.del('ctl.pdf.' + rec.id); rec.hasPdf = false; }
     if (pf) {
       const head = await pf.slice(0, 5).text();
-      if (head !== '%PDF-') return S.toast('الملف ليس PDF صالحاً', 'err'); if (pf.size > 25 * 1048576) return S.toast('الملف أكبر من 25 ميغابايت: ضعه على استضافة وأدخل رابطه في «رابط نسخة رقمية قانونية»', 'err');
+      if (head !== '%PDF-') return S.toast('الملف ليس PDF صالحاً', 'err'); if (pf.size > 1073741824) return S.toast('الملف أكبر من 1 غيغابايت', 'err');
       await S.files.put('ctl.pdf.' + rec.id, pf, { name: pf.name }); rec.hasPdf = true;
     }
     if (rec.hasPdf && !SC.copyOk(rec.copyright)) { errs.push('إرفاق PDF يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»'); if (rec.ready) rec.ready = false; showErrs('#bk-errs', 'ملاحظات للإكمال قبل النشر:', errs); }

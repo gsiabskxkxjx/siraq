@@ -196,6 +196,12 @@ sha = hashlib.sha256(PDFB).hexdigest(); ref = [x for x in pl3['pdfs'] if x['id']
 t.check('الحمولة تحمل بصمة SHA-256 للـPDF والملف في الغلاف بالبصمة نفسها', len(ref) == 1 and ref[0]['sha'] == sha and ref[0]['allow'] is True and base64.b64decode(env3['blobs'][sha]) == PDFB, ref)
 t.check('التوقيع صحيح والغلاف يحمل الملف (تحقق مستقل)', indep_verify(env3, pub['jwk']) and 'pdfs' in pl3)
 
+# ملف أكبر من 25 م.ب: يُحفظ محلياً (حتى 1 غ.ب) لكن الإصدار يمنعه برسالة واضحة
+t.ev("""async (id) => { try { window.__orig = await SIRAJ.files.get('ctl.pdf.' + id); await SIRAJ.files.put('ctl.pdf.' + id, new Blob(['%PDF-1.4\\n', new Uint8Array(26 * 1048576)], { type: 'application/pdf' }), { name: 'big.pdf' }); return 'ok ' + (await SIRAJ.files.get('ctl.pdf.' + id)).size; } catch (e) { return 'ERR ' + e; } }""", clone['id'])
+t.go('/home', 400); t.go('/publish', 1200); t.check('ملف PDF أكبر من 25 م.ب يمنع الإصدار برسالة تشير إلى رابط البث', 'ولا يمكن إرساله داخل الحزمة' in t.txt(), t.txt()[:300])
+t.ev("""async (id) => { await SIRAJ.files.put('ctl.pdf.' + id, window.__orig.blob, { name: window.__orig.name }); }""", clone['id'])
+t.check('نموذج الكتاب يعلن حد 1 غيغابايت', 'حتى 1 غيغابايت' in (t.go('/book/' + clone['id'], 700) or t.txt()) or 'حتى 1 غيغابايت' in t.txt())
+
 # ---------- 10) التنقل ورجوع أندرويد ----------
 t.go('/home'); t.check('الرئيسية تعرض آخر حزمة', 'آخر حزمة' in t.txt())
 t.shot('ctl_home_after')
