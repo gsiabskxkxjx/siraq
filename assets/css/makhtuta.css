@@ -204,3 +204,8 @@ b,strong,.h1,.h2,.h3,.title{font-weight:700}
 
 /* مربعات النص: بلا مقبض تكبير (يبدو كخربشة على الجوال) */
 .textarea,textarea.input{resize:none}
+.as-n{font-size:.86rem;color:var(--muted);padding:2px 4px}
+.as-b.unclear{border-inline-start-color:var(--warn)}
+.card.hero-mini{background:linear-gradient(135deg,var(--emerald),var(--emerald-dark));color:#F8F1E0;border-color:rgba(230,194,106,.55)}
+.card.hero-mini b{color:var(--gold-light)} .card.hero-mini p,.card.hero-mini .small{color:rgba(248,241,224,.88)}
+.as-b .chips,.as-wrap{flex-wrap:wrap;overflow:visible;margin-inline:0;padding-inline:0}

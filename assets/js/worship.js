@@ -24,7 +24,7 @@
     const eta = goal > 0 && s.left ? Math.ceil(s.left / goal) : 0; const etaD = eta ? new Date(Date.now() + eta * 864e5) : null;
     return {
       title: 'قضاء الصلاة والصيام', nav: 'more', back: '/prayer',
-      html: S.h`<div class="stack">${S.ui.notice('info', 'عن هذه الصفحة', 'عدّاد وجدولة لتنظيم قضائك فقط. أحكام القضاء (الترتيب، قضاء المسافر، الاحتياط، العدد عند الشك…) تُؤخذ من رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '، ولا يحدّدها التطبيق.')}
+      html: S.h`<div class="stack">${S.ui.tip('info', 'عن هذه الصفحة', 'عدّاد وجدولة لتنظيم قضائك فقط. أحكام القضاء (الترتيب، قضاء المسافر، الاحتياط، العدد عند الشك…) تُؤخذ من رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '، ولا يحدّدها التطبيق.')}
         <div class="card"><div class="row between"><div><b>المتبقي من الصلوات</b><div class="small muted">أُنجز ${S.n(s.d)} من ${S.n(s.t)}</div></div>${S.ui.ring(s.t ? s.d / s.t * 100 : 0)}</div>${etaD ? S.h`<div class="small">بوتيرة ${S.n(goal)} صلاة يومياً تنتهي بعد نحو <b>${S.n(eta)}</b> يوماً (${S.fmt.gdate(etaD, { day: 'numeric', month: 'long', year: 'numeric' })}).</div>` : ''}<div class="small muted">آخر 7 أيام: ${S.n(last7)} صلاة</div></div>
         <div class="card"><div class="card-t">${S.icon('mosque')} الصلوات</div>${P5.map(([k, n]) => { const x = q.prayers[k]; return S.h`<div class="qd"><div class="grow"><b>${n}</b><div class="tiny muted">متبقٍ ${S.n(Math.max(0, x.total - x.done))} من ${S.n(x.total)}</div><div class="bar"><i style="width:${x.total ? Math.min(100, x.done / x.total * 100) : 0}%"></i></div></div><button class="btn sm" data-act="qdAdj" data-k="${k}" data-d="-1" aria-label="تراجع">−</button><button class="btn sm primary" data-act="qdAdj" data-k="${k}" data-d="1">قُضيت ${S.icon('check')}</button></div>`; })}
           <button class="btn block mt" data-act="qdSet">${S.icon('edit')} ضبط الأعداد المطلوبة</button><button class="btn block mt-s" data-act="qdRange">${S.icon('calendar')} حساب العدد من فترة (تاريخين)</button></div>
@@ -49,7 +49,7 @@
   };
   S.router.add('/worship/calc', () => ({
     title: 'حاسبات الخمس والزكاة', nav: 'more', back: '/more',
-    html: S.h`<div class="stack">${S.ui.notice('warn', 'ليست فتوى', CALC_NOTE)}${marja() ? S.ui.notice('info', 'مرجعك المسجَّل: ' + marja(), 'عدّل المعاملات إن كان رأي مرجعك يختلف عمّا هو مكتوب أدناه.') : S.ui.notice('info', 'المرجع غير محدد', 'يمكنك تسجيل المرجع الذي تقلّده من الإعدادات ليُذكر بجانب النتائج.')}
+    html: S.h`<div class="stack">${S.ui.tip('warn', 'ليست فتوى', CALC_NOTE)}${marja() ? S.ui.tip('info', 'مرجعك المسجَّل: ' + marja(), 'عدّل المعاملات إن كان رأي مرجعك يختلف عمّا هو مكتوب أدناه.') : S.ui.tip('info', 'المرجع غير محدد', 'يمكنك تسجيل المرجع الذي تقلّده من الإعدادات ليُذكر بجانب النتائج.')}
       <a class="card tap" href="#/worship/khums"><b>${S.icon('scale')} حاسبة الخمس</b><div class="small muted">20% من فاضل مؤونة السنة بمعاملات تُدخلها</div></a>
       <a class="card tap" href="#/worship/zakat"><b>${S.icon('scale')} حاسبة الزكاة</b><div class="small muted">النقدان (الذهب والفضة) والغلات الأربع — الأنعام غير مدرجة</div></a></div>`
   }));
@@ -57,7 +57,7 @@
   const money = (v) => S.n(v.toLocaleString('en-US', { maximumFractionDigits: 2 }));
   S.router.add('/worship/khums', () => ({
     title: 'حاسبة الخمس', nav: 'more', back: '/worship/calc',
-    html: S.h`<div class="stack">${S.ui.notice('warn', 'ليست فتوى', CALC_NOTE)}<div class="card"><div class="card-t">${S.icon('calc')} الخمس السنوي (أرباح المكاسب)</div>
+    html: S.h`<div class="stack">${S.ui.tip('warn', 'ليست فتوى', CALC_NOTE)}<div class="card"><div class="card-t">${S.icon('calc')} الخمس السنوي (أرباح المكاسب)</div>
       <p class="small muted nm">القاعدة المعروفة: الخمس (1/5 = 20%) فيما يفضل عن مؤونة السنة من أرباح المكاسب. الوحدة: أي عملة تختارها.</p>
       ${S.f.text('kinc', 'الأرباح خلال السنة الخمسية', '', { type: 'number', ltr: true, min: 0, hint: 'مجموع ما ربحته وفضل عندك أو صُرف في غير المؤونة' })}${S.f.text('kexp', 'مؤونة السنة (نفقاتك المعتادة)', '', { type: 'number', ltr: true, min: 0 })}${S.f.text('kdebt', 'ديون تُسقَط وفق رأي مرجعك (اختياري)', '0', { type: 'number', ltr: true, min: 0 })}${S.f.text('kother', 'أموال أخرى متعلق بها الخمس تدخلها بنفسك (اختياري)', '0', { type: 'number', ltr: true, min: 0, hint: 'مثل ما أعدّه مرجعك خاضعاً: لا يحدّده التطبيق' })}${S.f.text('krate', 'نسبة الخمس %', 20, { type: 'number', ltr: true, min: 0, max: 100 })}
       <button class="btn primary block" data-act="khCalc">${S.icon('calc')} احسب</button><div id="kh-out"></div></div></div>`
@@ -70,7 +70,7 @@
   });
   S.router.add('/worship/zakat', () => ({
     title: 'حاسبة الزكاة', nav: 'more', back: '/worship/calc',
-    html: S.h`<div class="stack">${S.ui.notice('warn', 'ليست فتوى', CALC_NOTE)}${S.ui.notice('info', 'مصدر المعاملات', Z.src)}${S.ui.notice('warn', 'نطاق الحاسبة', 'تغطي النقدين (الذهب والفضة) والغلات الأربع (الحنطة والشعير والتمر والزبيب) فقط. زكاة الأنعام الثلاثة (الإبل والبقر والغنم) لها جداول خاصة غير مدرجة هنا: ارجع إلى رسالة مرجعك. كذلك قد يختلف المراجع في زكاة العملات الورقية وعروض التجارة.')}
+    html: S.h`<div class="stack">${S.ui.tip('warn', 'ليست فتوى', CALC_NOTE)}${S.ui.tip('info', 'مصدر المعاملات', Z.src)}${S.ui.tip('warn', 'نطاق الحاسبة', 'تغطي النقدين (الذهب والفضة) والغلات الأربع (الحنطة والشعير والتمر والزبيب) فقط. زكاة الأنعام الثلاثة (الإبل والبقر والغنم) لها جداول خاصة غير مدرجة هنا: ارجع إلى رسالة مرجعك. كذلك قد يختلف المراجع في زكاة العملات الورقية وعروض التجارة.')}
       <div class="card"><div class="card-t">${S.icon('calc')} الذهب والفضة (مسكوكَين)</div><p class="tiny muted nm">بحسب ما نشره مكتب السيد السيستاني تتعلق الزكاة بالنقدين المسكوكَين المتداولَين، والحلي والمصوغات معفاة؛ للمراجع الآخرين تفصيل مختلف أحياناً — راجع رسالة مرجعك.</p>${S.f.select('zk', 'النوع', [{ v: 'gold', t: 'ذهب' }, { v: 'silver', t: 'فضة' }], 'gold')}${S.f.text('zw', 'الوزن بالغرام', '', { type: 'number', ltr: true, min: 0 })}${S.f.check('zy', 'مضى عليه حول كامل (سنة هلالية) وهو في ملكي وتحت تصرّفي', false)}
         <details class="acc"><summary>المعاملات (قابلة للتعديل وفق مرجعك)</summary><div class="acc-b">${S.f.text('zm', 'غرام المثقال الصيرفي', Z.mithqal, { type: 'number', ltr: true, step: 0.001, hint: '4.608 غ (24 حمصة) تقريب حسابي معروف وليس نصاً من الرسالة؛ عدّله إن اعتمد مرجعك قيمة أخرى' })}${S.f.text('zgm', 'نصاب الذهب (مثقال صيرفي)', Z.goldM, { type: 'number', ltr: true })}${S.f.text('zsm', 'نصاب الفضة (مثقال صيرفي)', Z.silverM, { type: 'number', ltr: true })}${S.f.text('zr', 'نسبة الزكاة %', Z.rate, { type: 'number', ltr: true, step: 0.1 })}</div></details>
         <button class="btn primary block mt" data-act="zkCalc">${S.icon('calc')} احسب زكاة النقدين</button><div id="zk-out"></div></div>
@@ -104,8 +104,8 @@
       const T = TOPICS[tp]; const rows = await ruleEntries(tp); const mine = rows.filter((e) => marja() && S.norm(e.extra.marja) === S.norm(marja())); const others = rows.filter((e) => !mine.includes(e));
       return {
         title: T.t, nav: 'more', back: '/worship',
-        html: S.h`<div class="stack">${S.ui.notice('warn', 'مصدر الأحكام', 'لا يضع سِراج أحكاماً من عنده ولا يولّدها بالذكاء الاصطناعي. تُعرض هنا فقط أحكام وصلت من الناشر بنصها من رسالة المرجع المسمّى مع رقم المسألة. للحكم المعتمد لديك ارجع إلى رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '.')}
-          ${mine.length ? S.h`${S.ui.sectionTitle('أحكام مرجعك: ' + marja())}${mine.map(ruleCard)}` : marja() ? S.ui.notice('info', 'لا أحكام موثقة لمرجعك في هذا الباب بعد', 'ارجع إلى رسالته العملية. يصل المحتوى الموثق من الناشر عبر «تحديثات المحتوى».') : S.ui.notice('info', 'سجّل مرجعك', 'ضع اسم المرجع في الإعدادات لتظهر أحكامه أولاً.')}
+        html: S.h`<div class="stack">${S.ui.tip('warn', 'مصدر الأحكام', 'لا يضع سِراج أحكاماً من عنده ولا يولّدها بالذكاء الاصطناعي. تُعرض هنا فقط أحكام وصلت من الناشر بنصها من رسالة المرجع المسمّى مع رقم المسألة. للحكم المعتمد لديك ارجع إلى رسالة مرجعك' + (marja() ? ' (' + marja() + ')' : '') + '.')}
+          ${mine.length ? S.h`${S.ui.sectionTitle('أحكام مرجعك: ' + marja())}${mine.map(ruleCard)}` : marja() ? S.ui.tip('info', 'لا أحكام موثقة لمرجعك في هذا الباب بعد', 'ارجع إلى رسالته العملية. يصل المحتوى الموثق من الناشر عبر «تحديثات المحتوى».') : S.ui.tip('info', 'سجّل مرجعك', 'ضع اسم المرجع في الإعدادات لتظهر أحكامه أولاً.')}
           ${others.length ? S.h`${S.ui.sectionTitle('أحكام منسوبة لمراجع آخرين')}${others.map(ruleCard)}` : ''}
           ${tp === 'wudu' || tp === 'salat' ? teachBlock(tp) : ''}
           <a class="btn block" href="#/istifta?topic=${tp}">${S.icon('help-circle')} صياغة استفتاء حول هذا الباب</a></div>`
@@ -121,7 +121,7 @@
     const tile = (ic, t, d, href) => S.h`<a class="card tap" href="#${href}">${S.icon(ic)}<b>${t}</b><div class="tiny muted">${d}</div></a>`;
     return {
       title: 'العبادات', nav: 'more', back: '/more',
-      html: S.h`<div class="stack">${S.ui.notice('warn', 'المرجعية', 'مرجعك المسجَّل: ' + (marja() || 'غير محدد') + '. لا يُصدر سِراج فتاوى؛ الأحكام تُعرض بنصها ومصدرها منسوبة لمراجعها فقط.')}
+      html: S.h`<div class="stack">${S.ui.tip('warn', 'المرجعية', 'مرجعك المسجَّل: ' + (marja() || 'غير محدد') + '. لا يُصدر سِراج فتاوى؛ الأحكام تُعرض بنصها ومصدرها منسوبة لمراجعها فقط.')}
         <div class="grid2">${tile('clock', 'مواقيت الصلاة', 'حسب موقعك وطريقة الحساب', '/prayer')}${tile('compass', 'القبلة', 'بوصلة وزاوية حسابية', '/qibla')}${tile('calendar', 'التقويم والمناسبات', 'هجري وميلادي', '/calendar')}${tile('check-circle', 'متابعة الصلاة', 'سجل اليوم والإحصاءات', '/prayer/stats')}
           ${tile('repeat', 'قضاء الصلاة', 'متبقٍ ' + S.n(s.left), '/qada')}${tile('calc', 'الخمس والزكاة', 'حاسبتان بمعاملات ظاهرة', '/worship/calc')}${tile('moon', 'أحكام الصيام', '', '/worship/sawm')}${tile('droplet', 'أحكام الطهارة', '', '/worship/taharah')}
           ${tile('map-pin', 'أحكام السفر', '', '/worship/safar')}${tile('droplet', 'تعليم الوضوء', 'مخطط + أحكام موثقة', '/worship/wudu')}${tile('mosque', 'تعليم الصلاة', '', '/worship/salat')}${tile('help-circle', 'الاستفتاءات', ist + ' محفوظ — الإرسال غير مربوط', '/istifta')}
@@ -135,7 +135,7 @@
     const list = S.kv.get('istifta', []).slice().sort((a, b) => b.ts - a.ts); const tp = q.topic && TOPICS[q.topic] ? TOPICS[q.topic].t : '';
     return {
       title: 'الاستفتاءات الشرعية', nav: 'more', back: '/worship',
-      html: S.h`<div class="stack">${S.ui.notice('err', 'غير مربوط', 'إرسال الاستفتاء إلى مكتب مرجع غير موصول في هذه النسخة (يحتاج اتفاقاً مع المكتب وخادماً). هنا تُصاغ الأسئلة وتُحفظ على جهازك، وتنسخها لإرسالها بنفسك عبر القناة الرسمية لمرجعك، ثم تسجّل الجواب الذي تحصل عليه مع مصدره.')}
+      html: S.h`<div class="stack">${S.ui.tip('err', 'غير مربوط', 'إرسال الاستفتاء إلى مكتب مرجع غير موصول في هذه النسخة (يحتاج اتفاقاً مع المكتب وخادماً). هنا تُصاغ الأسئلة وتُحفظ على جهازك، وتنسخها لإرسالها بنفسك عبر القناة الرسمية لمرجعك، ثم تسجّل الجواب الذي تحصل عليه مع مصدره.')}
         <div class="card"><div class="card-t">${S.icon('edit')} صياغة سؤال</div>${S.f.text('iq', 'الباب', tp)}${S.f.area('it', 'نص السؤال (اذكر الحالة بدقة)', '', { rows: 5 })}<button class="btn primary block" data-act="isSave">${S.icon('check')} حفظ السؤال</button></div>
         ${list.length ? list.map((x) => S.h`<div class="card"><div class="row between"><b>${x.topic || 'سؤال'}</b><span class="tiny muted">${S.fmt.dt(x.ts)}</span></div><p class="nm">${x.q}</p>${x.a ? S.h`<div class="notice ok">${S.icon('check-circle')}<div><b>الجواب المسجَّل (من المرجع)</b><p class="nm">${x.a}</p><div class="tiny muted">المرجع/المكتب: ${x.by} • المصدر: ${x.src}</div></div></div>` : S.h`<div class="tiny muted">لا جواب مسجَّل بعد.</div>`}<div class="row wrap mt-s"><button class="btn xs" data-act="isCopy" data-id="${x.id}">${S.icon('copy')} نسخ للإرسال</button><button class="btn xs" data-act="isAns" data-id="${x.id}">تسجيل الجواب</button><button class="btn xs danger" data-act="isDel" data-id="${x.id}">حذف</button></div></div>`) : S.ui.empty('help-circle', 'لا أسئلة محفوظة')}</div>`
     };

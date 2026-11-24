@@ -440,6 +440,8 @@
   /* ---------- مكوّنات عرض مشتركة ---------- */
   S.ui = {
     empty: (icon, title, sub, btn) => S.h`<div class="empty">${S.icon(icon || 'info')}<div><b>${title}</b></div>${sub ? S.h`<p class="small">${sub}</p>` : ''}${btn || ''}</div>`,
+    /* سياسة تطبيق المستخدم: لا بنرات إرشادية/تحذيرية على الصفحات؛ تبقى notice للحالات الوظيفية (خطأ، نتيجة، إذن مطلوب) */
+    tip: () => '',
     notice: (kind, title, body) => S.h`<div class="notice ${kind}">${S.icon(kind === 'err' ? 'alert' : kind === 'ok' ? 'check-circle' : kind === 'warn' ? 'alert' : 'info')}<div>${title ? S.h`<b>${title}</b>` : ''}${body}</div></div>`,
     badge: (txt, kind) => S.h`<span class="badge ${kind || ''}">${txt}</span>`,
     ring(pct, label) { const r = 38, c = 2 * Math.PI * r; return S.h`<div class="ring-wrap"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="${r}"/><circle class="prg" cx="45" cy="45" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - S.clamp(pct, 0, 100) / 100)}"/></svg><b>${label != null ? label : S.n(Math.round(pct)) + '%'}</b></div>`; },

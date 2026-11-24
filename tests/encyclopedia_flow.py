@@ -23,7 +23,7 @@ n_all = pg.locator('.tl-i').count(); t.go('/imams/timeline?f=imam'); n_im = pg.l
 t.shot('timeline')
 
 # --- العقيدة
-t.go('/aqeedah'); t.check('الموسوعة العقائدية تعرض المحاور وتنبيه التعريفات التمهيدية', 'التوحيد' in t.txt() and 'تعريفات تمهيدية' in t.txt())
+t.go('/aqeedah'); t.check('الموسوعة العقائدية تعرض المحاور بلا بنر تمهيدي', 'التوحيد' in t.txt() and not t.ev("!!document.querySelector('#view .notice.warn')"))
 t.go('/aqeedah/tawhid'); tx = t.txt(); t.check('محور: أدلة قرآنية وروائية ومناقشة وكتب', all(k in tx for k in ['الأدلة القرآنية', 'الأدلة الروائية', 'مناقشة المسائل', 'الكتب المتخصصة', 'الإخلاص']), tx[:300])
 
 # --- المركز البحثي: 20 وحدة
@@ -47,7 +47,7 @@ put({'id': eid, 'collection': 'narrations', 'title': 'رواية اختبار', 
      'isnads': ['أ عن ب عن ج عن الإمام'], 'variants': [{'text': 'قال الإمام إن العلم نور يقذفه الله تعالى في قلب من يشاء من عباده', 'source': 'الأمالي ص 3'}],
      'scholarRulings': [{'scholar': 'عالم اختباري', 'ruling': 'قول منسوب', 'source': 'كتاب الرجال ص 9'}], 'extra': {'speaker': '', 'topic': 'tawhid'}})
 t.go(f'/research/narrations/{eid}'); tx = t.txt()
-t.check('صفحة الرواية: النص والتخريج والسند واللفظ والحكم المنسوب', all(k in tx for k in ['النص المنقول', 'التخريج', 'الكافي', 'الأمالي', 'الأسانيد', 'اختلاف الألفاظ', 'أقوال العلماء', 'عالم اختباري', 'ليس حكم سِراج']), tx[:300])
+t.check('صفحة الرواية: النص والتخريج والسند واللفظ والحكم المنسوب', all(k in tx for k in ['النص المنقول', 'التخريج', 'الكافي', 'الأمالي', 'الأسانيد', 'اختلاف الألفاظ', 'أقوال العلماء', 'عالم اختباري']), tx[:300])
 t.check('اختلاف اللفظ مُلوَّن بالفروق', pg.locator('.df-add').count() >= 3, pg.locator('.df-add').count())
 t.check('لا «صحيح/ضعيف» آلياً', 'صحيح' not in tx.split('أقوال العلماء')[0] and 'حكم التطبيق' not in tx)
 eid = pg.evaluate("(async()=>(await SIRAJ.db.all('entries'))[0].id)()")
@@ -56,7 +56,7 @@ t.check('لا زر اعتماد ولا تعديل للمستخدم', 'اعتما
 
 # --- رواية ثانية للمقارنة والبحث
 put({'id': eid2, 'collection': 'narrations', 'title': 'رواية ثانية', 'text': 'قال الإمام إن العلم نور في القلب يهبه الله لمن أراد', 'sources': [{'book': 'بحار الأنوار', 'author': '', 'edition': '', 'volume': '1', 'page': '225', 'number': '', 'url': ''}], 'extra': {'speaker': ''}})
-t.go(f'/research/compare-narrations?a={eid}&b={eid2}'); tx = t.txt(); t.check('مقارنة الروايتين بإحصاء الفروق', 'كلمات مشتركة' in tx and 'لا تدلّ على صحة' in tx and pg.locator('.df-add,.df-del').count() > 0, tx[:200])
+t.go(f'/research/compare-narrations?a={eid}&b={eid2}'); tx = t.txt(); t.check('مقارنة الروايتين بإحصاء الفروق', 'كلمات مشتركة' in tx  and pg.locator('.df-add,.df-del').count() > 0, tx[:200])
 t.go('/research/narration-search?q=' + 'نور في القلب'); t.check('البحث بجزء من النص يجد الثانية فقط', 'رواية ثانية' in t.txt() and 'رواية اختبار' not in t.txt().split('نطاق البحث')[1] if False else 'رواية ثانية' in t.txt())
 t.go('/research/narration-search?q=' + 'كلمة لا وجود لها'); t.check('بحث بلا نتائج: لا اختلاق', 'لا نتائج' in t.txt())
 t.go('/research/narrations?view=takhrij'); t.check('عرض التخريج: الرواية متعددة المصادر فقط', 'رواية اختبار' in t.txt() and 'رواية ثانية' not in t.txt().split('مدخلاً')[1])
@@ -66,7 +66,7 @@ t.go('/aqeedah/tawhid'); t.check('الرواية ظهرت تحت محور الت
 
 # --- تفسير: مقارنة حسب الآية + ظهور في صفحة الآية
 put({'id': 'en_t_taf', 'collection': 'tafsir', 'title': 'تفسير آية التطهير', 'text': 'مقتطف تفسيري قصير للاختبار', 'verses': ['33:33'], 'sources': [{'book': 'الميزان في تفسير القرآن', 'author': '', 'edition': '', 'volume': '16', 'page': '309', 'number': '', 'url': ''}], 'extra': {'mufassir': 'الميزان'}})
-t.go('/research/compare-tafsir?verse=33:33'); tx = t.txt(); t.check('مقارنة التفاسير تعرض المدخل بمصدره', 'الميزان' in tx and 'مقتطف تفسيري' in tx and '1 تفسير موثق' in tx.replace('١', '1'), tx[:250])
+t.go('/research/compare-tafsir?verse=33:33'); tx = t.txt(); t.check('مقارنة التفاسير تعرض المدخل بمصدره', 'الميزان' in tx and 'مقتطف تفسيري' in tx, tx[:250])
 t.go('/research/compare-tafsir?verse=33:34'); t.check('آية بلا تفسير: لا اختلاق', 'لا مداخل تفسير موثقة' in t.txt())
 t.go('/quran/ayah/33/33'); t.check('صفحة الآية تعرض مدخل التفسير', 'تفسير آية التطهير' in t.txt())
 t.go('/research/verse-links?verse=33:33'); tx = t.txt(); t.check('ربط الآية: مداخل + آية أهل البيت + كتب', 'تفسير آية التطهير' in tx and 'آية التطهير' in tx and 'كتب ذات صلة' in tx, tx[:300])

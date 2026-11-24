@@ -28,7 +28,7 @@
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="dq" type="search" value="${term}" placeholder="ابحث في الأدعية والزيارات" enterkeyhint="search"></div>
         ${term ? (res.length ? S.h`<div class="list">${res.map(row)}</div>` : S.ui.empty('search', 'لا نتائج')) : S.h`
-        ${S.ui.notice('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. تصل النصوص الجديدة عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
+        ${S.ui.tip('info', 'عن المحتوى', S.h`<span>الفهرس يضم <b>${S.n(all.length)}</b> عنواناً، منها <b>${S.n(documented)}</b> بنص موثق. لا يعرض سِراج نص دعاء دون ذكر كتابه وطبعته وصفحته. تصل النصوص الجديدة عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${qdNotice(all)}
         <div class="chips"><a class="chip" href="#/duas/favorites">${S.icon('heart')} المفضلة (${S.n(favs)})</a></div>
         <div class="grid2">${cats.map((c) => S.h`<a class="card tap" href="#/duas/cat/${c.id}"><b>${c.title}</b><div class="small muted">${S.n(counts[c.id] || 0)} عنوان</div></a>`)}</div>`}
@@ -40,7 +40,7 @@
   function qdNotice(all) {
     const Q = S.quran, QD = S.quranDuas; if (!QD) return '';
     const have = all.filter((d) => /^qd_/.test(d.id)).length;
-    if (have) return S.ui.notice('ok', 'الأدعية القرآنية', S.h`<span><b>${S.n(have)}</b> دعاءً من القرآن الكريم بنصّ المصحف المحمَّل على جهازك، مع السورة والآية لكل دعاء. <a href="#/duas/cat/quran">عرضها</a></span>`);
+    if (have) return S.ui.tip('ok', 'الأدعية القرآنية', S.h`<span><b>${S.n(have)}</b> دعاءً من القرآن الكريم بنصّ المصحف المحمَّل على جهازك، مع السورة والآية لكل دعاء. <a href="#/duas/cat/quran">عرضها</a></span>`);
     if (!Q || !Q.text) return S.h`<div class="card"><div class="card-t">${S.icon('book-open')} الأدعية القرآنية (${S.n(QD.total())} موضعاً)</div><p class="small muted nm">تظهر نصوصها بعد تحميل المصحف الشريف على جهازك، لأن سِراج لا يكتب آيات يدوياً بل يأخذها من المصحف ويتحقق منها.</p><a class="btn sm gold" href="#/quran/download">${S.icon('download')} تحميل المصحف</a></div>`;
     return '';
   }

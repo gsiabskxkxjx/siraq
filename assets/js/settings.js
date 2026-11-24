@@ -91,7 +91,7 @@
           <div class="kv"><span>نص المصحف على الجهاز</span><b class="${qs ? 'ok' : ''}">${qs ? 'محمّل' : 'غير محمّل'}</b></div>
           <div class="kv"><span>الإصدار</span><b class="op-ltr">${S.version}</b></div>
           <button class="btn block mt" data-act="netTest">${S.icon('wifi')} اختبار الاتصال الفعلي</button><div id="nettest" class="small muted mt"></div></div>
-        ${S.isFile ? S.ui.notice('warn', 'تعمل الآن من ملف مباشر', 'التخزين المحلي يعمل لكن ميزات HTTPS (التثبيت، العمل دون إنترنت عبر Service Worker، GPS، الإشعارات) تتطلب رفع المجلد على استضافة HTTPS أو تشغيله على localhost. راجع README.') : ''}
+        ${S.isFile ? S.ui.tip('warn', 'تعمل الآن من ملف مباشر', 'التخزين المحلي يعمل لكن ميزات HTTPS (التثبيت، العمل دون إنترنت عبر Service Worker، GPS، الإشعارات) تتطلب رفع المجلد على استضافة HTTPS أو تشغيله على localhost. راجع README.') : ''}
         <div class="card"><div class="card-t">${S.icon('database')} محتوى قاعدة البيانات</div>${Object.entries(counts).map(([k, v]) => S.h`<div class="kv"><span class="op-ltr">${k}</span><b>${S.n(v)}</b></div>`)}</div>
         <div class="card"><div class="card-t">${S.icon('alert')} آخر الأخطاء البرمجية</div>${errs.length ? errs.map((e) => S.h`<div class="small bad">${e.msg}</div>`) : S.h`<p class="small muted nm">لا أخطاء مسجّلة في هذه الجلسة.</p>`}</div>
         <div class="grid2"><button class="btn" data-act="clearCaches">مسح الذاكرة المؤقتة للتطبيق</button><button class="btn" data-act="persistStorage">طلب التخزين الدائم</button></div>
@@ -115,7 +115,7 @@
     title: 'عن سِراج', nav: 'more', back: '/more',
     html: S.h`<div class="stack">
       <div class="card center"><img src="assets/images/logo.png" alt="سِراج" style="max-width:220px;margin:auto"><p class="gold nm">نور العلم وهداية الطريق</p><p class="small muted nm">القرآن • العترة • المعرفة</p><p class="tiny muted">الإصدار ${S.version}</p></div>
-      ${S.ui.notice('info', 'عن بيانات المكتبة', S.data.sample.meta.dataNotice)}
+      ${S.ui.tip('info', 'عن بيانات المكتبة', S.data.sample.meta.dataNotice)}
       <div class="card"><div class="card-t">${S.icon('shield')} ضوابط المحتوى</div>
         <ul class="small"><li>لا يُنشئ سِراج كتباً ولا مؤلفين ولا روايات ولا فتاوى. كل مادة دينية تُضاف بمصدرها.</li><li>وجود ملف PDF على الإنترنت لا يعني إذن إعادة نشره؛ لا يُنشر كتاب دون حالة حقوق واضحة.</li><li>الأحكام الشرعية تُنسب لمرجعها؛ والمساعد العلمي لا يُصدر فتاوى.</li><li>لا يُنشر شيء تلقائياً: قرار النشر النهائي لمالك التطبيق افتراضياً.</li></ul></div>
       <div class="card"><div class="card-t">${S.icon('link')} المصادر والتراخيص</div>

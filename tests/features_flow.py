@@ -6,8 +6,8 @@ t = T(); pg = t.pg
 # ---------- العصور (#75) ----------
 t.go('/library/eras')
 tx = t.txt()
-t.check('عصور: الصفحة وشرح طريقة الحساب', 'سنة وفاة المؤلف' in tx and 'القرن' in tx, tx[:200])
-t.check('عصور: لا تخمين (عصر غير محدد يُذكر عند غياب السنة أو لا حاجة)', 'يُخمَّن' in tx)
+t.check('عصور: الصفحة وشرح طريقة الحساب', 'القرن' in tx, tx[:200])
+t.check('عصور: لا تخمين (بلا بنر شرح)', not t.ev("!!document.querySelector('#view .notice')"))
 first = pg.evaluate("document.querySelector('#view .li').getAttribute('href')")
 n_shown = pg.evaluate("parseInt(document.querySelector('#view .li .li-s, #view .li .li-end').innerText.replace(/\\D/g,'')||'0')")
 pg.click('#view .li >> nth=0'); pg.wait_for_timeout(700)

@@ -5,11 +5,11 @@ pg = t.pg
 
 # ---------- المساعد ----------
 t.go('/assistant')
-t.check('المساعد: ملصق نسخة تجريبية وعدم الفتوى', 'فتو' in t.txt())
+t.check('المساعد: لا قسم مزوّد خارجي ولا بنر تحذير', 'مزوّد' not in t.txt() and not t.ev("!!document.querySelector('#view .notice')") and not t.ev("!!document.querySelector('[data-act=asRemoteSave]')"))
 pg.fill('#as-in', 'ما حكم صلاة المسافر؟')
 pg.click('[data-act=asSend]'); pg.wait_for_timeout(900)
 tx = t.txt()
-t.check('المساعد: يرفض الفتوى ويحيل للمرجع', ('مرجع' in tx) and ('لا أفتي' in tx or 'لا يفتي' in tx or 'لا أصدر' in tx or 'ليس فتوى' in tx or 'لا يُصدر' in tx), tx[-400:])
+t.check('المساعد: يرفض الفتوى ويحيل للمرجع', ('مرجع' in tx) and ('لا أُصدر' in tx or 'لا أفتي' in tx or 'لا يفتي' in tx or 'لا أصدر' in tx or 'ليس فتوى' in tx or 'لا يُصدر' in tx), tx[-400:])
 pg.fill('#as-in', 'ما آية التطهير؟')
 pg.click('[data-act=asSend]'); pg.wait_for_timeout(900)
 tx = t.txt()
@@ -17,13 +17,19 @@ t.check('المساعد: يجيب بإحالة أو يعترف بقصور الم
 pg.fill('#as-in', 'سؤال عن كتاب غير موجود تماماً زززقققب')
 pg.click('[data-act=asSend]'); pg.wait_for_timeout(900)
 tx = t.txt()
-t.check('المساعد: لا يختلق عند غياب المصدر', ('لا أجد' in tx or 'لم أجد' in tx or 'غير كاف' in tx or 'لا تتوفر' in tx or 'لا يوجد' in tx), tx[-300:])
-t.check('المساعد: سجل المحادثة محفوظ', t.ev("(S=>S.kv.get('assistant.history',[]).length)(window.SIRAJ)") >= 3)
+t.check('المساعد: سؤال غير مفهوم → «إدخال السؤال غير مفهوم» + كلمات مقترحة + صيغة', 'إدخال السؤال غير مفهوم' in tx and 'كلمات بحث مقترحة' in tx and 'جرّب سؤالك بهذه الصيغة' in tx, tx[-400:])
+nsug = t.ev("document.querySelectorAll('.as-b.unclear [data-act=asSug]').length")
+t.check('المساعد: الاقتراحات أزرار تعمل', nsug >= 4, nsug)
+pg.click('.as-b.unclear [data-act=asSug] >> nth=-1'); pg.wait_for_timeout(900)
+t.check('المساعد: ضغط اقتراح يرسله فعلاً ويجيب', t.ev("SIRAJ.kv.get('assistant.history',[]).length") >= 4)
+pg.fill('#as-in', 'الامام ااصادق'); pg.click('[data-act=asSend]'); pg.wait_for_timeout(900)
+t.check('المساعد: خطأ إملائي → يقترح «الصادق»', 'الصادق' in t.ev("[...document.querySelectorAll('.as-b.unclear')].pop().innerText"), t.ev("[...document.querySelectorAll('.as-b.unclear')].pop().innerText"))
+t.check('المساعد: سجل المحادثة محفوظ', t.ev("(S=>S.kv.get('assistant.history',[]).length)(window.SIRAJ)") >= 4)
 t.shot('assistant')
 
 # ---------- القضاء ----------
 t.go('/qada')
-t.check('قضاء: الصفحة تفتح وبها ملاحظة المرجع', 'مرجع' in t.txt())
+t.check('قضاء: الصفحة تفتح بلا بنر تحذير', 'قضاء' in t.txt() and not t.ev("!!document.querySelector('#view .notice')"))
 pg.click('[data-act=qdSet]'); pg.wait_for_timeout(400)
 for k in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']:
     el = pg.query_selector(f'#f_n_{k}')
@@ -56,7 +62,7 @@ t.check('خمس: مدخل فارغ يُرفض', pg.query_selector('.toast.err, .
 
 # ---------- الزكاة ----------
 t.go('/worship/zakat')
-t.check('زكاة: بيان النطاق وعدم تغطية الأنعام', 'الأنعام' in t.txt())
+t.check('زكاة: الصفحة تعمل بلا بنر تحذير', 'زكاة' in t.txt() and not t.ev("!!document.querySelector('#view .notice')"))
 t.check('زكاة: المصدر مذكور', 'sistani' in t.txt().lower() or 'السيستاني' in t.txt())
 pg.select_option('#f_zk', 'gold'); pg.fill('#f_zw', '100'); pg.check('[name=zy]'); pg.click('[data-act=zkCalc]'); pg.wait_for_timeout(500)
 out = pg.inner_text('#zk-out')
@@ -72,14 +78,14 @@ t.go('/worship/salat')
 tx = t.txt()
 t.check('أحكام: لا حكم دون مرجع (حالة فارغة أو منسوب)', ('لا توجد' in tx or 'لم يُضَف' in tx or 'لم تُضَف' in tx or 'مرجع' in tx), tx[:300])
 t.go('/istifta')
-t.check('استفتاء: وسم غير مربوط', 'غير مربوط' in t.txt())
+t.check('استفتاء: صياغة وحفظ بلا بنر «غير مربوط»', 'غير مربوط' not in t.txt())
 pg.fill('#f_it', 'سؤال تجريبي للاختبار عن حالة معيّنة'); pg.click('[data-act=isSave]'); pg.wait_for_timeout(500)
 t.check('استفتاء: حُفظ محلياً', len(t.ev("SIRAJ.kv.get('istifta',[])")) == 1)
 
 # ---------- الإضافات اليومية ----------
 t.go('/daily')
 tx = t.txt()
-for k in ['الورد اليومي', 'تحدي القراءة', 'عشر صفحات', 'الختمة', 'دفتر التدبر', 'الأعمال المستحبة', 'أهداف الذكر', 'أذكار الصباح', 'تنبيهات', 'هدية', 'المكتبة الصوتية', 'تحويل النص', 'مزامنة', 'المناسبات', 'كبار السن']:
+for k in ['الورد اليومي', 'تحدي القراءة', 'عشر صفحات', 'الختمة', 'دفتر التدبر', 'الأعمال المستحبة', 'أهداف الذكر', 'أذكار الصباح', 'تنبيهات', 'هدية', 'المكتبة الصوتية', 'تحويل النص', 'المناسبات', 'كبار السن']:
     t.check('الإضافات: بطاقة ' + k, k in tx)
 t.shot('daily')
 
@@ -128,7 +134,7 @@ t.check('أذكار: لا نصوص مختلقة (حالة فارغة صادقة 
 
 # التنبيهات
 t.go('/daily/reminders')
-t.check('تنبيهات: تحذير يعمل والتطبيق مفتوح', 'مفتوح' in t.txt())
+t.check('تنبيهات: بلا بنر تحذير', not t.ev("!!document.querySelector('#view .notice')"))
 pg.fill('#f_rt', 'تنبيه اختبار'); pg.fill('#f_rh', '07:00'); pg.click('[data-act=remAdd]'); pg.wait_for_timeout(500)
 r = t.ev("SIRAJ.kv.get('daily.reminders',[])")
 t.check('تنبيهات: أُضيف', len(r) == 1 and r[0]['enabled'])
@@ -147,8 +153,8 @@ t.check('تنبيهات: حذف', len(t.ev("SIRAJ.kv.get('daily.reminders',[])")
 t.go('/daily/gift')
 t.check('هدية: حالة صادقة (لا كتب مرخّصة)', 'لا هدية' in t.txt() or 'هدية اليوم' in t.txt())
 t.go('/daily/audio'); t.check('صوتيات: حالة فارغة صادقة', 'لا تسجيلات' in t.txt() or 'audio' in t.txt().lower())
-t.go('/daily/tts'); t.check('TTS: تنبيه عدم قراءة القرآن آلياً', 'القرآن' in t.txt())
-t.go('/daily/sync'); t.check('مزامنة: وسم غير مربوط', 'غير مربوط' in t.txt())
+t.go('/daily/tts'); t.check('TTS: الصفحة تفتح', 'قراءة' in t.txt())
+t.go('/daily'); t.check('لا بطاقة مزامنة غير مربوطة في القائمة', 'مزامنة' not in t.txt())
 t.go('/daily/occasions'); t.check('مناسبات: قائمة قادمة', 'بعد' in t.txt() or 'اليوم' in t.txt())
 
 # وضع كبار السن من الصفحة الرئيسية

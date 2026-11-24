@@ -134,7 +134,7 @@
         <div class="toc">${S.sections.map((s) => sectionCard(s, counts[s.id] || 0))}</div>
         ${recent.length ? S.h`${S.ui.sectionTitle('أُضيف حديثاً', '#/library/search?sort=recent')}<div class="hscroll">${recent.map(L.card)}</div>` : ''}
         ${rec.books.length ? S.h`${S.ui.sectionTitle(rec.personalized ? 'مقترحة لك' : 'كتب مقترحة', '#/library/recommended')}<div class="hscroll">${rec.books.map(L.card)}</div><p class="tiny muted">اقتراحات محلية تعتمد على مفضلتك وسجل قراءتك في هذا الجهاز فقط.</p>` : ''}
-        ${S.ui.notice('gold', 'عن المكتبة', S.h`<span>تضم المكتبة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة (عنوان ومؤلف ونبذة) دون نصوص الكتب. تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
+        ${S.ui.tip('gold', 'عن المكتبة', S.h`<span>تضم المكتبة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة (عنوان ومؤلف ونبذة) دون نصوص الكتب. تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
       </div>`,
       mount(root) { const f = S.$('#lib-q', root); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') { S.router.go('/library/search?q=' + encodeURIComponent(f.value)); } }); }
     };
@@ -151,7 +151,7 @@
     return {
       title: sec.title, nav: 'library', back: '/library', actions: [{ icon: 'search', label: 'بحث', href: '#/library/search?sec=' + sec.id }],
       html: S.h`<div class="stack"><p class="muted small nm">${sec.desc}</p>
-        ${p.id === 'ayat' ? S.ui.notice('info', 'منهج العرض', S.data.sample.ayatSectionHint) : ''}
+        ${p.id === 'ayat' ? S.ui.tip('info', 'منهج العرض', S.data.sample.ayatSectionHint) : ''}
         <div class="chips"><a class="chip ${!sub ? 'active' : ''}" href="#/library/sec/${sec.id}?sort=${sort}">الكل</a>${subs.map((s) => S.h`<a class="chip ${sub === s ? 'active' : ''}" href="#/library/sec/${sec.id}?sub=${encodeURIComponent(s)}&sort=${sort}">${s}</a>`)}</div>
         <div class="row between"><span class="small muted">${S.n(rows.length)} كتاب</span><select class="select" style="width:auto;min-height:38px" data-chg="secSort" data-sec="${sec.id}" data-sub="${sub}">${[['alpha', 'أبجدياً'], ['recent', 'الأحدث'], ['reads', 'الأكثر قراءة'], ['year', 'سنة النشر']].map(([v, t]) => S.h`<option value="${v}" ${v === sort ? S.raw('selected') : ''}>${t}</option>`)}</select></div>
         <div>${rows.slice(0, lim).map(L.row)}</div>
@@ -209,7 +209,7 @@
   S.router.add('/library/eras', () => {
     const cnt = {}; L.published().forEach((b) => { const c = L.era(b); cnt[c] = (cnt[c] || 0) + 1; });
     const rows = Object.keys(cnt).map(Number).sort((x, y) => (x || 99) - (y || 99));
-    return { title: 'تصنيف العصور', nav: 'library', back: '/library', html: S.h`<div class="stack">${S.ui.notice('info', 'كيف يُحسب العصر؟', 'القرن الهجري لسنة وفاة المؤلف المسجلة في بيانات الكتاب. من لا سنة وفاة مسجلة له يظهر تحت «عصر غير محدد» ولا يُخمَّن.')}<div class="list">${rows.length ? rows.map((c) => S.ui.li({ href: '#/library/search?era=' + c, icon: 'timeline', t: L.eraName(c), s: S.n(cnt[c]) + ' كتاب' })) : S.ui.empty('timeline', 'لا كتب')}</div></div>` };
+    return { title: 'تصنيف العصور', nav: 'library', back: '/library', html: S.h`<div class="stack">${S.ui.tip('info', 'كيف يُحسب العصر؟', 'القرن الهجري لسنة وفاة المؤلف المسجلة في بيانات الكتاب. من لا سنة وفاة مسجلة له يظهر تحت «عصر غير محدد» ولا يُخمَّن.')}<div class="list">${rows.length ? rows.map((c) => S.ui.li({ href: '#/library/search?era=' + c, icon: 'timeline', t: L.eraName(c), s: S.n(cnt[c]) + ' كتاب' })) : S.ui.empty('timeline', 'لا كتب')}</div></div>` };
   });
   S.router.add('/library/authors', () => {
     const cnt = {}; L.published().forEach((b) => (cnt[b.authorId] = (cnt[b.authorId] || 0) + 1));
@@ -242,7 +242,7 @@
           ${b.hasPdf ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة</a>` : S.h`<button class="btn" disabled>${S.icon('file')} لا يوجد PDF</button>`}
           ${b.hasPdf && b.allowDownload ? S.h`<button class="btn" data-act="bookDownload" data-id="${b.id}">${S.icon('download')} تنزيل</button>` : S.h`<button class="btn" disabled title="التنزيل مسموح فقط عند ثبوت الترخيص">${S.icon('lock')} التنزيل غير مسموح</button>`}
         </div>
-        ${!b.hasPdf ? S.ui.notice('info', 'لا يوجد ملف محلي لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية فقط؛ استخدم روابط المصدر أدناه للوصول إلى النسخ المتاحة قانونياً.') : ''}
+        ${!b.hasPdf ? S.ui.tip('info', 'لا يوجد ملف محلي لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية فقط؛ استخدم روابط المصدر أدناه للوصول إلى النسخ المتاحة قانونياً.') : ''}
         <div class="card"><div class="card-t">${S.icon('info')} نبذة تعريفية</div><p class="nm">${b.desc || S.raw('<span class="badge warn">غير موثّقة</span>')}</p></div>
         <div class="card"><div class="card-t">${S.icon('list')} البيانات الببليوغرافية</div><dl class="kv">
           <dt>المؤلف</dt><dd>${b.author}${b.authorDeath ? ' (ت ' + S.n(b.authorDeath) + ' هـ)' : ''}</dd>
@@ -261,7 +261,7 @@
             <details class="acc"><summary>ابحث عن الكتاب في المصادر المقترحة</summary><div class="acc-b stack s">${searchLinks(b).map(([n, u]) => S.h`<a class="btn sm ghost" target="_blank" rel="noopener noreferrer" href="${u}">${n}</a>`)}<p class="tiny muted nm">فتح هذه الروابط يتم خارج التطبيق. تحقّق من حقوق كل كتاب بشكل مستقل؛ وجود PDF ليس دليلاً على جواز إعادة نشره.</p></div></details>
           </div></div>
         ${au ? S.h`<div class="card"><div class="card-t">${S.icon('user')} سيرة المؤلف</div><p class="nm"><b>${au.name}</b>${au.death ? ' — ت ' + S.n(au.death) + ' هـ' : ''}</p>${au.note ? S.h`<p class="small muted nm">${au.note}</p>` : ''}<a class="small" href="#/library/author/${au.id}">كل كتب المؤلف في المكتبة</a></div>` : ''}
-        ${b.demo ? S.ui.notice('warn', 'بيانات لم تُراجَع على طبعة', 'معلومات الكتاب عامة ولم تُراجَع على طبعة بعينها، فلا تعتمد عليها في التوثيق.') : ''}
+        ${b.demo ? S.h`<p class="nm">${S.ui.badge('معلومات عامة — لم تُراجَع على طبعة بعينها', 'warn')}</p>` : ''}
         ${sim.length ? S.h`${S.ui.sectionTitle('كتب مشابهة')}<div class="hscroll">${sim.map(L.card)}</div>` : ''}
       </div>`
     };

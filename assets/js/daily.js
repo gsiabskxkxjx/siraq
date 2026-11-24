@@ -28,7 +28,7 @@
         <div class="grid2">${tile(1, 'check-circle', 'الورد اليومي', wird.length ? S.n(wd) + ' من ' + S.n(wird.length) + ' اليوم' : 'أضِف وردك', '/daily/wird')}${tile(2, 'target', 'تحدي القراءة', S.n(rd) + ' / ' + S.n(rt) + ' صفحة اليوم', '/daily/reading')}${tile(3, 'book-open', 'عشر صفحات يومياً', 'اضبط الهدف على 10', '/daily/reading?preset=10')}${tile(4, 'target', 'متابعة الختمة', kh && kh.plan ? 'ختمة جارية' : 'لم تبدأ ختمة', '/quran/khatma')}
           ${tile(5, 'notebook', 'دفتر التدبر', S.n(nTad) + ' تدبّراً', '/tadabbur')}${tile(6, 'star', 'الأعمال المستحبة', S.n(md) + ' من ' + S.n(must.length) + ' اليوم', '/daily/mustahabb')}${tile(7, 'beads', 'أهداف الذكر', dg ? S.n(ts.today) + ' / ' + S.n(dg) : 'اليوم ' + S.n(ts.today), '/daily/dhikr')}${tile(8, 'sun', 'أذكار الصباح والمساء', 'من الأدعية الموثقة', '/daily/adhkar')}
           ${tile(9, 'bell', 'تنبيهات الأدعية', S.n(rem) + ' تنبيه مفعّل', '/daily/reminders')}${tile(10, 'heart', 'هدية كتاب رقمي', 'عند ترخيص يسمح', '/daily/gift')}${tile(11, 'volume', 'المكتبة الصوتية', 'تسجيلات مرخّصة', '/daily/audio')}${tile(12, 'mic', 'تحويل النص إلى صوت', 'صوت جهازك', '/daily/tts')}
-          ${tile(13, 'refresh', 'مزامنة التقدم', 'غير مربوطة — نسخ احتياطي بديل', '/daily/sync')}${tile(15, 'calendar', 'إشعارات المناسبات', up ? 'القادمة: ' + up.occ.title : 'عند فتح التطبيق', '/daily/occasions')}</div>
+          ${tile(15, 'calendar', 'إشعارات المناسبات', up ? 'القادمة: ' + up.occ.title : 'عند فتح التطبيق', '/daily/occasions')}</div>
         <div class="card"><div class="setting"><div class="sd">14 • وضع كبار السن<small>خط أكبر وأزرار أوسع وتباين أعلى</small></div><label class="switch"><input type="checkbox" ${S.settings.elder ? S.raw('checked') : ''} data-chg="pref" data-k="elder" aria-label="وضع كبار السن"><i></i></label></div></div></div>`
     };
   });
@@ -73,7 +73,7 @@
     const wk = await week(async (d) => { let n = 0; for (let i = 0; i < all.length; i++) if (await S.stat.get('must:' + d + ':' + i)) n++; return n; }); const sk = await streak(async (d) => { for (let i = 0; i < all.length; i++) if (await S.stat.get('must:' + d + ':' + i)) return true; return false; });
     return {
       title: 'سجل الأعمال المستحبة', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${S.ui.notice('info', 'سجلّك الخاص', 'تسجّل هنا ما فعلته أنت. أحكام الاستحباب والتفاصيل تؤخذ من رسالة مرجعك.')}<div class="card"><div class="row between"><b>اليوم</b>${S.ui.badge('تتابع ' + S.n(sk) + ' يوم', sk ? 'ok' : '')}</div>${all.map((t, i) => S.h`<label class="check"><input type="checkbox" ${st[i] ? S.raw('checked') : ''} data-chg="mustTick" data-i="${i}"><span>${t}</span></label>`)}</div>${weekBars(wk, Math.max(1, all.length))}
+      html: S.h`<div class="stack">${S.ui.tip('info', 'سجلّك الخاص', 'تسجّل هنا ما فعلته أنت. أحكام الاستحباب والتفاصيل تؤخذ من رسالة مرجعك.')}<div class="card"><div class="row between"><b>اليوم</b>${S.ui.badge('تتابع ' + S.n(sk) + ' يوم', sk ? 'ok' : '')}</div>${all.map((t, i) => S.h`<label class="check"><input type="checkbox" ${st[i] ? S.raw('checked') : ''} data-chg="mustTick" data-i="${i}"><span>${t}</span></label>`)}</div>${weekBars(wk, Math.max(1, all.length))}
         <div class="card">${S.f.text('mc', 'إضافة عمل مستحب خاص بك', '', {})}<button class="btn block" data-act="mustAdd">${S.icon('plus')} إضافة</button></div></div>`
     };
   });
@@ -93,7 +93,7 @@
     const card = (d) => S.h`<a class="li" href="#/duas/item/${d.id}"><span class="li-body"><span class="li-t">${d.title}</span><span class="li-s">${(d.textSource || {}).book || ''}</span></span>${S.icon('chevron-left')}</a>`;
     return {
       title: 'أذكار الصباح والمساء', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${S.ui.notice('info', 'من الأدعية الموثقة فقط', 'لا يكتب سِراج أذكاراً من عنده. تظهر هنا العناصر التي وصلت بنصها ومصدرها وطبعتها.')}
+      html: S.h`<div class="stack">${S.ui.tip('info', 'من الأدعية الموثقة فقط', 'لا يكتب سِراج أذكاراً من عنده. تظهر هنا العناصر التي وصلت بنصها ومصدرها وطبعتها.')}
         ${[['sun', 'الصباح', m], ['moon', 'المساء', e]].map(([ic, t, l]) => S.h`<div class="card"><div class="card-t">${S.icon(ic)} ${t}</div>${l.length ? l.map(card) : S.h`<p class="small muted nm">لم يُضَف بعد نص موثق لأذكار ${t}. (يصل المحتوى الموثق عبر «تحديثات المحتوى».)</p>`}</div>`)}
         ${cat.length ? S.h`<div class="card"><div class="card-t">${S.icon('heart-handshake')} أدعية يومية موثقة</div>${cat.map(card)}</div>` : ''}<a class="btn block" href="#/daily/reminders">${S.icon('bell')} ضبط تذكير</a></div>`
     };
@@ -105,7 +105,7 @@
     const list = S.kv.get('daily.reminders', []); const duas = (await S.db.all('duas')).filter((d) => d.textStatus === 'documented'); const pre = q.dua ? duas.find((d) => d.id === q.dua) : null;
     return {
       title: 'تنبيهات قراءة الأدعية', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${(S.nativeNotify && S.nativeNotify.available() ? S.ui.notice('info', 'تصلك كإشعارات نظام', 'تُجدول التنبيهات على هاتفك عبر منبّه أندرويد فتصل والتطبيق مغلق، بشرط السماح بالإشعارات (زر «السماح بإشعارات النظام» أدناه أو من إعدادات الصلاة). لا يوجد خادم؛ كل شيء يُحسب على جهازك.') : S.ui.notice('warn', 'تعمل والتطبيق مفتوح', 'المتصفح لا يسمح لصفحة مغلقة بإطلاق تنبيه من تلقاء نفسها دون خادم دفع (Push)، وهو غير مربوط هنا. التنبيه يظهر داخل التطبيق (وكإشعار نظام إن سمحتَ) ما دام التطبيق مفتوحاً في الخلفية أو الواجهة. ثبّت تطبيق أندرويد لتصلك والتطبيق مغلق.'))}
+      html: S.h`<div class="stack">${(S.nativeNotify && S.nativeNotify.available() ? S.ui.tip('info', 'تصلك كإشعارات نظام', 'تُجدول التنبيهات على هاتفك عبر منبّه أندرويد فتصل والتطبيق مغلق، بشرط السماح بالإشعارات (زر «السماح بإشعارات النظام» أدناه أو من إعدادات الصلاة). لا يوجد خادم؛ كل شيء يُحسب على جهازك.') : S.ui.tip('warn', 'تعمل والتطبيق مفتوح', 'المتصفح لا يسمح لصفحة مغلقة بإطلاق تنبيه من تلقاء نفسها دون خادم دفع (Push)، وهو غير مربوط هنا. التنبيه يظهر داخل التطبيق (وكإشعار نظام إن سمحتَ) ما دام التطبيق مفتوحاً في الخلفية أو الواجهة. ثبّت تطبيق أندرويد لتصلك والتطبيق مغلق.'))}
         <div class="card"><div class="card-t">${S.icon('plus')} تنبيه جديد</div>${S.f.text('rt', 'العنوان', pre ? 'قراءة: ' + pre.title : '', { placeholder: 'مثال: دعاء الصباح' })}${S.f.text('rh', 'الوقت', '07:00', { type: 'time', ltr: true })}${S.f.select('rd', 'الدعاء (اختياري)', [{ v: '', t: '— بلا —' }].concat(duas.map((d) => ({ v: d.id, t: d.title }))), pre ? pre.id : '')}<div class="chips" id="rdays">${['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س'].map((d, i) => S.h`<label class="chip"><input type="checkbox" name="day${i}" checked> ${d}</label>`)}</div><button class="btn primary block mt" data-act="remAdd">${S.icon('bell')} إضافة</button></div>
         ${list.length ? list.map((r) => S.h`<div class="card"><div class="row between"><b>${r.title}</b><label class="switch"><input type="checkbox" ${r.enabled ? S.raw('checked') : ''} data-chg="remTog" data-id="${r.id}"><i></i></label></div><div class="small muted">${S.n(r.time)} • ${r.days.map((d) => ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][d]).join('، ')}</div><button class="btn xs danger mt-s" data-act="remDel" data-id="${r.id}">حذف</button></div>`) : S.ui.empty('bell', 'لا تنبيهات')}
         <div class="card"><div class="kv"><span>إشعارات النظام</span><b>${({ granted: 'مسموحة', denied: 'محظورة', default: 'لم يُطلب', unsupported: 'غير مدعومة' })[PERM()]}</b></div>${PERM() === 'default' ? S.h`<button class="btn block mt-s" data-act="notifPerm">${S.icon('bell')} السماح بإشعارات النظام</button>` : ''}</div></div>`
@@ -125,7 +125,7 @@
     return {
       title: 'هدية اليوم', nav: 'more', back: '/daily',
       html: S.h`<div class="stack">${pick ? S.h`<div class="card gold-edge"><div class="small gold">هدية اليوم</div><b class="q-name">${pick.title}</b><div class="small muted">${pick.author}</div><div class="tiny muted">الرخصة: ${pick.copyright}</div><div class="grid2 mt"><a class="btn primary" href="#/library/book/${pick.id}">${S.icon('book-open')} فتح الكتاب</a><button class="btn" data-act="bookDownload" data-id="${pick.id}">${S.icon('download')} تنزيل</button></div></div>` : S.ui.empty('heart', 'لا هدية اليوم', 'تظهر هدايا الكتب فقط للكتب التي رُفع ملفها وكانت رخصتها (ملك عام/Creative Commons/بإذن) تسمح بالنشر والتنزيل. لا توجد كتب بهذه الشروط حالياً.')}
-        ${S.ui.notice('info', 'قاعدة الهدايا', 'لا يُهدي سِراج ملفاً لا يملك ترخيصاً موثقاً بنشره.')}</div>`
+        ${S.ui.tip('info', 'قاعدة الهدايا', 'لا يُهدي سِراج ملفاً لا يملك ترخيصاً موثقاً بنشره.')}</div>`
     };
   });
 
@@ -154,7 +154,7 @@
     return {
       title: 'تحويل النص إلى صوت', nav: 'more', back: '/daily',
       html: S.h`<div class="stack">${status}
-        ${S.ui.notice('info', 'تنبيه', 'القراءة الاصطناعية للنصوص العامة والأدعية للمساعدة فقط. لا يُنصح بها لتلاوة القرآن: استعمل التلاوات المسجلة.')}
+        ${S.ui.tip('info', 'تنبيه', 'القراءة الاصطناعية للنصوص العامة والأدعية للمساعدة فقط. لا يُنصح بها لتلاوة القرآن: استعمل التلاوات المسجلة.')}
         <div class="card">${duas.length ? S.f.select('tdua', 'من الأدعية الموثقة', [{ v: '', t: '— اختر دعاءً —' }].concat(duas.map((d) => ({ v: d.id, t: d.title }))), '', { chg: 'ttsPick' }) : ''}${S.f.area('tt', 'النص', '', { rows: 6 })}${voiceField}<div class="grid2">${S.f.text('tr', 'السرعة', 0.9, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}${S.f.text('tp', 'النبرة', 1, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}</div><div class="grid2"><button class="btn primary" data-act="ttsPlay">${S.icon('play')} قراءة</button><button class="btn" data-act="ttsStop">إيقاف</button></div></div></div>`,
       mount() { if (mode === 'web') { try { speechSynthesis.onvoiceschanged = () => { if (S.router.cur.path === '/daily/tts' && !S.$('#f_tt').value) { const n = speechSynthesis.getVoices().length; if (n !== voices.length) S.router.refresh(); } }; } catch (e) { /* */ } } },
       unmount() { S.tts.stop(); }
@@ -174,8 +174,7 @@
     const pr = (await S.db.all('progress')).length; const bm = (await S.db.all('bookmarks')).length; const nt = (await S.db.all('notes')).length;
     return {
       title: 'مزامنة تقدم القراءة', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${S.ui.notice('err', 'غير مربوط', 'المزامنة بين الأجهزة تحتاج حسابات وخادماً (Supabase) وهو غير موصول في هذه النسخة.')}
-        <div class="card"><div class="card-t">${S.icon('database')} ما سيُزامَن مستقبلاً (محفوظ الآن محلياً)</div><div class="kv"><span>مواضع القراءة</span><b>${S.n(pr)}</b></div><div class="kv"><span>العلامات المرجعية</span><b>${S.n(bm)}</b></div><div class="kv"><span>الملاحظات والتدبّرات</span><b>${S.n(nt)}</b></div></div>
+      html: S.h`<div class="stack"><div class="card"><div class="card-t">${S.icon('database')} محفوظ على جهازك</div><div class="kv"><span>مواضع القراءة</span><b>${S.n(pr)}</b></div><div class="kv"><span>العلامات المرجعية</span><b>${S.n(bm)}</b></div><div class="kv"><span>الملاحظات والتدبّرات</span><b>${S.n(nt)}</b></div></div>
         <div class="card"><div class="card-t">${S.icon('download')} الحل المتاح الآن</div><p class="small nm">صدِّر نسخة احتياطية من «الإعدادات» وانقلها إلى جهازك الآخر ثم استعدها هناك.</p><a class="btn block mt-s" href="#/settings">${S.icon('settings')} النسخ الاحتياطي والاستعادة</a></div></div>`
     };
   });
