@@ -264,7 +264,7 @@ quran = dict(
     sajdaWajib=[[32,15],[41,37],[53,62],[96,19]], totalAyahs=6236,
     api=dict(base="https://api.alquran.cloud/v1", textEdition="quran-uthmani",
              audioCdn="https://cdn.islamic.network/quran/audio",
-             audioBitrate=128, defaultAudio=[["ar.alafasy","مشاري العفاسي"],["ar.husary","محمود خليل الحصري"],["ar.minshawi","محمد صديق المنشاوي"]],
+             audioBitrate=128, defaultAudio=[["ar.alafasy","مشاري العفاسي"],["ar.husary","محمود خليل الحصري"],["ar.minshawi","محمد صديق المنشاوي (مرتّل)"],["ar.minshawimujawwad","محمد صديق المنشاوي (مجوّد)"]],
              defaultTranslations=[["en.sahih","English – Sahih International"],["en.asad","English – Muhammad Asad"],["en.pickthall","English – Pickthall"]]),
     attribution=dict(text="نص القرآن الكريم: مشروع Tanzil (tanzil.net) – رخصة Creative Commons Attribution 3.0، النص يُعرض كما هو دون تعديل. يُجلب عبر واجهة AlQuran.cloud.",
                      links=[["tanzil.net","https://tanzil.net/"],["alquran.cloud","https://alquran.cloud/"]]),

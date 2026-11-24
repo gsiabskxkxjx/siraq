@@ -92,7 +92,7 @@
     },
     async removeTranslation(id) { await S.db.del('quran', 'tr:' + id); if (S.settings.translation === id) { S.set({ translation: '', showTranslation: false }); Q.tr = null; Q.trInfo = null; } },
     async translationList() { return (await S.db.all('quran')).filter((r) => r.id.startsWith('tr:')); },
-    reciters() { const live = S.kv.get('quran.reciters'); return (live && live.length ? live : D().api.defaultAudio.map(([id, name]) => ({ id, name }))); },
+    reciters() { /* القرّاء المضمّنون يظهرون دائماً (ومنهم المنشاوي) وتُضاف إليهم قائمة الخادم إن جُلبت */ const base = D().api.defaultAudio.map(([id, name]) => ({ id, name })); const live = S.kv.get('quran.reciters') || []; const have = new Set(base.map((r) => r.id)); return base.concat(live.filter((r) => r && r.id && !have.has(r.id))); },
     async refreshReciters() {
       const r = await fetch(D().api.base + '/edition/format/audio', { cache: 'no-store' }); if (!r.ok) throw new Error('الرمز ' + r.status); const j = await r.json();
       const list = (j.data || []).filter((e) => e.language === 'ar' && e.type !== 'translation').map((e) => ({ id: e.identifier, name: e.name || e.englishName }));

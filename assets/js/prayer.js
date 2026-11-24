@@ -269,21 +269,39 @@
     };
   });
   let compassHandler = null;
-  function stopCompass() { if (compassHandler) { window.removeEventListener('deviceorientationabsolute', compassHandler, true); window.removeEventListener('deviceorientation', compassHandler, true); compassHandler = null; } }
+  let nativeCompass = null;
+  function stopCompass() { if (nativeCompass) { try { nativeCompass.remove(); window.Capacitor.Plugins.CapgoCompass.stopListening(); } catch (e) { /* */ } nativeCompass = null; } if (compassHandler) { window.removeEventListener('deviceorientationabsolute', compassHandler, true); window.removeEventListener('deviceorientation', compassHandler, true); compassHandler = null; } }
   S.act('startCompass', async () => {
     const loc = P.loc(); const b = P.qibla(loc.lat, loc.lng);
     try { if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission === 'function') { const r = await DeviceOrientationEvent.requestPermission(); if (r !== 'granted') return S.toast('لم يُسمح بالوصول للمستشعر', 'err'); } } catch (e) { return S.toast('تعذّر طلب الإذن', 'err'); }
-    if (!('DeviceOrientationEvent' in window)) return S.toast('الجهاز لا يدعم مستشعر الاتجاه', 'err');
     stopCompass(); let got = false;
-    compassHandler = (ev) => {
-      let hd = null; if (typeof ev.webkitCompassHeading === 'number') hd = ev.webkitCompassHeading; else if (ev.absolute && ev.alpha != null) hd = (360 - ev.alpha) % 360; else if (ev.type === 'deviceorientationabsolute' && ev.alpha != null) hd = (360 - ev.alpha) % 360;
-      if (hd == null) return; got = true;
-      const face = S.$('#cface'), needle = S.$('#needle'), lbl = S.$('#hdg'); if (!face) return;
+    const show = (hd) => {
+      got = true; const face = S.$('#cface'), needle = S.$('#needle'), lbl = S.$('#hdg'); if (!face) return;
       face.style.transform = `rotate(${-hd}deg)`; needle.style.transform = `rotate(${b}deg)`;
       const diff = Math.abs(((b - hd + 540) % 360) - 180); lbl.innerHTML = `اتجاه الهاتف ${S.n(Math.round(hd))}° — ${diff < 5 ? '<b class="ok">أنت متجه نحو القبلة</b>' : 'أدر الهاتف حتى يشير السهم للأعلى'}`;
       if (diff < 3) S.vibrate(30);
     };
+    /* أندرويد: مستشعر البوصلة الأصلي (WebView لا يرسل أحداث الاتجاه المطلق بموثوقية) */
+    const NC = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapgoCompass;
+    if (S.isNative && NC) {
+      try {
+        nativeCompass = await NC.addListener('headingChange', (e) => { if (e && typeof e.value === 'number') show((e.value + 360) % 360); });
+        await NC.startListening(); S.toast('البوصلة تعمل — حرّك الهاتف على شكل 8 للمعايرة');
+        setTimeout(() => { if (!got) S.toast('لم تصل قراءات من مستشعر البوصلة؛ قد يكون معطّلاً في هاتفك. اعتمد الزاوية الثابتة أعلاه.', 'err'); }, 4000); return;
+      } catch (e) { /* نرجع إلى مستشعر المتصفح */ }
+    }
+    if (!('DeviceOrientationEvent' in window)) return S.toast('الجهاز لا يدعم مستشعر الاتجاه', 'err');
+    compassHandler = (ev) => {
+      let hd = null; if (typeof ev.webkitCompassHeading === 'number') hd = ev.webkitCompassHeading;
+      else if ((ev.absolute || ev.type === 'deviceorientationabsolute') && ev.alpha != null) {
+        /* اتجاه مصحَّح بميل الهاتف (W3C): يعمل والهاتف مائل قليلاً لا مسطّحاً فقط */
+        const r = Math.PI / 180, a = ev.alpha * r, bt = (ev.beta || 0) * r, g = (ev.gamma || 0) * r;
+        const rA = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(bt) * Math.cos(g), rB = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(bt) * Math.cos(g);
+        hd = (Math.atan2(rA, rB) / r + 360) % 360;
+      }
+      if (hd == null) return; show(hd);
+    };
     window.addEventListener('deviceorientationabsolute', compassHandler, true); window.addEventListener('deviceorientation', compassHandler, true);
-    setTimeout(() => { if (!got) S.toast('لم تصل قراءات من المستشعر. استخدم الزاوية الثابتة.', 'err'); }, 3500);
+    setTimeout(() => { if (!got) S.toast('جهازك لا يرسل قراءات البوصلة (أو مستشعرها معطّل). اعتمد الزاوية الثابتة أعلاه.', 'err'); }, 3500);
   });
 })();
