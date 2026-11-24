@@ -23,7 +23,8 @@
     rd.forEach((d) => { const e = SC.validateDua(d); if (!(S.data.duas.categories || []).some((c) => c.id === d.cat)) e.push('تصنيف غير معروف'); if (e.length) errs.push('دعاء «' + d.title + '»: ' + e[0]); });
     re.forEach((x) => { const e = SC.validateEntry(x); if (e.length) errs.push('مدخل «' + x.title + '»: ' + e[0]); });
     const used = new Set(rb.map((b) => b.authorId)); /* المؤلفون الذين تحتاجهم كتب الحزمة فقط */
-    return { books: rb, authors: authors.filter((a) => used.has(a.id)), duas: rd, entries: re, drafts: { books: books.length - rb.length, duas: duas.length - rd.length, entries: entries.length - re.length }, errs };
+    const repl = (arr, src) => { const ok = new Set(src.map((x) => x.id)); return [...new Set(arr.filter((x) => x.replaces && ok.has(x.replaces)).map((x) => x.replaces))]; };
+    return { replaced: { books: repl(rb, S.data.sample.books || []), duas: repl(rd, S.data.duas.items || []) }, books: rb, authors: authors.filter((a) => used.has(a.id)), duas: rd, entries: re, drafts: { books: books.length - rb.length, duas: duas.length - rd.length, entries: entries.length - re.length }, errs };
   }
   const b64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
   async function buildPayload(g, meta) {
@@ -31,7 +32,7 @@
     return {
       v: 1, app: 'SIRAJ', id: 'pack_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), seq: nextSeq(), created: new Date().toISOString(), title: str(meta.title), notes: str(meta.notes),
       authors: g.authors.map((a) => ({ id: a.id, name: a.name, death: a.death || null, note: a.note || '' })), books: g.books.map(stripBook), duas: g.duas.map(stripDua), entries: g.entries.map(stripEntry),
-      withdraw: { books: w.books || [], duas: w.duas || [], entries: w.entries || [] }, notices: S.kv.get('ctl.notices', []).map((n) => ({ id: n.id, title: n.title, body: n.body })),
+      withdraw: { books: [...new Set((w.books || []).concat(g.replaced.books))], duas: [...new Set((w.duas || []).concat(g.replaced.duas))], entries: w.entries || [] }, notices: S.kv.get('ctl.notices', []).map((n) => ({ id: n.id, title: n.title, body: n.body })),
       adhan: ad ? { name: ad.name || 'أذان', mime: ad.blob.type, data: await b64(ad.blob) } : undefined
     };
   }
@@ -46,11 +47,11 @@
         ${!S.keys.exists() ? S.ui.notice('err', 'لا يوجد مفتاح نشر', S.h`<span>أنشئ المفتاح أولاً من تبويب <a href="#/key">المفتاح</a>.</span>`) : S.keys.isUnlocked() ? '' : S.ui.notice('warn', 'المفتاح مقفل', 'سيُطلب منك إدخال عبارة المرور عند الإصدار.')}
         <div class="card"><div class="card-t">${S.icon('list')} ما سيدخل الحزمة</div>
           <div class="kv"><span>كتب جاهزة</span><b>${S.n(g.books.length)}</b></div><div class="kv"><span>أدعية وزيارات جاهزة</span><b>${S.n(g.duas.length)}</b></div><div class="kv"><span>مداخل موسوعة جاهزة</span><b>${S.n(g.entries.length)}</b></div>
-          <div class="kv"><span>سحب من المضمّن</span><b>${S.n(w.books.length + w.duas.length + w.entries.length)}</b></div><div class="kv"><span>إعلانات</span><b>${S.n(S.kv.get('ctl.notices', []).length)}</b></div>
+          <div class="kv"><span>سحب من المضمّن</span><b>${S.n(new Set(w.books.concat(g.replaced.books)).size + new Set(w.duas.concat(g.replaced.duas)).size + w.entries.length)}</b></div>${g.replaced.books.length + g.replaced.duas.length ? S.h`<p class="tiny muted nm">منها ${S.n(g.replaced.books.length)} كتاب و${S.n(g.replaced.duas.length)} دعاء حلّ محلها تعديلك.</p>` : ''}<div class="kv"><span>إعلانات</span><b>${S.n(S.kv.get('ctl.notices', []).length)}</b></div>
           ${dr.books + dr.duas + dr.entries ? S.h`<p class="small muted nm mt">مسودات خارج الحزمة: ${S.n(dr.books)} كتاب، ${S.n(dr.duas)} دعاء، ${S.n(dr.entries)} مدخل.</p>` : ''}</div>
         ${g.errs.length ? S.ui.notice('err', 'لا يمكن الإصدار — أصلح هذه العناصر أو أعدها مسودة', S.h`<ul class="err-list">${g.errs.slice(0, 12).map((x) => S.h`<li>${x}</li>`)}</ul>`) : ''}
         <div class="card"><div class="card-t">${S.icon('volume')} صوت الأذان (يصل المستخدمين مع الحزمة)</div><p class="small muted nm">${adhan ? 'الملف الحالي: ' + esc(adhan.name || 'أذان') + ' — ' + S.n(Math.round(adhan.size / 1024)) + ' ك.ب' : 'لم يُحدَّد ملف. ارفع تسجيلاً مرخّصاً لديك (حتى 10 م.ب).'}</p>${S.f.file('adhanFile', 'ملف صوتي للأذان', 'audio/*')}<div class="grid2"><button class="btn" data-act="adhanSave">${S.icon('upload')} حفظ الأذان</button>${adhan ? S.h`<button class="btn danger" data-act="adhanDel">إزالة</button>` : ''}</div></div>
-        <div class="card">${S.f.text('ptitle', 'عنوان الحزمة', meta.title, { placeholder: 'مثال: إضافات شعبان' })}${S.f.area('pnotes', 'ملاحظات تظهر للمستخدم قبل التثبيت (اختياري)', meta.notes, { rows: 3 })}
+        <div class="card">${S.f.text('ptitle', 'عنوان الحزمة', meta.title, { placeholder: 'مثال: إضافات شعبان' })}${S.f.area('pnotes', 'ملاحظات للمستخدمين — تظهر لهم قبل تثبيت الحزمة (اختياري)', meta.notes, { rows: 3 })}
           <button class="btn primary block" data-act="pkIssue" ${g.errs.length ? S.raw('disabled') : ''}>${S.icon('shield')} توقيع الحزمة وإصدارها</button>
           <p class="tiny muted nm mt">الحزمة لقطة كاملة: ما حذفتَه من الجاهز يُحذف من سِراج عند تثبيتها. الرقم القادم: <span class="fp">${S.n(nextSeq())}</span></p></div>
         <div id="pk-out"></div>

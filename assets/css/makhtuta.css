@@ -201,3 +201,6 @@ b,strong,.h1,.h2,.h3,.title{font-weight:700}
 .sheet,.acc{border-radius:5px}
 .hero{background:var(--emerald);border-radius:0}
 .card p.nm+.btn,.card p.nm+a.btn{margin-top:10px}
+
+/* مربعات النص: بلا مقبض تكبير (يبدو كخربشة على الجوال) */
+.textarea,textarea.input{resize:none}

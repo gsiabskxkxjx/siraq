@@ -74,15 +74,15 @@
     const h = kv(); const D = S.data.sample; const rc = remoteCfg();
     const sug = ['ما ' + D.ahlVerses[0].name + '؟', 'ما هو ' + D.aspects[0].title + '؟', 'من هو الإمام ' + D.imams[5].short + '؟', 'ما كتب التفسير في المكتبة؟', 'ما حكم الصلاة في السفر؟'];
     return {
-      title: 'SIRAJ AI – المساعد العلمي', nav: 'more', back: '/more', actions: h.length ? [{ icon: 'trash', label: 'مسح المحادثة', act: 'asClear' }] : [], noNav: false,
-      html: S.h`<div class="stack"><div class="card hero-mini"><b>SIRAJ AI — المساعد العلمي</b><p class="small nm">يجيب من محتوى سِراج الموثق فقط، ويعرض النص ومصدره. يعترف بعدم توفر المعلومات، ولا يختلق حديثاً أو مصدراً، ولا يُصدر فتوى.</p></div>
+      title: 'المساعد العلمي', nav: 'more', back: '/more', actions: h.length ? [{ icon: 'trash', label: 'مسح المحادثة', act: 'asClear' }] : [], noNav: false,
+      html: S.h`<div class="stack"><div class="card hero-mini"><b>المساعد العلمي <bdi dir="ltr">(SIRAJ AI)</bdi></b><p class="small nm">يجيب من محتوى سِراج الموثق فقط، ويعرض النص ومصدره. يعترف بعدم توفر المعلومات، ولا يختلق حديثاً أو مصدراً، ولا يُصدر فتوى.</p></div>
         <div class="notice warn">${S.icon('alert')}<div><b>حدود هذا المساعد</b><div class="small">هذه النسخة لا تستخدم نموذجاً لغوياً؛ هي بحث ذكي في بيانات التطبيق. ربط خدمة ذكاء اصطناعي حقيقية جاهز من الإعدادات أدناه لكنه <b>غير مربوط</b> افتراضياً.</div></div></div>
         <div class="chips">${sug.map((x) => S.h`<button class="chip" data-act="asSug" data-q="${x}">${x}</button>`)}</div>
         <div id="as-chat" class="as-chat">${h.length ? h.map(msgHtml) : S.h`<p class="small muted center">اكتب سؤالك في الأسفل. مثال: «ما آية التطهير؟» أو «من هو الإمام الصادق؟».</p>`}</div>
         <div class="as-input"><textarea class="textarea" id="as-in" rows="2" placeholder="اسأل عن آية، رواية، إمام، مصطلح، كتاب…" enterkeyhint="send"></textarea><button class="btn primary" data-act="asSend">${S.icon('arrow-left')} إرسال</button></div>
         <details class="acc"><summary>${S.icon('settings')} ربط مزوّد ذكاء اصطناعي خارجي (اختياري) — ${rc.enabled && rc.url ? 'مفعّل' : 'غير مربوط'}</summary><div class="acc-b">
-          <p class="small muted nm">أدخل عنوان نقطة نهاية على خادمك تستقبل POST بصيغة JSON ‏{question, context[], rules[]} وتُرجع {answer}. لا تُحفظ مفاتيح API في التطبيق؛ ضع المفتاح على الخادم. الإجابة الخارجية تظهر موسومة «غير موثقة».</p>
-          ${S.f.text('rurl', 'عنوان https', rc.url, { ltr: true, placeholder: 'https://your-server.example/siraj-ai' })}${S.f.check('ren', 'تفعيل المزوّد الخارجي', rc.enabled)}<div class="grid2"><button class="btn" data-act="asRemoteSave">حفظ</button><button class="btn" data-act="asRemoteTest">اختبار الاتصال</button></div></div></details></div>`,
+          <p class="small muted nm">أدخل عنوان خادمك الذي يستقبل السؤال ويرجع الجواب (<bdi dir="ltr">POST</bdi> بصيغة <bdi dir="ltr">JSON</bdi>: الحقول <bdi dir="ltr">question</bdi> و<bdi dir="ltr">context</bdi> و<bdi dir="ltr">rules</bdi>، والرد في حقل <bdi dir="ltr">answer</bdi>). لا تُحفظ مفاتيح في التطبيق؛ ضع المفتاح على الخادم. الإجابة الخارجية تظهر موسومة «غير موثقة».</p>
+          ${S.f.text('rurl', 'عنوان الخادم (https)', rc.url, { ltr: true, placeholder: 'https://your-server.example/siraj-ai' })}${S.f.check('ren', 'تفعيل المزوّد الخارجي', rc.enabled)}<div class="grid2"><button class="btn" data-act="asRemoteSave">حفظ</button><button class="btn" data-act="asRemoteTest">اختبار الاتصال</button></div></div></details></div>`,
       mount() { const c = S.$('#as-chat'); if (c) c.scrollTop = c.scrollHeight; const i = S.$('#as-in'); i.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); S.$('[data-act=asSend]').click(); } }); }
     };
   });

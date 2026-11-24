@@ -50,17 +50,50 @@
 
   /* ---------------- الكتب ---------------- */
   const subOptions = (sec, cur) => { const s = S.sectionById[sec]; return ['<option value="">— بلا —</option>'].concat((s ? s.subcats : []).map((x) => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`)).join(''); };
+  /* نسخة قابلة للتعديل من كتاب مضمّن: معرّف جديد + replaces؛ عند نشرها «جاهزة» يُسحب الأصل من سِراج تلقائياً فتحلّ محله */
+  const cloneOfBook = (b, now) => ({ id: tid('pk'), title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: (b.tags || []).slice(), publisher: b.publisher || '', year: b.year == null ? '' : b.year, edition: b.edition || '', pages: b.pages == null ? '' : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', copyright: b.copyright || 'غير محدد', ready: false, replaces: b.id, updated: now });
   S.router.add('/books', async (p, q) => {
-    const term = S.norm(q.q || ''); const st = q.st || ''; let rows = (await list('books')).sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    const term = S.norm(q.q || ''); const st = q.st || ''; const sec = q.sec || ''; const all = await list('books'); let rows = all.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0));
+    const clones = new Map(all.filter((b) => b.replaces).map((b) => [b.replaces, b]));
+    const url = (o) => '#/books?' + Object.entries(Object.assign({ st: st, q: q.q, sec: sec }, o)).filter(([, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+    const tabs = S.h`<div class="chips"><a class="chip ${!st ? 'active' : ''}" href="#/books">الكل</a><a class="chip ${st === 'ready' ? 'active' : ''}" href="#/books?st=ready">جاهز</a><a class="chip ${st === 'draft' ? 'active' : ''}" href="#/books?st=draft">مسودات</a><a class="chip ${st === 'bundled' ? 'active' : ''}" href="#/books?st=bundled">كتب سِراج المضمّنة (${S.n(bundledBooks().length)})</a></div>`;
+    if (st === 'bundled') {
+      let src = bundledBooks(); if (sec) src = src.filter((b) => b.section === sec); if (term) src = src.filter((b) => S.norm(b.title + ' ' + b.author).includes(term));
+      const lim = Math.max(60, +q.n || 60); const todo = src.filter((b) => !clones.has(b.id)).length;
+      return {
+        title: 'كتب سِراج المضمّنة', nav: 'content', back: '/books',
+        html: S.h`<div class="stack">${tabs}
+          ${S.ui.notice('info', 'كيف أعدّل كتاباً مضمّناً؟', 'اضغط «تعديل» فيُنسخ الكتاب إلى كتبك كمسودة. عدّل بياناته وأضف مصدره، ثم علّمه «جاهز للنشر»: عند إصدار الحزمة يُسحب الأصل من سِراج ويحلّ محله تعديلك. الكتب المضمّنة بلا مصدر موثَّق، لذا لن تُقبل «جاهزة» قبل إدخال المصدر.')}
+          <div class="searchbox">${S.icon('search')}<input class="input" id="bq" value="${q.q || ''}" placeholder="بحث في الكتب المضمّنة"></div>
+          <div class="chips"><a class="chip ${!sec ? 'active' : ''}" href="${url({ sec: '', n: '' })}">كل الأقسام</a>${S.sections.map((x) => S.h`<a class="chip ${sec === x.id ? 'active' : ''}" href="${url({ sec: x.id, n: '' })}">${x.title}</a>`)}</div>
+          <div class="row between"><span class="small muted">${S.n(src.length)} كتاب • ${S.n(src.length - todo)} منسوخ للتعديل</span>${todo ? S.h`<button class="btn xs" data-act="bkCloneAll" data-sec="${sec}" data-q="${q.q || ''}">نسخ الكل للتعديل (${S.n(todo)})</button>` : ''}</div>
+          <div class="list">${src.slice(0, lim).map((b) => { const c = clones.get(b.id); return c ? S.h`<a class="li" href="#/book/${c.id}"><span class="li-body"><span class="li-t">${b.title}</span><span class="li-s">${b.author || ''} • ${secTitle(b.section)}</span></span><span class="li-end">${S.ui.badge('عندك نسخة', 'ok')}</span></a>` : S.h`<div class="li"><span class="li-body"><span class="li-t">${b.title}</span><span class="li-s">${b.author || ''} • ${secTitle(b.section)}</span></span><button class="btn xs" data-act="bkClone" data-id="${b.id}">تعديل</button></div>`; })}</div>
+          ${src.length > lim ? S.h`<a class="btn block" href="${url({ n: lim + 60 })}">عرض المزيد (${S.n(src.length - lim)})</a>` : ''}</div>`,
+        mount() { const f = S.$('#bq'); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') S.router.go('/books?st=bundled&q=' + encodeURIComponent(f.value) + (sec ? '&sec=' + sec : '')); }); }
+      };
+    }
     if (st) rows = rows.filter((b) => (st === 'ready') === !!b.ready); if (term) rows = rows.filter((b) => S.norm(b.title + ' ' + b.author).includes(term));
     return {
       title: 'كتبك', nav: 'content', back: '/content', actions: [{ icon: 'plus', label: 'إضافة كتاب', href: '#/book/new' }],
       html: S.h`<div class="stack"><div class="searchbox">${S.icon('search')}<input class="input" id="bq" value="${q.q || ''}" placeholder="بحث في كتبك"></div>
-        <div class="chips"><a class="chip ${!st ? 'active' : ''}" href="#/books">الكل</a><a class="chip ${st === 'ready' ? 'active' : ''}" href="#/books?st=ready">جاهز</a><a class="chip ${st === 'draft' ? 'active' : ''}" href="#/books?st=draft">مسودات</a></div>
+        ${tabs}
         <div class="small muted">${S.n(rows.length)} كتاب</div>
-        <div class="list">${rows.length ? rows.map((b) => S.h`<a class="li" href="#/book/${b.id}"><span class="li-body"><span class="li-t">${b.title || '(بلا عنوان)'}</span><span class="li-s">${b.author || ''} • ${secTitle(b.section)}</span></span><span class="li-end">${badge(b)}</span></a>`) : S.ui.empty('library', 'لا كتب مضافة بعد', 'أضف كتاباً ببياناته ومصدره، أو استورد ملف JSON.', S.h`<a class="btn primary" href="#/book/new">إضافة كتاب</a>`)}</div></div>`,
+        <div class="list">${rows.length ? rows.map((b) => S.h`<a class="li" href="#/book/${b.id}"><span class="li-body"><span class="li-t">${b.title || '(بلا عنوان)'}</span><span class="li-s">${b.author || ''} • ${secTitle(b.section)}${b.replaces ? ' • نسخة معدّلة من المضمّن' : ''}</span></span><span class="li-end">${badge(b)}</span></a>`) : S.ui.empty('library', 'لا كتب مضافة بعد', 'أضف كتاباً ببياناته ومصدره، أو عدّل كتاباً من كتب سِراج المضمّنة، أو استورد ملف JSON.', S.h`<a class="btn primary" href="#/book/new">إضافة كتاب</a> <a class="btn" href="#/books?st=bundled">كتب سِراج المضمّنة</a>`)}</div></div>`,
       mount() { const f = S.$('#bq'); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') S.router.go('/books?q=' + encodeURIComponent(f.value) + (st ? '&st=' + st : '')); }); }
     };
+  });
+  S.act('bkClone', async (el) => {
+    const src = bundledBooks().find((x) => x.id === el.dataset.id); if (!src) return S.toast('الكتاب غير موجود', 'err');
+    const have = (await list('books')).find((x) => x.replaces === src.id); if (have) return S.router.go('/book/' + have.id);
+    const rec = cloneOfBook(src, Date.now()); await S.db.put('books', rec); await S.audit('book.clone', rec.title, src.id); S.router.go('/book/' + rec.id);
+  });
+  S.act('bkCloneAll', async (el) => {
+    const sec = el.dataset.sec || '', term = S.norm(el.dataset.q || ''); const have = new Set((await list('books')).filter((x) => x.replaces).map((x) => x.replaces));
+    let src = bundledBooks().filter((b) => !have.has(b.id)); if (sec) src = src.filter((b) => b.section === sec); if (term) src = src.filter((b) => S.norm(b.title + ' ' + b.author).includes(term));
+    if (!src.length) return;
+    if (!(await S.confirm('سيُنسخ ' + S.n(src.length) + ' كتاب إلى كتبك كمسودات للتعديل. لا يتغير شيء في سِراج حتى تعلّم كتاباً «جاهز» وتصدر حزمة. متابعة؟', { yes: 'نسخ' }))) return;
+    const now = Date.now(); await S.db.putMany('books', src.map((b, i) => cloneOfBook(b, now - i))); await S.audit('book.cloneAll', sec || 'all', String(src.length));
+    S.toast('نُسخ ' + S.n(src.length) + ' كتاب', 'ok'); S.router.refresh();
   });
   S.router.add('/book/:id', async (p) => {
     const isNew = p.id === 'new'; const b = isNew ? { id: '', title: '', author: '', authorDeath: '', section: S.sections[0].id, subcat: '', desc: '', tags: [], publisher: '', year: '', edition: '', pages: '', lang: 'العربية', sourceName: '', sourceUrl: '', digitalUrl: '', copyright: 'غير محدد', ready: false } : await S.db.get('books', p.id);
@@ -69,6 +102,7 @@
     return {
       title: isNew ? 'إضافة كتاب' : 'تعديل كتاب', nav: 'content', back: '/books',
       html: S.h`<div class="stack" id="bkform" data-id="${b.id}"><div id="bk-errs"></div>
+        ${b.replaces ? S.ui.notice('info', 'نسخة معدّلة من كتاب مضمّن في سِراج', 'عند نشرها «جاهزة» تحلّ محل الكتاب الأصلي في سِراج، ويُسحب الأصل تلقائياً. أضف المصدر الذي أخذت منه البيانات.') : ''}
         ${S.ui.notice('warn', 'قاعدة التوثيق', 'بيانات ببليوغرافية فقط (لا ملفات كتب). المصدر مطلوب: من أين أخذت بيانات هذا الكتاب؟ لا تكتب معلومة لا تستطيع نسبتها لمصدر.')}
         <div class="card">${S.f.text('title', 'عنوان الكتاب', b.title, { required: true })}
           <div class="field"><label>المؤلف <span class="bad">*</span></label><input class="input" name="author" list="authlist" value="${b.author}" autocomplete="off"><datalist id="authlist">${authors.map((a) => S.h`<option value="${a.name}"></option>`)}</datalist><span class="hint">اختر من القائمة (مؤلفو الكتالوج ومؤلفوك) أو اكتب اسماً جديداً فيُنشأ.</span></div>
@@ -111,7 +145,9 @@
     return {
       title: 'أدعيتك وزياراتك', nav: 'content', back: '/content', actions: [{ icon: 'plus', label: 'إضافة', href: '#/dua/new' }],
       html: S.h`<div class="stack">${S.ui.notice('warn', 'من كتاب لا من الذاكرة', 'لا يُقبل نص دعاء أو زيارة بلا اسم الكتاب ورقم الصفحة أو الجزء أو رابط. انسخ النص من طبعة معتمدة بحروفه.')}<div class="small muted">${S.n(rows.length)} عنصر</div>
-        <div class="list">${rows.length ? rows.map((d) => S.h`<a class="li" href="#/dua/${d.id}"><span class="li-body"><span class="li-t">${d.title || '(بلا عنوان)'}</span><span class="li-s">${(cats().find((c) => c.id === d.cat) || {}).title || ''}</span></span><span class="li-end">${badge(d)}</span></a>`) : S.ui.empty('heart-handshake', 'لا أدعية مضافة بعد', '', S.h`<a class="btn primary" href="#/dua/new">إضافة دعاء</a>`)}</div></div>`
+        <div class="list">${rows.length ? rows.map((d) => S.h`<a class="li" href="#/dua/${d.id}"><span class="li-body"><span class="li-t">${d.title || '(بلا عنوان)'}</span><span class="li-s">${(cats().find((c) => c.id === d.cat) || {}).title || ''}${d.replaces ? ' • نسخة معدّلة من المضمّن' : ''}</span></span><span class="li-end">${badge(d)}</span></a>`) : S.ui.empty('heart-handshake', 'لا أدعية مضافة بعد', '', S.h`<a class="btn primary" href="#/dua/new">إضافة دعاء</a>`)}</div>
+        <div class="card"><div class="card-t">${S.icon('library')} أدعية سِراج المضمّنة (${S.n(bundledDuas().length)})</div><p class="small muted nm">اضغط «تعديل» لنسخ العنصر إلى أدعيتك ثم أضف النص من طبعة معتمدة مع مصدره. عند نشره «جاهزاً» يحلّ محل الأصل.</p>
+          <div class="list">${bundledDuas().map((d) => { const c = rows.find((x) => x.replaces === d.id); return c ? S.h`<a class="li" href="#/dua/${c.id}"><span class="li-body"><span class="li-t">${d.title}</span></span><span class="li-end">${S.ui.badge('عندك نسخة', 'ok')}</span></a>` : S.h`<div class="li"><span class="li-body"><span class="li-t">${d.title}</span><span class="li-s">${(cats().find((x) => x.id === d.cat) || {}).title || ''}</span></span><button class="btn xs" data-act="duaClone" data-id="${d.id}">تعديل</button></div>`; })}</div></div></div>`
     };
   });
   S.router.add('/dua/:id', async (p) => {
@@ -119,7 +155,7 @@
     if (!d) return { title: 'دعاء', back: '/duas', html: S.ui.empty('alert', 'غير موجود') }; const ts = d.textSource || {};
     return {
       title: isNew ? 'إضافة دعاء/زيارة' : 'تحرير: ' + d.title, nav: 'content', back: '/duas',
-      html: S.h`<div class="stack" id="duaform" data-id="${d.id}"><div id="dua-errs"></div>${S.ui.notice('warn', 'قاعدة التوثيق', 'انسخ النص من طبعة معتمدة، ولا تكتبه من الذاكرة ولا تُعدّله. بلا نص يُنشر العنوان فقط بحالة «العنوان فقط».')}
+      html: S.h`<div class="stack" id="duaform" data-id="${d.id}"><div id="dua-errs"></div>${d.replaces ? S.ui.notice('info', 'نسخة معدّلة من عنصر مضمّن', 'عند نشرها «جاهزة» تحلّ محل الأصل في سِراج.') : ''}${S.ui.notice('warn', 'قاعدة التوثيق', 'انسخ النص من طبعة معتمدة، ولا تكتبه من الذاكرة ولا تُعدّله. بلا نص يُنشر العنوان فقط بحالة «العنوان فقط».')}
         <div class="card">${S.f.text('title', 'العنوان', d.title, { required: true })}${S.f.select('kind', 'النوع', KIND_OPT, d.kind)}${S.f.select('cat', 'التصنيف', cats().map((c) => ({ v: c.id, t: c.title })), d.cat)}${S.f.text('commonSource', 'المصدر الشائع (وصف)', d.commonSource)}${S.f.area('text', 'النص (سطر لكل مقطع)', d.text, { rows: 10 })}</div>
         <div class="card"><div class="card-t">${S.icon('link')} مصدر النص</div>${S.f.text('book', 'الكتاب', ts.book)}${S.f.text('author', 'المؤلف/المحقق', ts.author)}${S.f.text('edition', 'الطبعة', ts.edition)}<div class="grid3">${S.f.text('part', 'الجزء', ts.part)}${S.f.text('page', 'الصفحة', ts.page)}${S.f.text('url', 'رابط', ts.url, { ltr: true })}</div></div>
         ${S.f.text('note', 'ملاحظة', d.note)}<div class="card">${S.f.check('ready', 'جاهز للنشر (يدخل الحزمة القادمة)', d.ready)}</div>
@@ -134,6 +170,12 @@
     if (errs.length) { if (rec.ready) rec.ready = false; showErrs('#dua-errs', rec.text ? 'لم يُحفظ كجاهز — أصلح:' : 'ملاحظات:', errs); if (rec.text) { /* نص بلا مصدر: يُحفظ مسودة لكن لا يُنشر */ } }
     await S.db.put('duas', Object.assign({}, old || {}, rec)); root.dataset.id = rec.id; await S.audit(old ? 'dua.edit' : 'dua.add', rec.title, rec.ready ? 'ready' : 'draft');
     S.toast(rec.ready ? 'حُفظ وهو جاهز للنشر' : 'حُفظ كمسودة', 'ok'); if (!errs.length) S.router.go('/duas');
+  });
+  S.act('duaClone', async (el) => {
+    const d = bundledDuas().find((x) => x.id === el.dataset.id); if (!d) return S.toast('غير موجود', 'err');
+    const have = (await list('duas')).find((x) => x.replaces === d.id); if (have) return S.router.go('/dua/' + have.id);
+    const rec = { id: tid('pd'), title: d.title, kind: d.kind || 'dua', cat: d.cat, commonSource: d.commonSource || '', note: d.note || '', text: d.text || '', textSource: d.textSource ? Object.assign({}, d.textSource) : {}, ready: false, replaces: d.id, updated: Date.now() };
+    await S.db.put('duas', rec); await S.audit('dua.clone', rec.title, d.id); S.router.go('/dua/' + rec.id);
   });
   S.act('duaDel', async (el) => { if (await S.confirm('حذف هذا العنصر من مسودات الناشر؟', { danger: true })) { await S.db.del('duas', el.dataset.id); S.router.go('/duas'); } });
 
