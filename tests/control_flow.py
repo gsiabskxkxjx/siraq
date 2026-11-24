@@ -162,38 +162,39 @@ t.check('استعادة بعبارة خاطئة تفشل', not t.ev("SIRAJ.keys.
 pg.fill('#f_kimpp', PASS); pg.click('[data-act=keyImport]'); pg.wait_for_timeout(1800)
 t.check('استعادة المفتاح بنفس البصمة', t.ev("SIRAJ.keys.exists() && SIRAJ.keys.id()") == kid)
 
-# ---------- 9ب) تعديل كتب مضمّنة من سِراج داخل التحكم ----------
-t.go('/books?st=bundled'); pg.wait_for_timeout(400)
-nb = t.ev("SIRAJ.data.sample.books.length")
-t.check('قائمة «كتب سِراج المضمّنة» تعرض أزرار تعديل ونسخ الكل', t.ev("document.querySelectorAll('[data-act=bkClone]').length") >= 20 and t.ev("!!document.querySelector('[data-act=bkCloneAll]')") and nb >= 400)
-first = t.ev("document.querySelector('[data-act=bkClone]').dataset.id")
-pg.click(f'[data-act=bkClone][data-id="{first}"]'); pg.wait_for_timeout(900)
-t.check('«تعديل» ينسخ الكتاب ويفتح نموذجه', '/book/pk_' in t.ev("location.hash") and 'نسخة معدّلة من كتاب مضمّن' in t.txt())
+# ---------- 9ب) كتب سِراج المضمّنة تظهر في «الكتب» ويُعدَّل عليها مع PDF ----------
+import hashlib
+PDFB = b'%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'; open('/tmp/test-book.pdf', 'wb').write(PDFB)
+t.go('/books', 700); nb = t.ev("SIRAJ.data.sample.books.length")
+t.check('«الكتب» تعرض كتب سِراج المضمّنة مباشرة (بدّون تبويب جانبي)', t.ev("document.querySelectorAll('#view .li').length") >= 40 and 'مضمّن' in t.txt() and nb >= 400, t.txt()[:200])
+t.go('/books?st=bundled&q=' + t.ev("encodeURIComponent(SIRAJ.data.sample.books[0].title.split(' ')[0])"), 700)
+first = t.ev("SIRAJ.data.sample.books[0].id"); pg.click(f'a.li[href="#/book/{first}"]'); pg.wait_for_timeout(900)
+t.check('فتح كتاب مضمّن يعرض نموذج التعديل ببياناته وإرفاق PDF', t.ev("document.querySelector('[name=title]').value") == t.ev("SIRAJ.data.sample.books[0].title") and 'ملف PDF للكتاب' in t.txt())
+t.check('فتحه لا يكتب شيئاً قبل الحفظ', t.ev("SIRAJ.db.all('books').then(a=>a.filter(b=>b.replaces==='%s').length)" % first) == 0)
+pg.click('[data-act=bkSave]'); pg.wait_for_timeout(900)
 clone = t.ev("SIRAJ.db.all('books').then(a=>a.find(b=>b.replaces==='%s'))" % first)
-t.check('النسخة مسودة تحمل معرّفاً جديداً وreplaces', clone and clone['id'] != first and clone['ready'] is False)
-# كتاب مضمّن بلا مصدر: لا يقبل «جاهز» قبل إدخال المصدر
-pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(800)
-t.check('بلا مصدر: يُحفظ مسودة', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready)" % clone['id']) is False)
-pg.fill('[name=sourceName]', 'فهرس اختباري'); pg.fill('[name=sourceUrl]', 'https://example.org/b'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(900)
-t.check('بالمصدر: يصير جاهزاً', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready)" % clone['id']) is True)
-t.go('/books?st=bundled'); t.check('الكتاب المنسوخ يظهر «عندك نسخة» بلا زر تعديل', t.ev("!document.querySelector('[data-act=bkClone][data-id=\"%s\"]')" % first) and 'عندك نسخة' in t.txt())
-# نسخ كل كتب قسم
-sec0 = t.ev("SIRAJ.sections.find(s=>s.id==='duas').id"); t.go('/books?st=bundled&sec=duas'); pg.click('[data-act=bkCloneAll]'); pg.wait_for_selector('.modal'); click_modal(); pg.wait_for_timeout(1200)
-n_sec = t.ev("SIRAJ.data.sample.books.filter(b=>b.section==='duas').length")
-t.check('«نسخ الكل» ينسخ كل كتب القسم مسودات', t.ev("SIRAJ.db.all('books').then(a=>a.filter(b=>b.replaces&&b.section==='duas'&&!b.ready).length)") >= n_sec - 1, n_sec)
-# دعاء مضمّن
+t.check('الحفظ ينشئ نسخة معدّلة (مسودة) بمعرّف جديد', clone and clone['id'] != first and clone['ready'] is False)
+t.go('/book/' + first, 700); t.check('إعادة فتح المضمّن تفتح نسختك لا نسخة جديدة', t.ev("document.getElementById('bkform').dataset.id") == clone['id'])
+pg.fill('[name=sourceName]', 'فهرس اختباري'); pg.fill('[name=sourceUrl]', 'https://example.org/b'); pg.set_input_files('[name=pdfFile]', '/tmp/test-book.pdf'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(1200)
+t.check('PDF مع حقوق «غير محدد»: لا يُقبل جاهزاً', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready)" % clone['id']) is False and t.ev("SIRAJ.db.get('books','%s').then(b=>b.hasPdf)" % clone['id']) is True)
+t.go('/book/' + clone['id'], 700); pg.select_option('[name=copyright]', 'مرخّص — Creative Commons'); pg.check('[name=allowDownload]'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(1200)
+t.check('بحقوق «مرخّص»: يصير جاهزاً ومعه PDF', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready&&b.hasPdf&&b.allowDownload)" % clone['id']) is True)
+t.go('/books?st=pdf', 600); t.check('فلتر «فيها PDF»', clone['id'] in t.ev("[...document.querySelectorAll('#view a.li')].map(a=>a.getAttribute('href')).join(' ')"))
 t.go('/duas'); dfirst = t.ev("document.querySelector('[data-act=duaClone]').dataset.id"); pg.click(f'[data-act=duaClone][data-id="{dfirst}"]'); pg.wait_for_timeout(900)
 t.check('دعاء مضمّن: ينسخ مسودة للتعديل', '/dua/pd_' in t.ev("location.hash") and t.ev("SIRAJ.db.all('duas').then(a=>a.some(d=>d.replaces==='%s'&&!d.ready))" % dfirst))
-# الإصدار: الأصل يُسحب تلقائياً والنسخة تدخل بمعرّفها الجديد
+# الإصدار: الأصل يُسحب تلقائياً والنسخة تدخل بمعرّفها الجديد ومعها PDF بالبصمة
 t.go('/publish'); pg.fill('#f_ptitle', 'حزمة تعديل مضمّن')
 if not t.ev("SIRAJ.keys.isUnlocked()"):
     pg.click('[data-act=pkIssue]'); pg.wait_for_selector('.modal'); pg.fill('.modal [name=v]', PASS)
-    with pg.expect_download(timeout=30000) as dl: click_modal('فتح'); pg.wait_for_timeout(1500)
+    with pg.expect_download(timeout=30000) as dl: click_modal('فتح'); pg.wait_for_timeout(1800)
 else:
-    with pg.expect_download(timeout=30000) as dl: pg.click('[data-act=pkIssue]'); pg.wait_for_timeout(1500)
-dl.value.save_as(OUT + '/pack3.sirajpack'); pl3 = json.loads(json.load(open(OUT + '/pack3.sirajpack'))['payload'])
+    with pg.expect_download(timeout=30000) as dl: pg.click('[data-act=pkIssue]'); pg.wait_for_timeout(1800)
+dl.value.save_as(OUT + '/pack3.sirajpack'); env3 = json.load(open(OUT + '/pack3.sirajpack')); pl3 = json.loads(env3['payload'])
 t.check('الحزمة: نسخة الكتاب بمعرّفها الجديد وسحب الأصل تلقائياً', clone['id'] in [b['id'] for b in pl3['books']] and first in pl3['withdraw']['books'] and first not in [b['id'] for b in pl3['books']], pl3['withdraw'])
-t.check('الحزمة: لا حقل replaces ولا ready ضمن الكتاب', not ({'replaces', 'ready'} & set(next(b for b in pl3['books'] if b['id'] == clone['id']))))
+t.check('الحزمة: لا حقل replaces/ready/hasPdf ضمن الكتاب', not ({'replaces', 'ready', 'hasPdf', 'allowDownload'} & set(next(b for b in pl3['books'] if b['id'] == clone['id']))))
+sha = hashlib.sha256(PDFB).hexdigest(); ref = [x for x in pl3['pdfs'] if x['id'] == clone['id']]
+t.check('الحمولة تحمل بصمة SHA-256 للـPDF والملف في الغلاف بالبصمة نفسها', len(ref) == 1 and ref[0]['sha'] == sha and ref[0]['allow'] is True and base64.b64decode(env3['blobs'][sha]) == PDFB, ref)
+t.check('التوقيع صحيح والغلاف يحمل الملف (تحقق مستقل)', indep_verify(env3, pub['jwk']) and 'pdfs' in pl3)
 
 # ---------- 10) التنقل ورجوع أندرويد ----------
 t.go('/home'); t.check('الرئيسية تعرض آخر حزمة', 'آخر حزمة' in t.txt())

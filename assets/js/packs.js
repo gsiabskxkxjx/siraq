@@ -10,7 +10,8 @@
 (function () {
   'use strict';
   const S = window.SIRAJ; const P = S.pcrypto; const SC = S.schema; const str = SC.str;
-  const MAX_CHARS = 40 * 1048576;
+  const MAX_CHARS = 130 * 1048576; /* الحمولة صغيرة؛ الحجم من الأذان (≤10 م.ب) وملفات PDF (≤60 م.ب) بترميز base64 */
+  const PDF_MAX = 25 * 1048576, PDF_TOTAL = 60 * 1048576;
   const LIM = { books: 6000, authors: 6000, duas: 6000, entries: 30000, notices: 30, withdraw: 20000 };
   const ID_RE = /^[A-Za-z0-9_.:-]{3,64}$/;
   const STORE = { books: 'books', authors: 'authors', duas: 'duas', entries: 'entries' };
@@ -127,6 +128,27 @@
       /* السحب: المحتوى المضمّن المُسحَب يُحذف ويُسجَّل حتى لا يعود عند الإقلاع */
       const wd = pl.withdraw || {}; const newW = { books: [...new Set(strs(wd.books, LIM.withdraw))], duas: [...new Set(strs(wd.duas, LIM.withdraw))], entries: [...new Set(strs(wd.entries, LIM.withdraw))] };
       const oldW = st.withdrawn[keyId] || { books: [], duas: [], entries: [] };
+      /* ملفات PDF: بصمة الحمولة الموقّعة هي المرجع؛ الملف في غلاف الحزمة ويُقبل فقط إن طابقت بصمته وكان PDF فعلاً وحقوقه تسمح */
+      const blobs = v.env && v.env.blobs && typeof v.env.blobs === 'object' ? v.env.blobs : {}; const refs = new Map(arr(pl.pdfs).filter((r) => r && ID_RE.test(str(r.id)) && /^[0-9a-f]{64}$/.test(str(r.sha))).map((r) => [str(r.id), r]));
+      let pdfOk = 0, pdfTotal = 0;
+      for (const rec of out.books) {
+        const ref = refs.get(rec.id); let done = false;
+        if (ref) {
+          try {
+            const raw = blobs[ref.sha];
+            if (typeof raw !== 'string' || !/^[A-Za-z0-9+/=]+$/.test(raw)) throw new Error('الملف غير مرفق');
+            if (!S.schema.copyOk(rec.copyright)) throw new Error('حالة حقوق الكتاب لا تسمح بنشر ملف');
+            const bin = atob(raw); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            if (u8.length > PDF_MAX || pdfTotal + u8.length > PDF_TOTAL) throw new Error('الحجم يتجاوز الحد');
+            if (String.fromCharCode.apply(null, u8.subarray(0, 5)) !== '%PDF-') throw new Error('ليس PDF');
+            const hex = [...new Uint8Array(await crypto.subtle.digest('SHA-256', u8))].map((x) => x.toString(16).padStart(2, '0')).join('');
+            if (hex !== ref.sha) throw new Error('البصمة لا تطابق');
+            await S.files.put('pdf:' + rec.id, new Blob([u8], { type: 'application/pdf' }), { name: str(ref.name).slice(0, 120) });
+            rec.hasPdf = true; rec.allowDownload = !!ref.allow; pdfTotal += u8.length; pdfOk++; done = true;
+          } catch (e) { rejected.push('PDF كتاب «' + rec.title + '»: ' + e.message); }
+        }
+        if (!done) { rec.hasPdf = false; rec.allowDownload = false; await S.files.del('pdf:' + rec.id).catch(() => {}); }
+      }
       if (out.books.length) await S.db.putMany('books', out.books); if (out.authors.length) await S.db.putMany('authors', out.authors);
       if (out.duas.length) await S.db.putMany('duas', out.duas); if (out.entries.length) await S.db.putMany('entries', out.entries);
       for (const k of Object.keys(STORE)) for (const r of stale[k]) { if (k === 'books') await S.library.remove(r.id); else await S.db.del(STORE[k], r.id); removed++; }
@@ -153,7 +175,7 @@
           await S.db.put('audiolib', { id: 'adhan_pack', kind: 'adhan', title: str(a.name).slice(0, 80) || 'أذان', blob: new Blob([u8], { type: str(a.mime) }), size: u8.length, source: 'الناشر (حزمة موقّعة)', ts: Date.now() }); adhan = true;
         }
       } catch (e) { /* ملف أذان تالف: يُتجاهل دون إفشال الحزمة */ }
-      const written = { adhan, books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
+      const written = { adhan, pdfs: pdfOk, books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
       st.keys[keyId] = { seq: pl.seq, packId: pl.id, at: Date.now() };
       st.history.unshift({ at: Date.now(), packId: pl.id, seq: pl.seq, title: str(pl.title).slice(0, 120), key: keyId, written, removed, rejected: rejected.length, fingerprint: v.fingerprint });
       st.history = st.history.slice(0, 30);
@@ -171,7 +193,7 @@
 
   /* ---------------- الواجهة ---------------- */
   let pending = null;
-  const fmtCount = (c) => [c.books && S.n(c.books) + ' كتاب', c.authors && S.n(c.authors) + ' مؤلف', c.duas && S.n(c.duas) + ' دعاء/زيارة', c.entries && S.n(c.entries) + ' مدخل'].filter(Boolean).join(' • ') || 'لا شيء';
+  const fmtCount = (c) => [c.books && S.n(c.books) + ' كتاب', c.authors && S.n(c.authors) + ' مؤلف', c.duas && S.n(c.duas) + ' دعاء/زيارة', c.entries && S.n(c.entries) + ' مدخل', c.pdfs && S.n(c.pdfs) + ' ملف PDF'].filter(Boolean).join(' • ') || 'لا شيء';
   S.router.add('/updates', async () => {
     const keys = await T.trusted(); const st = state(); const inst = await T.installedCounts();
     return {

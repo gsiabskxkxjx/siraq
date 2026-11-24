@@ -189,12 +189,31 @@ orig2 = pg.evaluate("SIRAJ.data.sample.books.find(b=>b.id==='%s')" % wd_book)
 t.check('رفع السحب يعيد الكتاب المضمّن (من بيانات التطبيق)', (dbget('books', wd_book) or {}).get('title') == orig2['title'] and not pg.evaluate("SIRAJ.packs.isWithdrawn('books','%s')" % wd_book))
 t.check('حزم ناشر التحكم لم تتأثر بحزم B', dbget('books', M['bookId']) is not None and dbget('entries', M['entryId']) is not None)
 
+# ---- ملفات PDF داخل الحزمة: بصمة موقّعة + ملف في الغلاف ----
+PDFB = b'%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'; SHA = hashlib.sha256(PDFB).hexdigest(); B64 = base64.b64encode(PDFB).decode()
+def with_blobs(env, blobs): env = dict(env); env['blobs'] = blobs; return env
+okc, badc = 'ملك عام (انتهت مدة الحماية)', 'غير محدد'
+pl_pdf = base('packB_pdf', 170, authors=[AUTH_B], books=[book('bk_pdf_ok', copyright=okc), book('bk_pdf_tamper', copyright=okc), book('bk_pdf_rights', copyright=badc), book('bk_pdf_none', copyright=okc)],
+    pdfs=[{'id': 'bk_pdf_ok', 'sha': SHA, 'size': len(PDFB), 'name': 'a.pdf', 'allow': True}, {'id': 'bk_pdf_tamper', 'sha': hashlib.sha256(b'other').hexdigest(), 'size': 5, 'name': 'b.pdf', 'allow': True}, {'id': 'bk_pdf_rights', 'sha': SHA, 'size': len(PDFB), 'name': 'c.pdf', 'allow': True}])
+envp = sign(KB, pl_pdf); txt = install(save('b-pdf', with_blobs(envp, {SHA: B64, hashlib.sha256(b'other').hexdigest(): base64.b64encode(PDFB).decode()})))
+bk = dbget('books', 'bk_pdf_ok'); fl = pg.evaluate("SIRAJ.files.get('pdf:bk_pdf_ok').then(f=>f?f.size:0)")
+t.check('PDF صالح: يُحفظ الملف ويُوسم الكتاب hasPdf ويُسمح بالتنزيل', bk and bk['hasPdf'] is True and bk['allowDownload'] is True and fl == len(PDFB), (bk, fl))
+t.check('PDF ببصمة لا تطابق الملف: يُرفض الملف ويبقى الكتاب بلا PDF', dbget('books', 'bk_pdf_tamper') is not None and dbget('books', 'bk_pdf_tamper')['hasPdf'] is False and 'لا تطابق' in txt, txt[:300])
+t.check('PDF مع حقوق «غير محدد»: يُرفض', dbget('books', 'bk_pdf_rights')['hasPdf'] is False and 'حالة حقوق' in txt)
+t.check('كتاب بلا مرجع PDF: hasPdf خطأ', dbget('books', 'bk_pdf_none')['hasPdf'] is False)
+# استبدال الحزمة بلقطة بلا PDF يزيل الملف
+txt = install(save('b-pdf2', sign(KB, base('packB_pdf2', 171, authors=[AUTH_B], books=[book('bk_pdf_ok', copyright=okc)]))))
+t.check('لقطة جديدة بلا PDF تزيل الملف القديم', dbget('books', 'bk_pdf_ok')['hasPdf'] is False and pg.evaluate("SIRAJ.files.get('pdf:bk_pdf_ok').then(f=>!f)"))
+# غلاف بملف مُعدَّل بعد التوقيع في الحمولة (تغيير البصمة) يُبطل التوقيع
+tam = json.loads(envp['payload']); tam['pdfs'][0]['sha'] = '0' * 64; e2 = dict(envp); e2['payload'] = json.dumps(tam, ensure_ascii=False); txt = check_pack(save('b-pdf-tamper', with_blobs(e2, {SHA: B64})))
+t.check('تعديل بصمة PDF في الحمولة يُبطل التوقيع', 'لم يُقبل' in txt or 'التوقيع' in txt and 'صحيح' not in txt, txt[:200])
+
 # ---- النسخ الاحتياطي لا يحقن محتوى ----
 inj = {'app': 'SIRAJ', 'stores': {'books': [{'id': 'evil_book', 'title': 'شرير', 'status': 'published', 'section': 'fiqh'}], 'duas': [{'id': 'evil_dua', 'title': 'x', 'text': 'y'}], 'entries': [{'id': 'evil_en', 'collection': 'fiqh_terms', 'title': 'x'}], 'users': [{'id': 'u_evil', 'role': 'admin'}], 'notes': [{'id': 'n_restored', 'text': 'ملاحظة مستعادة'}]}, 'kv': {'packs.state': {'keys': {}, 'history': [], 'withdrawn': {}}, 'seed.v': 0, 'auth.session': {'uid': 'u_evil'}, 'user.restored': 1}}
 n = pg.evaluate("t=>SIRAJ.backup.import(t)", json.dumps(inj))
 t.check('الاستعادة تقبل بيانات المستخدم فقط', pg.evaluate("SIRAJ.db.get('notes','n_restored').then(x=>!!x)") and pg.evaluate("SIRAJ.kv.get('user.restored')") == 1)
 t.check('الاستعادة لا تحقن كتباً/أدعية/مداخل/مستخدمين', all(dbget(s, i) is None for s, i in [('books', 'evil_book'), ('duas', 'evil_dua'), ('entries', 'evil_en')]) and pg.evaluate("SIRAJ.db.all('users').then(a=>a.length)") == 0)
-t.check('الاستعادة لا تعبث بحالة الحزم ولا الجلسات', pg.evaluate("SIRAJ.kv.get('packs.state')")['keys'][KB['id']]['seq'] == 150 and pg.evaluate("SIRAJ.kv.get('auth.session')") is None and pg.evaluate("SIRAJ.kv.get('seed.v')") != 0)
+t.check('الاستعادة لا تعبث بحالة الحزم ولا الجلسات', pg.evaluate("SIRAJ.kv.get('packs.state')")['keys'][KB['id']]['seq'] == 171 and pg.evaluate("SIRAJ.kv.get('auth.session')") is None and pg.evaluate("SIRAJ.kv.get('seed.v')") != 0)
 bk = pg.evaluate("SIRAJ.backup.export().then(b=>b.text())"); jb = json.loads(bk)
 t.check('تصدير النسخة: لا كتب/أدعية/مداخل ولا حالة الحزم', not ({'books', 'duas', 'entries', 'authors', 'users'} & set(jb['stores'])) and 'packs.state' not in jb['kv'])
 t.check('نسخة المستخدم تحوي ملاحظته', any(x['id'] == 'n_user1' for x in jb['stores']['notes']))

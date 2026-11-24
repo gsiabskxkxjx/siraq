@@ -22,19 +22,37 @@
     rb.forEach((b) => { const e = SC.validateBook(b); if (!known.has(b.authorId)) e.push('مؤلف غير معرّف'); if (e.length) errs.push('كتاب «' + b.title + '»: ' + e[0]); });
     rd.forEach((d) => { const e = SC.validateDua(d); if (!(S.data.duas.categories || []).some((c) => c.id === d.cat)) e.push('تصنيف غير معروف'); if (e.length) errs.push('دعاء «' + d.title + '»: ' + e[0]); });
     re.forEach((x) => { const e = SC.validateEntry(x); if (e.length) errs.push('مدخل «' + x.title + '»: ' + e[0]); });
+    /* ملفات PDF: وجود الملف، الحقوق، الحجم الكلي */
+    let pdfTotal = 0;
+    for (const b of rb.filter((x) => x.hasPdf)) {
+      const f = await S.files.get('ctl.pdf.' + b.id);
+      if (!f) { errs.push('كتاب «' + b.title + '»: ملف PDF مفقود — أعد إرفاقه'); continue; }
+      if (!SC.copyOk(b.copyright)) errs.push('كتاب «' + b.title + '»: إرفاق PDF يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»');
+      pdfTotal += f.size;
+    }
+    if (pdfTotal > 60 * 1048576) errs.push('مجموع ملفات PDF في الحزمة ' + Math.round(pdfTotal / 1048576) + ' م.ب ويتجاوز الحد (60 م.ب). اجعل بعض الكتب مسودات أو صغّر الملفات.');
     const used = new Set(rb.map((b) => b.authorId)); /* المؤلفون الذين تحتاجهم كتب الحزمة فقط */
     const repl = (arr, src) => { const ok = new Set(src.map((x) => x.id)); return [...new Set(arr.filter((x) => x.replaces && ok.has(x.replaces)).map((x) => x.replaces))]; };
-    return { replaced: { books: repl(rb, S.data.sample.books || []), duas: repl(rd, S.data.duas.items || []) }, books: rb, authors: authors.filter((a) => used.has(a.id)), duas: rd, entries: re, drafts: { books: books.length - rb.length, duas: duas.length - rd.length, entries: entries.length - re.length }, errs };
+    return { pdfTotal, replaced: { books: repl(rb, S.data.sample.books || []), duas: repl(rd, S.data.duas.items || []) }, books: rb, authors: authors.filter((a) => used.has(a.id)), duas: rd, entries: re, drafts: { books: books.length - rb.length, duas: duas.length - rd.length, entries: entries.length - re.length }, errs };
   }
   const b64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+  const sha256hex = async (blob) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))].map((x) => x.toString(16).padStart(2, '0')).join('');
   async function buildPayload(g, meta) {
+    /* الـPDF خارج الحمولة الموقّعة: الحمولة تحمل بصمة SHA-256 لكل ملف، والملفات في blobs بالغلاف؛ فيبقى التوقيع صغيراً ولا يُقبل ملف تغيّرت بصمته */
+    const pdfs = [], blobs = {};
+    for (const b of g.books.filter((x) => x.hasPdf)) {
+      const f = await S.files.get('ctl.pdf.' + b.id); if (!f) continue; const sha = await sha256hex(f.blob);
+      if (!blobs[sha]) blobs[sha] = await b64(f.blob); pdfs.push({ id: b.id, sha, size: f.size, name: f.name || 'book.pdf', allow: !!b.allowDownload && SC.copyOk(b.copyright) });
+    }
     const ad = await S.files.get('ctl.adhan'); const w = S.kv.get('ctl.withdraw', { books: [], duas: [], entries: [] });
-    return {
+    const pl = {
       v: 1, app: 'SIRAJ', id: 'pack_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), seq: nextSeq(), created: new Date().toISOString(), title: str(meta.title), notes: str(meta.notes),
       authors: g.authors.map((a) => ({ id: a.id, name: a.name, death: a.death || null, note: a.note || '' })), books: g.books.map(stripBook), duas: g.duas.map(stripDua), entries: g.entries.map(stripEntry),
       withdraw: { books: [...new Set((w.books || []).concat(g.replaced.books))], duas: [...new Set((w.duas || []).concat(g.replaced.duas))], entries: w.entries || [] }, notices: S.kv.get('ctl.notices', []).map((n) => ({ id: n.id, title: n.title, body: n.body })),
-      adhan: ad ? { name: ad.name || 'أذان', mime: ad.blob.type, data: await b64(ad.blob) } : undefined
+      adhan: ad ? { name: ad.name || 'أذان', mime: ad.blob.type, data: await b64(ad.blob) } : undefined, pdfs
     };
+    Object.defineProperty(pl, '__blobs', { value: blobs, enumerable: false });
+    return pl;
   }
   S.ctl.gather = gather; S.ctl.buildPayload = buildPayload;
 
@@ -46,7 +64,7 @@
       html: S.h`<div class="stack">
         ${!S.keys.exists() ? S.ui.notice('err', 'لا يوجد مفتاح نشر', S.h`<span>أنشئ المفتاح أولاً من تبويب <a href="#/key">المفتاح</a>.</span>`) : S.keys.isUnlocked() ? '' : S.ui.notice('warn', 'المفتاح مقفل', 'سيُطلب منك إدخال عبارة المرور عند الإصدار.')}
         <div class="card"><div class="card-t">${S.icon('list')} ما سيدخل الحزمة</div>
-          <div class="kv"><span>كتب جاهزة</span><b>${S.n(g.books.length)}</b></div><div class="kv"><span>أدعية وزيارات جاهزة</span><b>${S.n(g.duas.length)}</b></div><div class="kv"><span>مداخل موسوعة جاهزة</span><b>${S.n(g.entries.length)}</b></div>
+          <div class="kv"><span>كتب جاهزة</span><b>${S.n(g.books.length)}</b></div>${g.pdfTotal ? S.h`<div class="kv"><span>ملفات PDF مرفقة</span><b>${S.fmt.bytes(g.pdfTotal)}</b></div>` : ''}<div class="kv"><span>أدعية وزيارات جاهزة</span><b>${S.n(g.duas.length)}</b></div><div class="kv"><span>مداخل موسوعة جاهزة</span><b>${S.n(g.entries.length)}</b></div>
           <div class="kv"><span>سحب من المضمّن</span><b>${S.n(new Set(w.books.concat(g.replaced.books)).size + new Set(w.duas.concat(g.replaced.duas)).size + w.entries.length)}</b></div>${g.replaced.books.length + g.replaced.duas.length ? S.h`<p class="tiny muted nm">منها ${S.n(g.replaced.books.length)} كتاب و${S.n(g.replaced.duas.length)} دعاء حلّ محلها تعديلك.</p>` : ''}<div class="kv"><span>إعلانات</span><b>${S.n(S.kv.get('ctl.notices', []).length)}</b></div>
           ${dr.books + dr.duas + dr.entries ? S.h`<p class="small muted nm mt">مسودات خارج الحزمة: ${S.n(dr.books)} كتاب، ${S.n(dr.duas)} دعاء، ${S.n(dr.entries)} مدخل.</p>` : ''}</div>
         ${g.errs.length ? S.ui.notice('err', 'لا يمكن الإصدار — أصلح هذه العناصر أو أعدها مسودة', S.h`<ul class="err-list">${g.errs.slice(0, 12).map((x) => S.h`<li>${x}</li>`)}</ul>`) : ''}
@@ -74,7 +92,7 @@
     let env, blob, fp, payload;
     try {
       payload = await buildPayload(g, meta); const text = JSON.stringify(payload);
-      env = await S.keys.sign(text);
+      env = await S.keys.sign(text); if (payload.__blobs && Object.keys(payload.__blobs).length) env.blobs = payload.__blobs;
       if (!(await P.verify(env, S.keys.pub()))) throw new Error('فشل التحقق الذاتي من التوقيع'); /* لا نسلّم ملفاً لا يتحقق */
       fp = (await P.sha(env.payload)).slice(0, 12); blob = new Blob([JSON.stringify(env)], { type: 'application/json' });
     } catch (e) { return S.toast('تعذّر التوقيع: ' + e.message, 'err'); }
