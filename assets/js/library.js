@@ -239,7 +239,7 @@
       html: S.h`<div class="stack">
         <div class="detail-head">${cover(b)}<div class="grow"><div class="h2">${b.title}</div><a href="#/library/author/${b.authorId}" class="muted">${b.author}</a><div class="row wrap mt-s">${S.ui.badge(sec.title || '', 'gold')}${b.subcat ? S.ui.badge(b.subcat) : ''}${statusBadge(b)}</div>${fav ? S.h`<div class="small mt-s ok">${S.icon('heart', 'fill')} في المفضلة</div>` : ''}</div></div>
         <div class="grid2">
-          ${b.hasPdf ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة</a>` : S.h`<button class="btn" disabled>${S.icon('file')} لا يوجد PDF</button>`}
+          ${b.hasPdf ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة</a>` : b.digitalUrl ? S.h`<a class="btn primary" target="_blank" rel="noopener noreferrer" href="${S.url(b.digitalUrl)}">${S.icon('book-open')} فتح الكتاب (رابط خارجي)</a>` : S.h`<button class="btn" disabled>${S.icon('file')} لا يوجد PDF</button>`}
           ${b.hasPdf && b.allowDownload ? S.h`<button class="btn" data-act="bookDownload" data-id="${b.id}">${S.icon('download')} تنزيل</button>` : S.h`<button class="btn" disabled title="التنزيل مسموح فقط عند ثبوت الترخيص">${S.icon('lock')} التنزيل غير مسموح</button>`}
         </div>
         ${!b.hasPdf ? S.ui.tip('info', 'لا يوجد ملف محلي لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية فقط؛ استخدم روابط المصدر أدناه للوصول إلى النسخ المتاحة قانونياً.') : ''}

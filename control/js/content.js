@@ -106,6 +106,7 @@
           <p class="small muted nm">${pdf ? 'المرفق الحالي: ' + esc(pdf.name || 'book.pdf') + ' — ' + S.fmt.bytes(pdf.size) : 'لا يوجد ملف مرفق.'}</p>
           ${S.f.file('pdfFile', 'اختر ملف PDF (حتى 25 م.ب)', 'application/pdf,.pdf')}
           ${S.f.check('allowDownload', 'السماح للمستخدم بتنزيل الملف (وإلا يقرأه داخل سِراج فقط)', b.allowDownload)}${pdf ? S.f.check('pdfDel', 'إزالة الملف المرفق', false) : ''}
+          <p class="tiny muted nm">الكتب الأكبر من 25 م.ب (مثل 300 م.ب) لا تُرفق هنا: ارفعها على استضافة (مثل Archive.org للكتب العامة أو Google Drive) وضع الرابط في حقل «رابط نسخة رقمية قانونية» أعلاه، فيظهر للمستخدم زر «فتح الكتاب (رابط خارجي)». أو صغّر الملف بضاغط PDF.</p>
           <p class="tiny muted nm">لا يُرفق PDF إلا إذا كانت حالة حقوق النشر أعلاه «ملك عام» أو «مرخّص» أو «بإذن خطي». يصل المستخدم داخل الحزمة الموقّعة عند وسم الكتاب «جاهز للنشر».</p></div>
         <div class="card">${S.f.check('ready', 'جاهز للنشر (يدخل الحزمة القادمة)', b.ready)}<p class="tiny muted nm">يُفحص الكتاب عند الحفظ؛ إن لم يجتز الفحص يُحفظ مسودة.</p></div>
         <button class="btn primary block" data-act="bkSave">${S.icon('check')} حفظ</button>
@@ -129,7 +130,7 @@
     if (d.pdfDel && old && old.hasPdf) { await S.files.del('ctl.pdf.' + rec.id); rec.hasPdf = false; }
     if (pf) {
       const head = await pf.slice(0, 5).text();
-      if (head !== '%PDF-') return S.toast('الملف ليس PDF صالحاً', 'err'); if (pf.size > 25 * 1048576) return S.toast('الحد الأقصى لملف PDF هو 25 ميغابايت', 'err');
+      if (head !== '%PDF-') return S.toast('الملف ليس PDF صالحاً', 'err'); if (pf.size > 25 * 1048576) return S.toast('الملف أكبر من 25 ميغابايت: ضعه على استضافة وأدخل رابطه في «رابط نسخة رقمية قانونية»', 'err');
       await S.files.put('ctl.pdf.' + rec.id, pf, { name: pf.name }); rec.hasPdf = true;
     }
     if (rec.hasPdf && !SC.copyOk(rec.copyright)) { errs.push('إرفاق PDF يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»'); if (rec.ready) rec.ready = false; showErrs('#bk-errs', 'ملاحظات للإكمال قبل النشر:', errs); }
