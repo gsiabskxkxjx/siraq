@@ -144,7 +144,16 @@
         if (!n || !str(n.title)) continue; const nid = 'pk_' + keyId + '_' + str(n.id || str(n.title)).slice(0, 40);
         if (!(await S.db.get('notifications', nid))) { await S.db.put('notifications', { id: nid, ts: Date.now(), read: false, kind: 'info', title: str(n.title).slice(0, 120), body: str(n.body).slice(0, 600) }); notices++; }
       }
-      const written = { books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
+      /* صوت الأذان من الناشر (اختياري، ≤ 3 م.ب): يحلّ محل أي أذان سابق */
+      let adhan = false;
+      try {
+        const a = pl.adhan; if (a && typeof a.data === 'string' && /^audio\//.test(str(a.mime)) && a.data.length <= 4200000 && /^[A-Za-z0-9+/=]+$/.test(a.data)) {
+          const bin = atob(a.data); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          for (const o of (await S.db.all('audiolib')).filter((x) => x.kind === 'adhan')) await S.db.del('audiolib', o.id);
+          await S.db.put('audiolib', { id: 'adhan_pack', kind: 'adhan', title: str(a.name).slice(0, 80) || 'أذان', blob: new Blob([u8], { type: str(a.mime) }), size: u8.length, source: 'الناشر (حزمة موقّعة)', ts: Date.now() }); adhan = true;
+        }
+      } catch (e) { /* ملف أذان تالف: يُتجاهل دون إفشال الحزمة */ }
+      const written = { adhan, books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
       st.keys[keyId] = { seq: pl.seq, packId: pl.id, at: Date.now() };
       st.history.unshift({ at: Date.now(), packId: pl.id, seq: pl.seq, title: str(pl.title).slice(0, 120), key: keyId, written, removed, rejected: rejected.length, fingerprint: v.fingerprint });
       st.history = st.history.slice(0, 30);

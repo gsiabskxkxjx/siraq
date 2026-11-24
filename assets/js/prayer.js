@@ -216,15 +216,14 @@
       title: 'إعدادات الصلاة', nav: 'more', back: '/prayer',
       html: S.h`<div class="stack"><div class="card" id="ps">
         ${S.f.select('calcMethod', 'طريقة الحساب', Object.keys(METHODS).map((k) => ({ v: k, t: METHODS[k].name })), st.calcMethod, { chg: 'psChange' })}
-        ${S.f.select('madhab', 'المذهب (للعرض والإعداد الافتراضي)', [{ v: 'jafari', t: 'الإمامي الجعفري' }, { v: 'other', t: 'أخرى' }], st.madhab, { chg: 'psChange' })}
+        ${S.f.select('madhab', 'المذهب', [{ v: 'jafari', t: 'اثنا عشري (جعفري)' }, { v: 'other', t: 'مذهب آخر' }], st.madhab, { chg: 'psChange' })}
         ${S.f.select('asr', 'وقت العصر', [{ v: 'Standard', t: 'ظل المثل (الجمهور والجعفري)' }, { v: 'Hanafi', t: 'ظل المثلين (الحنفي)' }], st.asr, { chg: 'psChange' })}
         <div class="field"><label>ضبط الدقائق لكل وقت (احتياط)</label><div class="grid3">${['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'].map((k) => S.h`<div class="field nm"><label class="tiny">${({ fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' })[k]}</label><input class="input ltr" type="number" step="1" min="-30" max="30" value="${st.tune[k] || 0}" data-chg="psTune" data-k="${k}"></div>`)}</div><span class="hint">تُضاف الدقائق إلى الوقت المحسوب (مثلاً +3 للمغرب احتياطاً عند من يرى ذلك).</span></div>
         <div class="setting"><div class="sd">التنبيه عند دخول الوقت<small>${S.isNative ? 'يصل كإشعار نظام عند كل صلاة حتى والتطبيق مغلق' : 'يعمل أثناء فتح التطبيق فقط (قيد من المتصفح)؛ ثبّت تطبيق أندرويد ليصلك والتطبيق مغلق'}</small></div><label class="switch"><input type="checkbox" ${st.adhanOn ? S.raw('checked') : ''} data-chg="psAdhan"><i></i></label></div>
         <div class="field"><label>التنبيه المسبق (بالدقائق، 0 للإيقاف)</label><input class="input ltr" type="number" min="0" max="60" value="${st.preMin}" data-chg="psPre"></div>
-        ${S.isNative ? S.h`<div id="nnBox" class="card tint"><div class="card-t">${S.icon('bell')} حالة إشعارات النظام</div><div id="nnStatus" class="small muted">جارٍ الفحص…</div><div class="grid2 mt-s"><button class="btn primary" data-act="nnEnable">${S.icon('bell')} تفعيل الإشعارات</button><button class="btn" data-act="nnTest">${S.icon('volume')} جرّب الإشعار (10 ث)</button></div><button class="btn block mt-s" data-act="nnExact" id="nnExact" hidden>${S.icon('clock')} فتح إعداد «المنبّهات والتذكيرات»</button><p class="tiny muted nm mt-s">للوصول في الوقت بالضبط على أندرويد 12 فما فوق يلزم السماح بـ«المنبّهات والتذكيرات». وإن أخّرت بعض الهواتف (شاومي، هواوي، سامسونغ…) الإشعارات فاستثنِ سِراج من «توفير البطارية/تحسين البطارية» في إعدادات الهاتف.</p></div>` : ''}
-        <div class="stack-s">${S.isNative ? '' : S.h`<button class="btn block" data-act="notifPerm">${S.icon('bell')} السماح بإشعارات النظام</button>`}<button class="btn block" data-act="testAdhan">${S.icon('volume')} تجربة التنبيه داخل التطبيق</button></div>
-        ${S.f.file('adhanFile', 'ملف صوتي للأذان (اختياري، من جهازك)', 'audio/*', S.isNative ? 'لا يتضمن سِراج تسجيل أذان. تسجيل مرخّص لديك يُحفظ على جهازك ويُشغَّل أثناء فتح التطبيق فقط؛ أما صوت إشعار النظام فيُحدَّد عند بناء التطبيق.' : 'لا يتضمن سِراج تسجيل أذان. يمكنك رفع تسجيل مرخّص لديك؛ يُحفظ في متصفحك فقط.')}
-        <button class="btn block" data-act="saveAdhan">${S.icon('upload')} حفظ ملف الأذان</button>
+        ${S.isNative ? S.h`<div id="nnBox" class="card tint"><div class="card-t">${S.icon('bell')} حالة إشعارات النظام</div><div id="nnStatus" class="small muted">جارٍ الفحص…</div><button class="btn primary block mt-s" data-act="nnEnable">${S.icon('bell')} تفعيل الإشعارات</button><button class="btn block mt-s" data-act="nnExact" id="nnExact" hidden>${S.icon('clock')} فتح إعداد «المنبّهات والتذكيرات»</button><p class="tiny muted nm mt-s">للوصول في الوقت بالضبط على أندرويد 12 فما فوق يلزم السماح بـ«المنبّهات والتذكيرات». وإن أخّرت بعض الهواتف (شاومي، هواوي، سامسونغ…) الإشعارات فاستثنِ سِراج من «توفير البطارية/تحسين البطارية» في إعدادات الهاتف.</p></div>` : ''}
+        ${S.isNative ? '' : S.h`<div class="stack-s"><button class="btn block" data-act="notifPerm">${S.icon('bell')} السماح بإشعارات النظام</button></div>`}
+        <p class="tiny muted nm">صوت الأذان يحدّده الناشر ويصلك ضمن تحديثات المحتوى الموقّعة.</p>
       </div></div>`,
       mount: () => { nnRender(); }
     };
@@ -252,16 +251,7 @@
   S.act('nnQuick', async () => { S.set('adhanOn', true); const r = await S.nativeNotify.enable(); S.toast(r.perm === 'granted' ? (r.needExact ? 'فُعّل — اسمح بـ«المنبّهات والتذكيرات» من إعدادات الصلاة ليصل بالضبط' : 'فُعّل: سيصلك الأذان كإشعار نظام') : 'لم يُسمح بالإشعارات؛ يمكنك السماح بها من إعدادات الهاتف', r.perm === 'granted' ? 'ok' : 'err'); S.router.refresh(); });
   S.act('nnEnable', async () => { const r = await S.nativeNotify.enable(); S.toast(r.perm === 'granted' ? 'تم السماح بالإشعارات' + (S.settings.adhanOn ? '' : ' — فعّل مفتاح التنبيه ليُجدول الأذان') : 'لم يُسمح بالإشعارات', r.perm === 'granted' ? 'ok' : 'err'); nnRender(); });
   S.act('nnExact', async () => { await S.nativeNotify.openExactSettings(); setTimeout(() => { S.nativeNotify.sync(true).then(nnRender); }, 600); });
-  S.act('nnTest', async () => { const r = await S.nativeNotify.test(10); S.toast(r.ok ? 'أُرسل بعد 10 ثوانٍ — أخرج من التطبيق وانتظره' : (r.reason === 'denied' || r.reason === 'prompt' ? 'اسمح بالإشعارات أولاً' : 'تعذّر: ' + (r.error || r.reason)), r.ok ? 'ok' : 'err'); });
   S.act('notifPerm', async () => { if (S.nativeNotify && S.nativeNotify.available()) { const r = await S.nativeNotify.enable(); S.toast(r.perm === 'granted' ? 'تم السماح بالإشعارات' : 'لم يُسمح بالإشعارات', r.perm === 'granted' ? 'ok' : 'err'); return S.router.refresh(); } if (!window.Notification) return S.toast('المتصفح لا يدعم الإشعارات', 'err'); const r = await Notification.requestPermission(); S.toast(r === 'granted' ? 'تم السماح بالإشعارات' : 'لم يُسمح بالإشعارات', r === 'granted' ? 'ok' : 'err'); });
-  S.act('testAdhan', () => { const was = S.settings.adhanOn; S.settings.adhanOn = true; P.alert('تجربة التنبيه', 'هذا اختبار فقط', false).finally(() => { S.settings.adhanOn = was; }); });
-  S.act('saveAdhan', async (el) => {
-    const f = S.$('[name=adhanFile]', el.closest('.card')).files[0]; if (!f) return S.toast('اختر ملفاً صوتياً', 'err');
-    if (!/^audio\//.test(f.type)) return S.toast('الملف ليس صوتياً', 'err'); if (f.size > 8 * 1048576) return S.toast('الحد الأقصى 8 ميغابايت', 'err');
-    const old = (await S.db.all('audiolib')).filter((a) => a.kind === 'adhan'); for (const o of old) await S.db.del('audiolib', o.id);
-    await S.db.put('audiolib', { id: S.uid('au'), kind: 'adhan', title: f.name, blob: f, size: f.size, source: 'رفع المستخدم', license: 'مسؤولية المستخدم', ts: Date.now() });
-    S.toast('تم حفظ ملف الأذان', 'ok');
-  });
 
   /* ---------- القبلة ---------- */
   S.router.add('/qibla', () => {

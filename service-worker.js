@@ -8,7 +8,7 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = '76c1e8ad20';
+const VERSION = 'b96530b956';
 const PRECACHE = [
   './',
   './assets/css/makhtuta.css',
