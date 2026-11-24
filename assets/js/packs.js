@@ -161,6 +161,7 @@
       await S.audit('pack.apply', pl.id, 'seq ' + pl.seq + ' ' + JSON.stringify(written) + ' removed ' + removed + ' rejected ' + rejected.length);
       if (S.library) await S.library.init();
       S.updateBell && S.updateBell();
+      if (adhan && S.nativeNotify) S.nativeNotify.later(300); /* ملف الأذان الجديد يُنقل إلى منبّه النظام */
       return { written, removed, restored, rejected, notices };
     },
     async installedCounts() {

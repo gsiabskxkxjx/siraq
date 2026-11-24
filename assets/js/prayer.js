@@ -235,7 +235,7 @@
     S.mount(S.$('#nnStatus'), S.h`<div class="kv"><span>إذن الإشعارات</span><b class="${s.perm === 'granted' ? 'ok' : 'bad'}">${NN_PERM[s.perm] || NN_PERM.unknown}</b></div>
       <div class="kv"><span>الدقة في الوقت</span><b class="${ex ? 'bad' : 'ok'}">${s.exact === 'granted' ? 'دقيقة ✓' : ex ? 'تقريبية — فعّل «المنبّهات والتذكيرات»' : 'غير معروفة'}</b></div>
       <div class="kv"><span>إشعارات مجدولة الآن</span><b>${S.n(s.scheduled)}</b></div>
-      <div class="kv"><span>صوت الأذان في الإشعار</span><b>${s.sound ? 'ملف مرفق مع التطبيق' : 'صوت إشعارات الهاتف الافتراضي'}</b></div>
+      <div class="kv"><span>صوت الأذان</span><b class="${s.alarm && s.alarmAudio ? 'ok' : ''}">${s.alarm ? (s.alarmAudio ? 'أذان الناشر — يُسمع حتى في الصامت وعدم الإزعاج' : 'لم يصل ملف الأذان من الناشر بعد (صوت الهاتف الافتراضي)') : s.sound ? 'ملف مرفق مع التطبيق' : 'صوت إشعارات الهاتف الافتراضي'}</b></div>
       ${S.settings.adhanOn ? '' : S.h`<div class="tiny bad">مفتاح «التنبيه عند دخول الوقت» أعلاه مطفأ، فلن يُجدول الأذان.</div>`}
       ${s.error ? S.h`<div class="tiny bad">${s.error}</div>` : ''}`);
     const b = S.$('#nnExact'); if (b) b.hidden = !(s.perm === 'granted' && ex);

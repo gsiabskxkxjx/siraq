@@ -27,7 +27,8 @@ _sb = os.environ.get("SIRAJ_SPLASH_BG", "#082820").lstrip("#")
 SPLASH_BG = tuple(int(_sb[i:i + 2], 16) for i in (0, 2, 4))  # الافتراضي #082820
 _DEF_PERMS = ("android.permission.ACCESS_COARSE_LOCATION,android.permission.ACCESS_FINE_LOCATION,android.permission.VIBRATE,"
               "android.permission.POST_NOTIFICATIONS,android.permission.SCHEDULE_EXACT_ALARM,android.permission.USE_EXACT_ALARM,"
-              "android.permission.RECEIVE_BOOT_COMPLETED,android.permission.WAKE_LOCK")
+              "android.permission.RECEIVE_BOOT_COMPLETED,android.permission.WAKE_LOCK,"
+              "android.permission.FOREGROUND_SERVICE,android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK")
 PERMS = [p for p in os.environ.get("SIRAJ_PERMS", _DEF_PERMS).split(",") if p.strip()]
 
 
@@ -163,13 +164,52 @@ def adhan_sound():
     print("صوت الأذان: لا ملف في android-resources — يُستعمل صوت إشعارات الهاتف")
 
 
+def adhan_alarm():
+    """منبّه الأذان الأصلي (SIRAJ_ADHAN=1): يشغّل الأذان عبر قناة صوت المنبّه فيُسمع والهاتف صامت/عدم إزعاج.
+    المصدر: android-resources/java/*.java → يُنسخ إلى حزمة التطبيق ويُسجَّل المستقبِلان والخدمة في المانيفست."""
+    if os.environ.get("SIRAJ_ADHAN") != "1":
+        return
+    import shutil
+    src = os.path.join(ROOT, "android-resources", "java")
+    main = glob.glob(os.path.join(AND, "app", "src", "main", "java", "**", "MainActivity.java"), recursive=True)
+    if not main:
+        warn("MainActivity.java غير موجود — لم يُضف منبّه الأذان")
+        return
+    dest = os.path.dirname(main[0])
+    pkg = re.search(r"^package\s+([\w.]+);", open(main[0], encoding="utf-8").read(), re.M)
+    if not pkg or pkg.group(1) != "com.siraj.app":
+        warn("حزمة التطبيق غير متوقعة (%s) — لم يُضف منبّه الأذان" % (pkg.group(1) if pkg else "؟"))
+        return
+    for f in sorted(glob.glob(os.path.join(src, "*.java"))):
+        shutil.copyfile(f, os.path.join(dest, os.path.basename(f)))
+    s = open(MANIFEST, encoding="utf-8").read()
+    if "AdhanService" not in s:
+        block = (
+            '        <receiver android:name=".AdhanReceiver" android:exported="false" />\n'
+            '        <receiver android:name=".AdhanBootReceiver" android:exported="true">\n'
+            '            <intent-filter>\n'
+            '                <action android:name="android.intent.action.BOOT_COMPLETED" />\n'
+            '                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />\n'
+            '            </intent-filter>\n'
+            '        </receiver>\n'
+            '        <service android:name=".AdhanService" android:exported="false" android:foregroundServiceType="mediaPlayback" />\n')
+        if "</application>" not in s:
+            warn("المانيفست بلا </application> — لم يُسجَّل منبّه الأذان")
+            return
+        s = s.replace("</application>", block + "    </application>", 1)
+        open(MANIFEST, "w", encoding="utf-8").write(s)
+    print("منبّه الأذان: نُسخت %d ملفات وسُجّلت المكونات" % len(glob.glob(os.path.join(src, "*.java"))))
+
+
 def splash():
     try:
         from PIL import Image
     except Exception as e:  # noqa: BLE001
         warn("Pillow غير متوفر، تُركت شاشة البداية الافتراضية: %s" % e)
         return
-    logo_p = os.path.join(IMAGES, "logo-mark.png")
+    logo_p = os.path.join(IMAGES, "logo-splash.png")
+    if not os.path.exists(logo_p):
+        logo_p = os.path.join(IMAGES, "logo-mark.png")
     if not os.path.exists(logo_p):
         warn("شعار سِراج غير موجود لشاشة البداية")
         return
@@ -193,7 +233,7 @@ if __name__ == "__main__":
     if not os.path.isdir(AND):
         print("لا يوجد مجلد android — شغّل npx cap add android أولاً")
         sys.exit(1)
-    for fn in (patch_manifest, icons, status_icon, adhan_sound, splash):
+    for fn in (patch_manifest, icons, status_icon, adhan_sound, adhan_alarm, splash):
         try:
             fn()
         except Exception as e:  # noqa: BLE001

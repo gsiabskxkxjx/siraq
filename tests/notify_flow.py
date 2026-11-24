@@ -141,11 +141,42 @@ t3.go('/prayer/settings', 700); t3.check('الإعدادات تقول إن ال�
 t3.check('لا أخطاء JS غير متوقعة (ملف أذان)', not [e for e in t3.errs if 'service-worker' not in e], t3.errs[:3])
 t3.b.close(); t3.p.stop()
 
+# ---------- 3ب) منبّه الأذان الأصلي (SirajAdhan) بمحاكاة ----------
+ADH = """
+window.__ad={calls:[],audio:[],items:[],has:false};
+window.Capacitor.Plugins.SirajAdhan={
+ appendAdhan:async(o)=>{__ad.calls.push('append:'+(o.first?'first':'next'));__ad.audio.push(o.data.length);__ad.has=true},
+ clearAdhan:async()=>{__ad.calls.push('clear');__ad.has=false;__ad.audio=[]},
+ schedule:async(o)=>{__ad.calls.push('schedule');__ad.items=JSON.parse(JSON.stringify(o.items));return {count:o.items.length}},
+ cancelAll:async()=>{__ad.calls.push('cancelAll');__ad.items=[]},
+ status:async()=>({hasAudio:__ad.has,exact:true,scheduled:__ad.items.length})};
+"""
+t5 = T(init_js=mock(perm='granted', exact='granted') + ADH); pg5 = t5.pg; pg5.wait_for_timeout(1200)
+t5.ev("SIRAJ.set('adhanOn', true)"); t5.ev("SIRAJ.nativeNotify.sync(true)"); pg5.wait_for_timeout(1500)
+ad = t5.ev("window.__ad.items"); ln = [n for n in t5.ev("window.__ln.pending")]
+t5.check('منبّه الأذان: أوقات الصلاة تذهب إلى المنبّه الأصلي لا إلى الإشعارات', len(ad) >= 40 and not [n for n in ln if n['title'].startswith('حان وقت صلاة')], (len(ad), len(ln)))
+t5.check('الإشعارات تحتفظ بالتنبيه المسبق', any(n['title'].startswith('اقترب') for n in ln))
+t5.check('عناصر المنبّه: id صحيح و at مستقبلي بالمللي ثانية وعنوان ونص', all(isinstance(x['id'], int) and 0 < x['id'] < 2**31 and x['at'] > __import__('time').time() * 1000 and x['title'].startswith('حان وقت صلاة') and x['body'] == 'النجف' for x in ad))
+t5.check('بلا ملف أذان من الناشر: لا نقل ملف', 'append:first' not in t5.ev("window.__ad.calls"))
+t5.go('/prayer/settings', 900); t5.check('الإعدادات: «لم يصل ملف الأذان من الناشر» عند غياب الملف', 'لم يصل ملف الأذان' in t5.txt(), t5.txt()[-300:])
+# وصول ملف أذان من حزمة: ينتقل على دفعات إلى المنبّه
+t5.ev("""(async()=>{const u=new Uint8Array(900*1024).map((_,i)=>i%251);await SIRAJ.db.put('audiolib',{id:'adhan_pack',kind:'adhan',title:'أذان',blob:new Blob([u],{type:'audio/mpeg'}),size:u.length,source:'الناشر',ts:Date.now()});})()""")
+t5.ev("SIRAJ.nativeNotify.sync(true)"); pg5.wait_for_timeout(1800)
+calls = t5.ev("window.__ad.calls")
+t5.check('ملف الأذان يُنقل على دفعات (أولها first)', calls.count('append:first') == 1 and calls.count('append:next') >= 2, calls)
+t5.check('مجموع base64 المنقول يطابق حجم الملف', abs(sum(t5.ev("window.__ad.audio")) - ((900 * 1024 + 2) // 3) * 4) <= 4, t5.ev("window.__ad.audio"))
+n_app = calls.count('append:first') + calls.count('append:next'); t5.ev("SIRAJ.nativeNotify.sync(true)"); pg5.wait_for_timeout(1200)
+c2 = t5.ev("window.__ad.calls"); t5.check('إعادة المزامنة بلا تغيير لا تنقل الملف ثانية', c2.count('append:first') + c2.count('append:next') == n_app)
+t5.go('/home', 300); t5.go('/prayer/settings', 900); t5.check('الإعدادات: «أذان الناشر — يُسمع حتى في الصامت»', 'يُسمع حتى في الصامت' in t5.txt(), t5.txt()[-300:])
+t5.ev("SIRAJ.set('adhanOn', false)"); t5.ev("SIRAJ.nativeNotify.sync(true)"); pg5.wait_for_timeout(1200)
+t5.check('إطفاء الأذان يُفرغ جدول المنبّه', t5.ev("window.__ad.items.length") == 0)
+t5.b.close(); t5.p.stop()
+
 # ---------- 4) متصفح عادي (PWA): لا مسار أصلي ----------
 t4 = T(); t4.pg.wait_for_timeout(800)
 t4.check('المتصفح: الإشعارات الأصلية غير متوفرة ولا تُنفَّذ', t4.ev("SIRAJ.nativeNotify.available()") is False and t4.ev("SIRAJ.nativeNotify.active()") is False and t4.ev("SIRAJ.nativeNotify.sync()").get('reason') == 'unavailable')
 t4.go('/prayer/settings', 700)
 t4.check('المتصفح: النص الصادق «يعمل أثناء فتح التطبيق فقط» ولا لوحة حالة النظام', 'أثناء فتح التطبيق' in t4.txt() and t4.ev("!document.getElementById('nnBox')") is True)
 t4.go('/prayer', 700); t4.check('المتصفح: لا بطاقة تفعيل الأذان الأصلي', 'فعّل تنبيه الأذان' not in t4.txt())
-t4.fails += t.fails + t2.fails + t3.fails
+t4.fails += t.fails + t2.fails + t3.fails + t5.fails
 t4.done()

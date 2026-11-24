@@ -23,6 +23,20 @@
   let exact = 'unknown'; /* granted | denied | unknown */
   let busy = false, again = false, timer = 0, lastCount = 0, lastError = '';
 
+  /* منبّه الأذان الأصلي (جافا، يُضاف وقت البناء): يشغّل الأذان على قناة صوت المنبّه فيُسمع في الصامت وعدم الإزعاج */
+  const adh = () => { try { const P = window.Capacitor && window.Capacitor.Plugins; return (P && P.SirajAdhan) || null; } catch (e) { return null; } };
+  let alarm = { on: false, hasAudio: false, exact: null, count: 0 };
+  const b64Slice = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+  /* ينقل ملف الأذان (القادم من حزمة الناشر) إلى التخزين الأصلي على دفعات 384 ك.ب (مضاعف 3 ليبقى base64 سليماً) */
+  async function pushAudio(A) {
+    const rec = await S.db.get('audiolib', 'adhan_pack').catch(() => null);
+    const want = rec && rec.blob ? 'p:' + (rec.ts || 0) + ':' + rec.blob.size : '';
+    if (want === (S.kv.get('nn.audioSig') || '')) return;
+    if (!want) { await A.clearAdhan(); await S.kv.set('nn.audioSig', ''); return; }
+    const CH_SZ = 384 * 1024; let first = true;
+    for (let off = 0; off < rec.blob.size; off += CH_SZ) { await A.appendAdhan({ data: await b64Slice(rec.blob.slice(off, off + CH_SZ)), first }); first = false; }
+    await S.kv.set('nn.audioSig', want);
+  }
   const available = () => !!(S.isNative && plug());
 
   async function loadFlags() {
@@ -104,13 +118,25 @@
     busy = true; lastError = '';
     try {
       const LN = plug(); await refreshPerm();
-      if (perm !== 'granted') { await cancelAllPending(LN); lastCount = 0; await S.kv.set('nn.sig', ''); return { ok: false, reason: perm }; }
-      const items = plan(); const sig = hashStr(JSON.stringify(items.map((n) => [n.id, n.at ? n.at.getTime() : n.on, n.title, n.body, n.ch]))) + ':' + items.length + ':' + (flags.adhanSound || '-');
+      if (perm !== 'granted') { await cancelAllPending(LN); try { const A0 = adh(); if (A0) await A0.cancelAll(); } catch (e) { /* */ } lastCount = 0; await S.kv.set('nn.sig', ''); return { ok: false, reason: perm }; }
+      const items = plan();
+      /* الأذان نفسه عبر المنبّه الأصلي إن وُجد؛ والباقي (تنبيه مسبق، تذكيرات، مناسبات) عبر الإشعارات */
+      const A = adh(); alarm.on = false;
+      if (A) {
+        try {
+          await pushAudio(A);
+          const ad = items.filter((n) => n.ch === CH.adhan && n.at);
+          const r = await A.schedule({ items: ad.map((n) => ({ id: n.id, at: n.at.getTime(), title: n.title, body: n.body })) });
+          const st = await A.status(); alarm = { on: true, hasAudio: !!(st && st.hasAudio), exact: st ? st.exact : null, count: (r && r.count) || 0 };
+        } catch (e) { S.log('warn', 'adhan alarm: ' + ((e && e.message) || e)); alarm.on = false; }
+      }
+      const lnItems = alarm.on ? items.filter((n) => !(n.ch === CH.adhan && n.at)) : items;
+      const sig = hashStr(JSON.stringify(items.map((n) => [n.id, n.at ? n.at.getTime() : n.on, n.title, n.body, n.ch]))) + ':' + items.length + ':' + (flags.adhanSound || '-');
       let pend = []; try { const p = await LN.getPending(); pend = ((p && p.notifications) || []).filter((n) => n.id !== TEST_ID); } catch (e) { /* */ }
       const have = new Set(pend.map((n) => n.id));
-      if (!force && sig === S.kv.get('nn.sig') && items.every((n) => have.has(n.id)) && pend.length === items.length) { lastCount = items.length; return { ok: true, scheduled: items.length, skipped: true }; }
+      if (!force && sig === S.kv.get('nn.sig') && lnItems.every((n) => have.has(n.id)) && pend.length === lnItems.length) { lastCount = items.length; return { ok: true, scheduled: items.length, skipped: true }; }
       await ensureChannels(LN); await cancelAllPending(LN);
-      for (let i = 0; i < items.length; i += 40) await LN.schedule({ notifications: items.slice(i, i + 40).map(toNative) });
+      for (let i = 0; i < lnItems.length; i += 40) await LN.schedule({ notifications: lnItems.slice(i, i + 40).map(toNative) });
       lastCount = items.length; await S.kv.set('nn.sig', sig);
       return { ok: true, scheduled: items.length, exact };
     } catch (e) { lastError = (e && e.message) || String(e); S.log('warn', 'nativeNotify.sync: ' + lastError); return { ok: false, reason: 'error', error: lastError }; }
@@ -123,7 +149,7 @@
     /* هل الإشعارات الأصلية تعمل فعلاً (متوفرة + مسموحة)؟ تُستعمل لتفادي التكرار مع تنبيهات الصفحة المفتوحة */
     active() { return available() && perm === 'granted'; },
     plan, sync, later,
-    state() { return { available: available(), perm, exact, scheduled: lastCount, error: lastError, sound: flags.adhanSound }; },
+    state() { return { available: available(), perm, exact, scheduled: lastCount, error: lastError, sound: flags.adhanSound, alarm: alarm.on, alarmAudio: alarm.hasAudio, alarmExact: alarm.exact }; },
     async status() { await refreshPerm(); return N.state(); },
     /* يطلب إذن الإشعارات ثم يُجدول. إن كان التنبيه الدقيق مغلقاً يُرجع needExact لتعرض الواجهة زر فتح الإعداد. */
     async enable() {

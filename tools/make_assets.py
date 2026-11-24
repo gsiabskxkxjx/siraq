@@ -35,15 +35,21 @@ def write(name, s):
 # رمز القنديل وحده (للاستخدام داخل التطبيق)
 write("logo-mark.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250" role="img" aria-label="شعار سِراج">%s%s</svg>' % (DEFS, LANTERN))
 
-# أيقونة مربعة 512
+# أيقونة مربعة 512 — التصميم المعتمد: قنديل لازوردي على رقّ فاتح بإطار ذهبي مزدوج (مطابق لهوية «مخطوطة»)
+LAPIS = "#1F3A6B"
+def lapis_lantern():
+    g = LANTERN.replace("url(#g)", LAPIS).replace('fill="#082820"', 'fill="#F8F1E0"').replace('fill="url(#glow)"', 'fill="none"').replace("#FFF3C4", "#B88A2E")
+    return g.replace('<circle cx="100" cy="150" r="44" fill="none"/>', "")
+PARCH = ('<defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F8F1E0"/><stop offset="1" stop-color="#E5D8B9"/></linearGradient></defs>')
 def square(maskable=False):
     s = 1.28 if not maskable else 1.02   # منطقة آمنة أوسع للـ maskable
     h = 250 * s; w = 200 * s
     tx = (512 - w) / 2; ty = (512 - h) / 2 + 4
     corner = "" if maskable else ' rx="112"'
-    ring = '' if maskable else '<rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#D6B15E" stroke-opacity=".35" stroke-width="3"/>'
-    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">%s<rect width="512" height="512"%s fill="url(#bg)"/>%s'
-            '<g transform="translate(%.1f %.1f) scale(%.3f)">%s</g></svg>') % (DEFS, corner, ring, tx, ty, s, LANTERN)
+    ring = '' if maskable else ('<rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="#B88A2E" stroke-opacity=".8" stroke-width="3"/>'
+                                '<rect x="26" y="26" width="460" height="460" rx="90" fill="none" stroke="#B88A2E" stroke-opacity=".4" stroke-width="1.5"/>')
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">%s<rect width="512" height="512"%s fill="url(#pg)"/>%s'
+            '<g transform="translate(%.1f %.1f) scale(%.3f)">%s</g></svg>') % (PARCH, corner, ring, tx, ty, s, lapis_lantern())
 write("icon.svg", square(False))
 write("icon-maskable.svg", square(True))
 
@@ -70,4 +76,6 @@ png("icon-maskable.svg", "icon-maskable-512.png", 512)
 png("icon.svg", "favicon-32.png", 32)
 png("logo-horizontal.svg", "logo.png", 1200, 360)
 png("logo-mark.svg", "logo-mark.png", 400)
+write("logo-splash.svg", '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 250" role="img" aria-label="شعار سِراج">%s%s</svg>' % (DEFS, lapis_lantern()))
+png("logo-splash.svg", "logo-splash.png", 400)
 print("assets OK")

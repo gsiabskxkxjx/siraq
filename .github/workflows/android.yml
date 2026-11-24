@@ -64,7 +64,9 @@ jobs:
       - name: تخصيص الأيقونة والصلاحيات وشاشة البداية
         env:
           SIRAJ_TTS: "1"
+          SIRAJ_ADHAN: "1"
           SIRAJ_SPLASH_BG: "#EFE5CE"
+          SIRAJ_ICON_BG: "#F3EAD2"
         run: python3 scripts/patch-android.py
 
       - name: مزامنة Capacitor

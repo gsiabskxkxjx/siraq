@@ -8,9 +8,15 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = '7415bd3af7';
+const VERSION = 'da92cfc04b';
 const PRECACHE = [
   './',
+  './android-resources/java/AdhanBootReceiver.java',
+  './android-resources/java/AdhanReceiver.java',
+  './android-resources/java/AdhanService.java',
+  './android-resources/java/AdhanStore.java',
+  './android-resources/java/MainActivity.java',
+  './android-resources/java/SirajAdhanPlugin.java',
   './assets/css/makhtuta.css',
   './assets/css/responsive.css',
   './assets/css/style.css',
@@ -31,6 +37,8 @@ const PRECACHE = [
   './assets/images/logo-horizontal.svg',
   './assets/images/logo-mark.png',
   './assets/images/logo-mark.svg',
+  './assets/images/logo-splash.png',
+  './assets/images/logo-splash.svg',
   './assets/images/logo.png',
   './assets/js/app.js',
   './assets/js/assistant.js',
