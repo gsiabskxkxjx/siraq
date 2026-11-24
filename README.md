@@ -11,6 +11,8 @@
 ## 0) تحميل APK من GitHub (الأسهل للهاتف)
 المستودع يبني ملف `SIRAJ.apk` تلقائياً عند كل دفع. حمّله من **Releases ← آخر إصدار ← Assets**، وخطوات التثبيت والتحديث وما يختلف في نسخة أندرويد في [`docs/ANDROID.md`](docs/ANDROID.md). **لم تُشاهَد نتيجة أول بناء من بيئة التطوير**؛ إن فشل أرسل نص الخطأ من تبويب Actions.
 
+**تطبيق الأغلفة:** `SIRAJ-Covers.apk` (وسم `covers-N`) — اكتب اسم الكتاب فيصير غلافاً بشكل «المخطوطة» وبخط Amiri وتحفظه صورة PNG عالية الدقة ([`docs/COVERS.md`](docs/COVERS.md)).
+
 **تطبيق التحكم (للناشر):** يُبنى بـ workflow منفصل ويظهر في Releases باسم `control-N` وملفه `SIRAJ-Control.apk`، ويُثبَّت بجانب سِراج. الإعداد خطوة بخطوة في [`docs/CONTROL.md`](docs/CONTROL.md).
 
 ## 1) التشغيل من الهاتف فقط (بديل: PWA)
@@ -119,7 +121,8 @@
 index.html  manifest.json  service-worker.js  offline.html  README.md
 assets/{css,js,data,images,lib/pdfjs}
 control/                 تطبيق «سِراج — التحكم» (الناشر): index.html, js/, css/, package.json, capacitor.config.json
+covers/                  تطبيق «سِراج — الأغلفة»: index.html, js/, css/, assets/images, package.json, capacitor.config.json
 docs/{schema.sql,ARCHITECTURE.md,ANDROID.md,CONTROL.md,import-templates/}
-package.json  capacitor.config.json  scripts/  android-signing/  .github/workflows/{android,android-control}.yml
+package.json  capacitor.config.json  scripts/  android-signing/  .github/workflows/{android,android-control,android-covers}.yml
 tools/  tests/
 ```

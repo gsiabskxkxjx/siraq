@@ -63,9 +63,9 @@
 
   async function nextPrayerBlock() {
     const P = S.prayer; const loc = P && P.loc();
-    if (!loc) return S.h`<div class="next-prayer"><div><div class="small muted">مواقيت الصلاة</div><div>حدّد مدينتك لحساب المواقيت</div></div><a class="btn sm gold" href="#/prayer/location">${S.icon('map-pin')} الموقع</a></div>`;
+    if (!loc) return S.h`<div class="next-prayer"><div class="np-l">مواقيت الصلاة</div><div style="font-size:1.15rem;margin:4px 0 2px">حدّد مدينتك لحساب المواقيت</div><a class="btn sm gold" href="#/prayer/location">${S.icon('map-pin')} الموقع</a></div>`;
     const nx = P.next(); if (!nx) return '';
-    return S.h`<a class="next-prayer" href="#/prayer" style="color:inherit"><div><div class="small" style="opacity:.8">الصلاة القادمة • ${loc.name}</div><div class="np-n">${nx.name}</div><div class="small" style="opacity:.85">${nx.time}</div></div><div class="np-c" data-countdown>${S.fmt.hm(nx.at - new Date())}</div></a>`;
+    return S.h`<a class="next-prayer" href="#/prayer"><div class="np-l">الصلاة القادمة · ${loc.name}</div><span class="np-n">${nx.name}</span><div class="np-r"><b class="np-t">${nx.time}</b><span class="np-c" data-countdown>${S.fmt.hm(nx.at - new Date())}</span></div></a>`;
   }
   function prayerStrip() {
     const P = S.prayer; if (!P || !P.loc()) return '';
@@ -95,14 +95,16 @@
     return {
       title: 'سِراج', nav: 'home', back: false, bar: false,
       html: S.h`<div class="stack">
-        <div class="hero">
-          <div class="row between"><div class="brand"><img src="assets/images/logo-mark.png" alt="" width="46" height="46"><div><b>سِراج</b><small>نور العلم وهداية الطريق</small></div></div>
-            <div class="row"><button class="iconbtn" data-act="toggleTheme" aria-label="${S.theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}">${S.icon(S.theme === 'dark' ? 'sun' : 'moon')}</button><a class="iconbtn" href="#/notifications" aria-label="الإشعارات" style="position:relative">${S.icon('bell')}<span class="dot" data-bell hidden></span></a><a class="iconbtn" href="#/settings" aria-label="الإعدادات">${S.icon('settings')}</a></div></div>
-          <div class="greet mt">${greeting()}</div>
-          <div class="dates"><span class="dchip">${S.icon('moon')} ${S.hijriStr(now)}</span><span class="dchip">${S.fmt.gdate(now)}</span></div>
-          ${nb}
+        <div class="mast">
+          <div class="mast-top"><div class="row"><button class="iconbtn" data-act="toggleTheme" aria-label="${S.theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}">${S.icon(S.theme === 'dark' ? 'sun' : 'moon')}</button><a class="iconbtn" href="#/notifications" aria-label="الإشعارات" style="position:relative">${S.icon('bell')}<span class="dot" data-bell hidden></span></a><a class="iconbtn" href="#/settings" aria-label="الإعدادات">${S.icon('settings')}</a></div></div>
+          <div class="brand-c"><img src="assets/images/logo-mark.png" alt="" width="46" height="56"><b>سِراج</b><small>نور العلم وهداية الطريق</small></div>
+          ${S.ui.ornament()}
+          <div class="greet">${greeting()}</div>
+          <div class="dates"><span class="dchip">${S.hijriStr(now)}</span><span class="dchip">${S.fmt.gdate(now)}</span></div>
         </div>
+        ${nb}
         ${prayerStrip()}
+        ${S.ui.sectionTitle('الفهرس')}
         ${S.h`<div class="quick">${QUICK.map(([ic, t, h]) => S.h`<a class="qk" href="#${h}">${S.icon(ic)}<span>${t}</span></a>`)}</div>`}
         ${lastQ || lastBook ? S.h`<div class="grid2">${lastQ ? S.h`<a class="card tap" href="#/quran/surah/${lastQ.pos.s}?a=${lastQ.pos.a}"><div class="small muted">آخر قراءة في القرآن</div><b>${(S.data.quran.surahs[lastQ.pos.s - 1] || {}).name}</b><div class="small">آية ${S.n(lastQ.pos.a)}</div></a>` : ''}${lastBook ? S.h`<a class="card tap" href="#/library/book/${lastBook.id}"><div class="small muted">آخر كتاب</div><b>${lastBook.title}</b><div class="small">${last.page ? 'صفحة ' + S.n(last.page) : lastBook.author}</div></a>` : ''}</div>` : ''}
         ${khatmaCard()}

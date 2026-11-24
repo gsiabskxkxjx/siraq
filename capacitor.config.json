@@ -2,7 +2,7 @@
   "appId": "com.siraj.app",
   "appName": "سِراج",
   "webDir": "www",
-  "backgroundColor": "#082820",
+  "backgroundColor": "#EFE5CE",
   "server": {
     "androidScheme": "https"
   },

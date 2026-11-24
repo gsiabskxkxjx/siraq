@@ -1,0 +1,11 @@
+{
+  "appId": "com.siraj.covers",
+  "appName": "سِراج — الأغلفة",
+  "webDir": "www",
+  "backgroundColor": "#EFE5CE",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SystemBars": { "insetsHandling": "css" }
+  }
+}

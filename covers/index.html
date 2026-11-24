@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>سِراج — الأغلفة</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F8F1E0">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="اكتب اسم الكتاب فيصير غلافاً بشكل المخطوطة وبخط Amiri، وصدّره صورة عالية الدقة.">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="assets/css/covers.css">
+<script>
+/* المظهر قبل الرسم لتفادي وميض الأبيض */
+(function () {
+  try {
+    var s = JSON.parse(localStorage.getItem('siraj.covers.v1') || '{}'); var th = s.theme || 'auto';
+    if (th === 'auto') th = window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = th;
+  } catch (e) {}
+})();
+</script>
+</head>
+<body>
+<main id="app">
+  <header class="top">
+    <button class="ib" id="btn-theme" type="button" aria-label="تبديل المظهر الليلي/النهاري"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="theme-ic" d="M21 13.5A8.5 8.5 0 1 1 10.5 3a7 7 0 0 0 10.5 10.5z"/></svg></button>
+  </header>
+
+  <section class="mast">
+    <img src="assets/images/logo-mark.png" alt="" width="44" height="50">
+    <h1>الأغلفة</h1>
+    <p class="sub">اكتب اسم الكتاب فيصير غلافاً بشكل المخطوطة</p>
+    <svg class="orn" viewBox="0 0 210 14" aria-hidden="true"><path d="M0 7h88M122 7h88" stroke="currentColor" stroke-width="1" fill="none"/><path d="M105 1l6 6-6 6-6-6z" fill="currentColor"/><circle cx="92" cy="7" r="1.6" fill="currentColor"/><circle cx="118" cy="7" r="1.6" fill="currentColor"/></svg>
+  </section>
+
+  <section class="stage" aria-label="معاينة الغلاف">
+    <div class="book"><canvas id="cv" role="img" aria-label="معاينة الغلاف"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <div class="field"><label for="f-title">اسم الكتاب</label><input id="f-title" type="text" maxlength="90" autocomplete="off" placeholder="مثال: نهج البلاغة"></div>
+    <div class="field"><label for="f-author">المؤلف <small>(اختياري)</small></label><input id="f-author" type="text" maxlength="60" autocomplete="off" placeholder="مثال: الشريف الرضي"></div>
+    <div class="field"><span class="lbl" id="l-color">لون الغلاف</span><div id="swatches" class="swatches" role="radiogroup" aria-labelledby="l-color"></div></div>
+    <div class="field"><span class="lbl" id="l-spine">جهة الكعب <small>(الكتاب العربي يُجلَّد من اليمين)</small></span>
+      <div class="seg" id="f-spine" role="radiogroup" aria-labelledby="l-spine"><button type="button" role="radio" data-v="right" aria-checked="true">يمين</button><button type="button" role="radio" data-v="left" aria-checked="false">يسار</button></div></div>
+    <div class="field"><label for="f-res">دقة الصورة</label>
+      <select id="f-res"><option value="800">خفيفة — 800 × 1143</option><option value="1200" selected>مناسبة — 1200 × 1714</option><option value="2000">عالية جداً — 2000 × 2857</option></select></div>
+    <div class="actions">
+      <button type="button" class="btn primary" id="btn-save">حفظ الصورة (PNG)</button>
+      <button type="button" class="btn" id="btn-share">مشاركة</button>
+      <button type="button" class="btn ghost" id="btn-keep">أضِفه إلى غلافاتي</button>
+    </div>
+  </section>
+
+  <section class="gallery" id="gallery" hidden>
+    <h2>غلافاتي</h2>
+    <div class="grid" id="g-list"></div>
+  </section>
+
+  <p class="note">الغلاف يُرسَم من العنوان واسم المؤلف الذي تكتبه فقط؛ وليس صورة غلاف الطبعة الحقيقية للكتاب. تبقى غلافاتك على جهازك وحده.</p>
+</main>
+<div id="toasts" role="status" aria-live="polite"></div>
+<script src="assets/js/cover-art.js"></script>
+<script src="js/covers.js"></script>
+</body>
+</html>

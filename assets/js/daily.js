@@ -141,29 +141,40 @@
   });
 
   /* ---------------- 12: تحويل النص إلى صوت ---------------- */
+  /* يمرّ عبر S.tts: إضافة المحرك الأصلي في تطبيق أندرويد، وspeechSynthesis في المتصفح */
   let voices = [];
-  const loadVoices = () => { try { voices = speechSynthesis.getVoices(); } catch (e) { voices = []; } };
+  const loadVoices = () => { try { voices = S.tts.mode() === 'web' ? speechSynthesis.getVoices() : []; } catch (e) { voices = []; } };
   S.router.add('/daily/tts', async () => {
-    loadVoices(); const supported = 'speechSynthesis' in window; const ar = voices.filter((v) => /^ar/i.test(v.lang)); const duas = (await S.db.all('duas')).filter((d) => d.textStatus === 'documented' && d.text);
+    loadVoices(); const mode = S.tts.mode(); const supported = mode !== 'none'; const ar = voices.filter((v) => /^ar/i.test(v.lang)); const duas = (await S.db.all('duas')).filter((d) => d.textStatus === 'documented' && d.text);
+    const hasAr = mode === 'native' ? await S.tts.hasArabic() : null;
+    const status = !supported ? S.ui.notice('err', 'القراءة الآلية غير متاحة', 'هذا الجهاز لا يوفّر محرك قراءة. ثبّت «خدمات الكلام من Google» (Speech Services by Google) من متجر Play ثم أعد فتح التطبيق.')
+      : mode === 'native' ? (hasAr === false ? S.ui.notice('warn', 'لا صوت عربي على جهازك', 'ثبّت الصوت العربي من إعدادات الهاتف ← تحويل النص إلى كلام، ثم أعد المحاولة. بدونه قد ينطق الجهاز بلغة أخرى فيُخطئ.') : S.ui.notice('ok', 'القراءة الآلية جاهزة', 'تستعمل محرك الكلام في هاتفك، ويُحدَّد الصوت من إعدادات الهاتف.'))
+      : ar.length ? S.ui.notice('ok', 'أصوات عربية متاحة', 'عدد الأصوات العربية على جهازك: ' + S.n(ar.length)) : S.ui.notice('warn', 'لا صوت عربي على جهازك', 'ثبّت صوتاً عربياً من إعدادات النظام (تحويل النص إلى كلام/Text-to-speech) ثم أعد فتح الصفحة. قد يقرأ الجهاز بلغة أخرى فيُخطئ النطق.');
+    const voiceField = mode === 'web' ? S.f.select('tv', 'الصوت', [{ v: '', t: 'الافتراضي' }].concat(ar.map((v) => ({ v: v.name, t: v.name + ' (' + v.lang + ')' }))), ar[0] ? ar[0].name : '') : '';
     return {
       title: 'تحويل النص إلى صوت', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${!supported ? S.ui.notice('err', 'غير مدعوم', 'متصفحك لا يدعم تحويل النص إلى كلام.') : ar.length ? S.ui.notice('ok', 'أصوات عربية متاحة', 'عدد الأصوات العربية على جهازك: ' + S.n(ar.length)) : S.ui.notice('warn', 'لا صوت عربي على جهازك', 'ثبّت صوتاً عربياً من إعدادات النظام (تحويل النص إلى كلام/Text-to-speech) ثم أعد فتح الصفحة. قد يقرأ الجهاز بلغة أخرى فيُخطئ النطق.')}
+      html: S.h`<div class="stack">${status}
         ${S.ui.notice('info', 'تنبيه', 'القراءة الاصطناعية للنصوص العامة والأدعية للمساعدة فقط. لا يُنصح بها لتلاوة القرآن: استعمل التلاوات المسجلة.')}
-        <div class="card">${duas.length ? S.f.select('tdua', 'من الأدعية الموثقة', [{ v: '', t: '— اختر دعاءً —' }].concat(duas.map((d) => ({ v: d.id, t: d.title }))), '', { chg: 'ttsPick' }) : ''}${S.f.area('tt', 'النص', '', { rows: 6 })}${S.f.select('tv', 'الصوت', [{ v: '', t: 'الافتراضي' }].concat(ar.map((v) => ({ v: v.name, t: v.name + ' (' + v.lang + ')' }))), ar[0] ? ar[0].name : '')}<div class="grid2">${S.f.text('tr', 'السرعة', 0.9, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}${S.f.text('tp', 'النبرة', 1, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}</div><div class="grid2"><button class="btn primary" data-act="ttsPlay">${S.icon('play')} قراءة</button><button class="btn" data-act="ttsStop">إيقاف</button></div></div></div>`,
-      mount() { if (supported) { try { speechSynthesis.onvoiceschanged = () => { if (S.router.cur.path === '/daily/tts' && !S.$('#f_tt').value) { const n = speechSynthesis.getVoices().length; if (n !== voices.length) S.router.refresh(); } }; } catch (e) { /* */ } } },
-      unmount() { try { speechSynthesis.cancel(); } catch (e) { /* */ } }
+        <div class="card">${duas.length ? S.f.select('tdua', 'من الأدعية الموثقة', [{ v: '', t: '— اختر دعاءً —' }].concat(duas.map((d) => ({ v: d.id, t: d.title }))), '', { chg: 'ttsPick' }) : ''}${S.f.area('tt', 'النص', '', { rows: 6 })}${voiceField}<div class="grid2">${S.f.text('tr', 'السرعة', 0.9, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}${S.f.text('tp', 'النبرة', 1, { type: 'number', ltr: true, step: 0.1, min: 0.5, max: 2 })}</div><div class="grid2"><button class="btn primary" data-act="ttsPlay">${S.icon('play')} قراءة</button><button class="btn" data-act="ttsStop">إيقاف</button></div></div></div>`,
+      mount() { if (mode === 'web') { try { speechSynthesis.onvoiceschanged = () => { if (S.router.cur.path === '/daily/tts' && !S.$('#f_tt').value) { const n = speechSynthesis.getVoices().length; if (n !== voices.length) S.router.refresh(); } }; } catch (e) { /* */ } } },
+      unmount() { S.tts.stop(); }
     };
   });
   S.onChange('ttsPick', async (el) => { if (!el.value) return; const d = await S.db.get('duas', el.value); S.$('#f_tt').value = d ? d.text : ''; });
-  S.act('ttsPlay', () => { const t = S.$('#f_tt').value.trim(); if (!t) return S.toast('اكتب النص أو اختر دعاءً', 'err'); if (!('speechSynthesis' in window)) return S.toast('غير مدعوم', 'err'); speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); const v = voices.find((x) => x.name === S.$('#f_tv').value); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'ar-SA'; u.rate = S.clamp(+S.$('#f_tr').value || 0.9, 0.5, 2); u.pitch = S.clamp(+S.$('#f_tp').value || 1, 0.5, 2); u.onerror = () => S.toast('تعذّرت القراءة', 'err'); speechSynthesis.speak(u); });
-  S.act('ttsStop', () => { try { speechSynthesis.cancel(); } catch (e) { /* */ } });
+  S.act('ttsPlay', () => {
+    const t = S.$('#f_tt').value.trim(); if (!t) return S.toast('اكتب النص أو اختر دعاءً', 'err');
+    if (!S.tts.supported()) return S.toast('هذا الجهاز لا يوفّر قراءة آلية. ثبّت «خدمات الكلام من Google» من متجر Play.', 'err');
+    const vEl = S.$('#f_tv'); const v = vEl ? voices.find((x) => x.name === vEl.value) : null;
+    S.tts.speak(t, { voice: v, rate: S.clamp(+S.$('#f_tr').value || 0.9, 0.5, 2), pitch: S.clamp(+S.$('#f_tp').value || 1, 0.5, 2) }).catch((e) => { if (e && e.message !== 'unsupported') S.toast('تعذّرت القراءة الآلية على هذا الجهاز', 'err'); });
+  });
+  S.act('ttsStop', () => { S.tts.stop(); });
 
   /* ---------------- 13: مزامنة التقدم ---------------- */
   S.router.add('/daily/sync', async () => {
     const pr = (await S.db.all('progress')).length; const bm = (await S.db.all('bookmarks')).length; const nt = (await S.db.all('notes')).length;
     return {
       title: 'مزامنة تقدم القراءة', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${S.ui.notice('err', 'غير مربوط', 'المزامنة بين الأجهزة تحتاج حسابات وخادماً (Supabase) وهو غير موصول في هذه النسخة. التصميم جاهز في docs/schema.sql (جداول reading_progress وbookmarks…).')}
+      html: S.h`<div class="stack">${S.ui.notice('err', 'غير مربوط', 'المزامنة بين الأجهزة تحتاج حسابات وخادماً (Supabase) وهو غير موصول في هذه النسخة.')}
         <div class="card"><div class="card-t">${S.icon('database')} ما سيُزامَن مستقبلاً (محفوظ الآن محلياً)</div><div class="kv"><span>مواضع القراءة</span><b>${S.n(pr)}</b></div><div class="kv"><span>العلامات المرجعية</span><b>${S.n(bm)}</b></div><div class="kv"><span>الملاحظات والتدبّرات</span><b>${S.n(nt)}</b></div></div>
         <div class="card"><div class="card-t">${S.icon('download')} الحل المتاح الآن</div><p class="small nm">صدِّر نسخة احتياطية من «الإعدادات» وانقلها إلى جهازك الآخر ثم استعدها هناك.</p><a class="btn block mt-s" href="#/settings">${S.icon('settings')} النسخ الاحتياطي والاستعادة</a></div></div>`
     };

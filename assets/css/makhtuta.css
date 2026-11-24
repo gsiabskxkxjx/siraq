@@ -1,0 +1,203 @@
+/* ==========================================================================
+   سِراج — طبقة «مخطوطة»: رقّ دافئ، حبر داكن، لازورد وذهب، إطارات مزدوجة، خط Amiri.
+   تُحمَّل بعد style.css وresponsive.css فتعيد تعريف الألوان (كل المكوّنات تتبعها) ثم تضبط الشكل.
+   نهاري = رقّ فاتح • ليلي = رقّ ليلي (بني داكن، حبر عاجي، ذهب أنصع). بلا صور ولا خطوط إضافية.
+   ========================================================================== */
+:root{
+  --mk-bg:#EFE5CE; --mk-paper:#F8F1E0; --mk-ink:#2B2218; --mk-mut:#65584A; --mk-head:#1F3A6B; --mk-gold:#B88A2E; --mk-goldt:#7F5A12; --mk-ox:#7A2E2A;
+  --mk-line:rgba(127,90,18,.30); --mk-gold-a:rgba(184,138,46,.55);
+  --bg:#EFE5CE; --bg-2:#E5D8B9; --surface:#F8F1E0; --surface-2:#F2E9D0; --text:#2B2218; --muted:#65584A; --faint:#87796A;
+  --border:rgba(127,90,18,.26); --border-strong:rgba(127,90,18,.46);
+  --primary:#1F3A6B; --on-primary:#F8F1E0; --primary-soft:rgba(31,58,107,.09);
+  --accent:#B88A2E; --on-accent:#2B2218; --accent-soft:rgba(184,138,46,.17);
+  --gold:#B88A2E; --gold-light:#E6C26A; --emerald:#1F3A6B; --emerald-dark:#15284B;
+  --ok:#2F6B3F; --warn:#8A5A1C; --bad:#8F2F2A; --info:#1F3A6B;
+  --ok-bg:rgba(47,107,63,.12); --warn-bg:rgba(138,90,28,.14); --bad-bg:rgba(143,47,42,.11); --info-bg:rgba(31,58,107,.10);
+  --shadow:0 10px 22px -18px rgba(43,34,24,.6); --shadow-lg:0 18px 44px rgba(43,34,24,.35);
+  --radius:6px; --radius-sm:4px; --radius-lg:8px;
+  --font-ui:'Amiri','Noto Naskh Arabic','Scheherazade New',system-ui,serif;
+  --fscale:1.1; --bar-h:58px; --nav-h:68px;
+  --head:#1F3A6B; --goldt:#7F5A12; --rule:#B88A2E; --pattern:none;
+}
+:root[data-theme="dark"]{
+  --mk-bg:#16110B; --mk-paper:#211A11; --mk-ink:#EFE3C8; --mk-mut:#B9AA8A; --mk-head:#A9BDF0; --mk-gold:#D6B15E; --mk-goldt:#E3C177; --mk-ox:#E58F86;
+  --mk-line:rgba(214,177,94,.26); --mk-gold-a:rgba(214,177,94,.5);
+  --bg:#16110B; --bg-2:#1E1710; --surface:#211A11; --surface-2:#2A2217; --text:#EFE3C8; --muted:#B9AA8A; --faint:#8F826A;
+  --border:rgba(214,177,94,.22); --border-strong:rgba(214,177,94,.42);
+  --primary:#E3C177; --on-primary:#16110B; --primary-soft:rgba(227,193,119,.12);
+  --accent:#D6B15E; --on-accent:#16110B; --accent-soft:rgba(214,177,94,.16);
+  --gold:#D6B15E; --gold-light:#EAD59A; --emerald:#1B2C52; --emerald-dark:#101B36;
+  --ok:#7BD69A; --warn:#E8B25A; --bad:#EF9A92; --info:#A9BDF0;
+  --ok-bg:rgba(123,214,154,.12); --warn-bg:rgba(232,178,90,.14); --bad-bg:rgba(239,154,146,.13); --info-bg:rgba(169,189,240,.13);
+  --shadow:0 10px 22px -16px rgba(0,0,0,.8); --shadow-lg:0 18px 44px rgba(0,0,0,.6);
+  --head:#A9BDF0; --goldt:#E3C177; --rule:#D6B15E;
+}
+:root[data-elder="1"]{--fscale:1.28}
+html{font-size:calc(16px * var(--fscale))}
+@media (max-width:374px){html{font-size:calc(15px * var(--fscale))}}
+body{font-family:var(--font-ui);font-weight:400;letter-spacing:0}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(120% 60% at 50% 0%,rgba(255,255,255,.5),rgba(255,255,255,0) 60%),radial-gradient(100% 50% at 50% 100%,rgba(122,88,40,.12),rgba(0,0,0,0) 70%)}
+:root[data-theme="dark"] body::before{background:radial-gradient(120% 50% at 50% 0%,rgba(214,177,94,.07),rgba(0,0,0,0) 60%)}
+#app{z-index:1}
+a{color:var(--head)} :root[data-theme="dark"] a{color:var(--gold-light)}
+b,strong,.h1,.h2,.h3,.title{font-weight:700}
+.gold{color:var(--goldt)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ---------- الشريط العلوي: رقّ بحدّ مذهّب مزدوج ---------- */
+.appbar{background:var(--surface);color:var(--text);box-shadow:inset 0 -3px 0 var(--surface),inset 0 -4px 0 var(--gold),inset 0 -7px 0 var(--surface),inset 0 -8px 0 var(--mk-gold-a);padding-bottom:8px}
+.appbar::after{display:none}
+.appbar .title{color:var(--head);font-size:1.5rem;line-height:1.3}
+.appbar .iconbtn{color:var(--text)}
+.iconbtn:active{background:var(--primary-soft)} .iconbtn .dot{background:var(--mk-ox);color:#fff}
+.view{padding-top:12px}
+
+/* ---------- التنقل السفلي ---------- */
+.bottomnav{background:var(--surface);border-top:0;box-shadow:inset 0 3px 0 var(--surface),inset 0 4px 0 var(--gold),inset 0 7px 0 var(--surface),inset 0 8px 0 var(--mk-gold-a);padding-top:6px}
+.bottomnav .nb{font-size:.82rem;font-weight:700;color:var(--muted);gap:1px}
+.bottomnav .nb.active{color:var(--head)} :root[data-theme="dark"] .bottomnav .nb.active{color:var(--gold-light)}
+.bottomnav .nb.active::before{display:none}
+.bottomnav .nb.active::after{content:"";width:7px;height:7px;background:var(--gold);transform:rotate(45deg);margin-top:3px}
+
+/* ---------- عناوين وبطاقات ---------- */
+.h1,.h2{color:var(--head)} :root[data-theme="dark"] .h1,:root[data-theme="dark"] .h2{color:var(--gold-light)}
+.sec-title{color:var(--goldt);font-weight:700;font-size:1.05rem;margin:22px 0 8px}
+.sec-title::after{background:linear-gradient(90deg,transparent,var(--mk-gold-a))}
+.sec-title a,.sec-title button{color:var(--head);font-size:.9rem}
+.card{background:var(--surface);border:0;border-radius:var(--radius);padding:15px;box-shadow:inset 0 0 0 1px var(--border),var(--shadow)}
+.card.flat{box-shadow:inset 0 0 0 1px var(--border)}
+.card.tap:active{transform:scale(.99);box-shadow:inset 0 0 0 1px var(--gold),var(--shadow)}
+.card.gold-edge,.fr{box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--gold),var(--shadow);padding:18px 16px;border-radius:6px}
+.card-t{color:var(--goldt)} .card-t .i{color:var(--lapis-i,var(--head))} :root[data-theme="dark"] .card-t .i{color:var(--gold)}
+.card.tint{background:var(--surface-2)}
+.verse-card{background:var(--surface)} .verse-card::before{display:none}
+.q-inline{font-family:var(--font-quran)}
+.stat{background:var(--surface);border-radius:var(--radius);box-shadow:inset 0 0 0 1px var(--border)}
+
+/* ---------- أزرار ---------- */
+.btn{border-radius:5px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-weight:700;font-size:1rem;min-height:46px;box-shadow:none}
+.btn.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary);box-shadow:inset 0 0 0 2px var(--primary),inset 0 0 0 3px rgba(230,194,106,.7)}
+.btn.gold{background:var(--gold);color:var(--mk-ink);border-color:var(--gold)} :root[data-theme="dark"] .btn.gold{color:#16110B}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+:root[data-theme="dark"] .btn.danger{color:#16110B}
+.btn.ghost{background:transparent}
+.btn.sm{border-radius:4px} .btn.xs{border-radius:4px}
+.chip{border-radius:3px;border:1px solid var(--border-strong);background:var(--surface);font-weight:700;font-size:.95rem}
+.chip.active{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.badge{border-radius:3px;font-weight:700;background:var(--primary-soft)} .badge.gold{color:var(--goldt)}
+.notice{border-radius:5px}
+.notice span b,.notice p b{display:inline;margin:0}
+.tabs{background:var(--bg-2);border-radius:5px} .tab{border-radius:3px} .tab.active{background:var(--surface);color:var(--head);box-shadow:inset 0 0 0 1px var(--border)}
+:root[data-theme="dark"] .tab.active{color:var(--gold-light)}
+
+/* ---------- نماذج ---------- */
+.input,.select,.textarea{border-radius:5px;border:1px solid var(--border-strong);background:var(--surface-2);font-size:1.02rem}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--accent-soft)}
+.searchbox .input{border-radius:5px}
+.switch i{background:rgba(127,90,18,.3)} .switch input:checked+i{background:var(--primary)} :root[data-theme="dark"] .switch input:checked+i{background:var(--gold)}
+.filebox{border:1px dashed var(--border-strong);border-radius:5px;background:var(--surface-2)}
+
+/* ---------- قوائم: صفوف مسطّرة كفهرس المخطوطة ---------- */
+.list{background:transparent;border:0;border-radius:0;border-top:1px solid var(--mk-line)}
+.card .list{border-top:0}
+.li{padding:11px 4px;min-height:56px;border-bottom:1px solid var(--mk-line)} .li:active{background:var(--primary-soft)}
+.li-ico{background:transparent;border-radius:0;color:var(--head);width:34px;height:34px} :root[data-theme="dark"] .li-ico{color:var(--gold)}
+.li-t{font-size:1.05rem}
+.setting{border-bottom:1px solid var(--mk-line)}
+.empty .i{color:var(--gold)}
+
+/* ---------- نوافذ وتنبيهات ---------- */
+.modal{background:var(--surface);border-radius:8px 8px 0 0;box-shadow:inset 0 4px 0 var(--surface),inset 0 5px 0 var(--gold),var(--shadow-lg)}
+.modal.center-m{border-radius:8px;box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--gold),var(--shadow-lg)}
+.toast{padding:10px 14px;font-size:1rem;line-height:1.5;background:#2B2218;color:#F8F1E0;border-radius:5px;border-inline-start:4px solid var(--gold);font-weight:700}
+.toast.ok{border-inline-start-color:#7BD69A} .toast.err{background:#4A1713;border-inline-start-color:#EF9A92}
+#toasts{bottom:calc(var(--nav-h) + var(--safe-b) + 14px)}
+#splash{background:var(--mk-bg);color:var(--head)} #splash b{font-size:3rem;font-weight:700;color:var(--head)} #splash small{color:var(--muted)}
+#splash img{filter:drop-shadow(0 4px 10px rgba(122,88,40,.35))}
+:root[data-theme="dark"] #splash b{color:var(--gold-light)}
+
+/* ---------- ترويسة الصفحة الرئيسية (صفحة العنوان) ---------- */
+.mast{position:relative;margin:-12px -14px 0;padding:calc(6px + var(--safe-t)) 14px 6px;text-align:center}
+.mast .mast-top{display:flex;align-items:center;justify-content:space-between;min-height:46px}
+.mast .mast-top .iconbtn{color:var(--text)}
+.mast .brand-c{display:flex;flex-direction:column;align-items:center;margin-top:-6px}
+.mast .brand-c img{width:46px;height:56px;object-fit:contain}
+.mast .brand-c b{font-size:3rem;line-height:1.15;font-weight:700;color:var(--head)} :root[data-theme="dark"] .mast .brand-c b{color:var(--gold-light)}
+.mast .brand-c small{font-size:1.05rem;color:var(--muted)}
+.mast .greet{color:var(--text);font-size:1.05rem;font-weight:700;margin-top:8px}
+.mast .dates{margin-top:0;color:var(--muted);font-size:.98rem;display:flex;flex-direction:column;align-items:center;gap:0}
+.mast .dates .dchip{background:none;border:0;padding:0;color:var(--muted);font-size:.98rem;line-height:1.5}
+.mast .dates .dchip:first-child{color:var(--goldt);font-weight:700}
+.mk-orn{display:block;margin:6px auto 0;width:210px;max-width:60%;height:14px;color:var(--gold)}
+.next-prayer{display:block;text-align:center;margin-top:14px;padding:16px 14px;border-radius:6px;background:var(--surface);border:0;color:var(--text);box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--gold),var(--shadow)}
+.next-prayer .np-l{font-size:1rem;color:var(--muted)}
+.next-prayer .np-n{font-size:2.9rem;font-weight:700;color:var(--head);line-height:1.2;display:block} :root[data-theme="dark"] .next-prayer .np-n{color:var(--gold-light)}
+.next-prayer .np-r{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:2px}
+.next-prayer .np-t{font-size:1.1rem;color:var(--muted);direction:ltr}
+.next-prayer .np-c{font-size:1.5rem;color:var(--goldt);font-weight:700;direction:ltr}
+.next-prayer .btn{margin-top:8px}
+
+/* ---------- الفهرس (بدل شبكة الأيقونات) ---------- */
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;gap:0 22px}
+.qk{flex-direction:row;justify-content:flex-start;gap:10px;padding:0;height:50px;border:0;border-bottom:1px solid var(--mk-line);border-radius:0;background:transparent;font-size:1.08rem;font-weight:700;text-align:start;color:var(--text)}
+.qk .i{width:22px;height:22px;color:var(--head)} :root[data-theme="dark"] .qk .i{color:var(--gold)}
+.qk:active{background:var(--primary-soft);border-color:var(--mk-line)}
+.ptimes{gap:0;border-top:1px solid var(--mk-line);border-bottom:1px solid var(--mk-line)}
+.ptimes .pt{border:0;border-radius:0;background:none;padding:8px 2px;border-inline-start:1px solid var(--mk-line)} .ptimes .pt:first-child{border-inline-start:0}
+.ptimes .pt b{color:var(--muted);font-size:.85rem;font-weight:700} .ptimes .pt span{font-size:1.02rem;font-weight:700}
+.ptimes .pt.next{background:var(--primary);color:var(--on-primary)} .ptimes .pt.next b{color:inherit}
+
+/* ---------- أغلفة الكتب: أقمشة مجلّدة بإطار مذهّب (نفس تصميم «مخطوطة») ---------- */
+.cover{aspect-ratio:70/100;border-radius:9px 4px 4px 9px;background:var(--cv,#1F3A6B);box-shadow:0 10px 14px -8px rgba(43,34,24,.7);overflow:hidden;position:relative;container-type:inline-size}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.cover.cv{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5%;text-align:center;color:#F4E3B8;padding:0 14% 0 12%;
+  background:linear-gradient(135deg,var(--cv1,var(--cv)),var(--cv2,var(--cv)));
+  box-shadow:inset -7px 0 0 rgba(0,0,0,.2),inset 2px 0 0 rgba(255,255,255,.1),0 10px 14px -8px rgba(43,34,24,.7)}
+.cover.cv::before{content:"";position:absolute;inset:5.5% 12% 5.5% 5.5%;border:1px solid rgba(244,227,184,.62);pointer-events:none}
+.cover.cv::after{content:"";position:absolute;inset:8% 14.5% 8% 8%;border:1px solid rgba(244,227,184,.28);pointer-events:none}
+.cover.cv .cv-t{position:relative;font-weight:700;font-size:12px;font-size:clamp(9px,14.5cqw,28px);line-height:1.4;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.cover.cv .cv-o{position:relative;width:18%;height:5%;flex:none;background:linear-gradient(90deg,transparent 0 30%,#E6C26A 30% 36%,transparent 36% 44%,#E6C26A 44% 56%,transparent 56% 64%,#E6C26A 64% 70%,transparent 70%);opacity:.8}
+.bookrow{border:0;border-radius:var(--radius);background:var(--surface);box-shadow:inset 0 0 0 1px var(--border);gap:14px;padding:12px}
+.bookrow .cover{width:70px}
+.bookcard{width:108px} .bookcard .bk-t{font-size:.95rem;font-weight:700}
+.hscroll{gap:16px}
+.detail-head .cover{width:112px}
+.sec-card{background:none;border:0;border-bottom:1px solid var(--mk-line);border-radius:0;padding:10px 2px;gap:8px}
+
+/* رفّ الكتب */
+.shelf{overflow-x:auto;margin-inline:-14px;padding-inline:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.shelf::-webkit-scrollbar{display:none}
+.shelf-in{position:relative;display:flex;gap:18px;width:max-content;min-width:100%;padding:6px 6px 14px}
+.shelf-in::after{content:"";position:absolute;inset-inline:-4px;bottom:0;height:9px;border-radius:2px;background:linear-gradient(180deg,#8B6A3E,#6A4D28);box-shadow:0 8px 10px -6px rgba(43,34,24,.5)}
+.shelf .bk{width:84px;flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;color:inherit;text-decoration:none;margin-bottom:-2px;z-index:1}
+.shelf .bk .cover{width:84px}
+.shelf .bk-a{display:block;width:84px;text-align:center;font-size:.8rem;line-height:1.3;color:var(--muted);height:2.6em;overflow:hidden}
+.shelf-cap{display:block;margin-top:14px;color:var(--muted);font-size:.8rem;text-align:center}
+/* صفوف الفهرس ذات الخط المنقّط */
+.toc{border-top:1px solid var(--mk-line)}
+.lr{display:flex;align-items:center;gap:8px;min-height:46px;font-size:1.1rem;color:var(--text);border-bottom:1px solid var(--mk-line);padding:0 2px}
+.lr em{direction:ltr;unicode-bidi:isolate;font-style:normal;color:var(--goldt);font-weight:700;min-width:1.6em}
+.lr .ld,.prow .ld{flex:1;border-bottom:2px dotted var(--mk-gold-a);height:1px;align-self:center;margin-top:.55em;min-width:12px}
+.lr b{color:var(--head)} :root[data-theme="dark"] .lr b{color:var(--gold-light)}
+.lr:active{background:var(--primary-soft)}
+.mast-s{text-align:center;color:var(--muted);margin:-2px 0 6px}
+
+/* ---------- مواقيت الصلاة: جدول مؤطّر بخطوط منقّطة ---------- */
+.card:has(>.prow){box-shadow:inset 0 0 0 5px var(--surface),inset 0 0 0 6px var(--gold),var(--shadow);padding:14px 22px;border-radius:6px}
+.prow{padding:0;height:46px;gap:10px;border-bottom:0;font-size:1.12rem}
+.prow::before{content:"";width:12px;height:12px;flex:none;background:var(--gold);clip-path:polygon(50% 0,60% 38%,100% 50%,60% 62%,50% 100%,40% 62%,0 50%,40% 38%)}
+.prow .pn{flex:none} .prow .pv{flex:none;font-weight:700;font-size:1.15rem}
+.prow.next{background:var(--primary);color:var(--on-primary);margin-inline:-12px;padding-inline:12px;border-radius:3px;font-weight:700}
+.prow.next::before{background:#E6C26A} .prow.next .ld{border-bottom-color:rgba(248,241,224,.5)}
+:root[data-theme="dark"] .prow.next{color:var(--on-primary)}
+
+/* ---------- القرآن والمسبحة والمشغّل ---------- */
+.t-btn{background:radial-gradient(circle at 35% 30%,#2E4F8C,#1F3A6B 55%,#15284B);box-shadow:0 10px 30px rgba(43,34,24,.4),inset 0 0 0 6px rgba(230,194,106,.6),inset 0 0 0 9px rgba(0,0,0,.25)}
+.t-count{color:var(--head)} :root[data-theme="dark"] .t-count{color:var(--gold-light)}
+.player{background:#1B2C52;border-radius:6px} .reader-bar,.reader-foot{background:#15284B}
+.surah-banner{border-radius:4px}
+.basmala{color:var(--head)}
+.bar{border-radius:2px} .bar>i{border-radius:2px}
+.sheet,.acc{border-radius:5px}
+.hero{background:var(--emerald);border-radius:0}
+.card p.nm+.btn,.card p.nm+a.btn{margin-top:10px}

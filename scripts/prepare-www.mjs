@@ -17,7 +17,7 @@ for (const f of ['index.html', 'manifest.json']) {
 }
 cpSync(join(root, 'assets'), join(out, 'assets'), { recursive: true });
 
-bundleFonts(root, out);
+bundleFonts(root, out, { skip: ['cairo'] }); // واجهة سِراج بخط Amiri؛ Cairo يبقى لتطبيق التحكم فقط
 
 // أعلام تقرأها native-notify.js في التطبيق الأصلي: هل وُضع ملف أذان مرخّص في android-resources؟ (لا يُضمَّن أي تسجيل افتراضياً)
 {

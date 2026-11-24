@@ -1,0 +1,129 @@
+name: Build Covers APK
+
+# تطبيق «سِراج — الأغلفة»: اكتب اسم الكتاب فيصير غلافاً بشكل «المخطوطة» ويُصدَّر صورة PNG عالية الدقة.
+# يُبنى منفصلاً عن سِراج والتحكم، بمعرّف حزمة مختلف (com.siraj.covers)، ويُنشر في Releases بوسم covers-<رقم>.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "covers/**"
+      - "assets/js/cover-art.js"
+      - "scripts/prepare-covers.mjs"
+      - "scripts/lib-fonts.mjs"
+      - "scripts/patch-android.py"
+      - "scripts/sign-apk.sh"
+      - ".github/workflows/android-covers.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-covers-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SIRAJ_ANDROID_DIR: covers/android
+      SIRAJ_IMAGES_DIR: covers/assets/images
+      SIRAJ_ICON_BG: "#15284B"
+      SIRAJ_SPLASH_BG: "#EFE5CE"
+      SIRAJ_PERMS: ""
+    steps:
+      - name: جلب المستودع
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Python (لتوليد الأيقونات)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: حزم Python
+        run: pip install pillow
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;36.0.0"
+
+      - name: تثبيت اعتماديات Capacitor (تطبيق الأغلفة)
+        working-directory: covers
+        run: npm install --no-audit --no-fund
+
+      - name: تجهيز ملفات الويب (covers/www)
+        working-directory: covers
+        run: node ../scripts/prepare-covers.mjs
+
+      - name: إنشاء مشروع أندرويد
+        working-directory: covers
+        run: npx cap add android
+
+      - name: تخصيص الأيقونة وشاشة البداية
+        run: python3 scripts/patch-android.py
+
+      - name: مزامنة Capacitor
+        working-directory: covers
+        run: npx cap sync android
+
+      - name: بناء APK
+        working-directory: covers/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: رفع تقارير الفشل (عند الفشل فقط)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: covers-build-reports
+          path: |
+            covers/android/app/build/reports
+            covers/android/build/reports
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: توقيع APK بمفتاح ثابت
+        run: |
+          APK="$(find covers/android/app/build/outputs/apk/debug -name '*.apk' | head -1)"
+          echo "APK المبني: $APK"
+          mkdir -p dist
+          if bash scripts/sign-apk.sh "$APK" dist/SIRAJ-Covers.apk; then
+            echo "تم التوقيع بالمفتاح الثابت."
+          else
+            echo "::warning title=التوقيع::فشل التوقيع بالمفتاح الثابت؛ استُخدم توقيع التصحيح التلقائي. ثبّته بعد حذف النسخة القديمة إن وُجدت."
+            cp "$APK" dist/SIRAJ-Covers.apk
+          fi
+
+      - name: رفع الملف كـ Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SIRAJ-Covers-apk
+          path: dist/SIRAJ-Covers.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: نشر الملف في Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: covers-${{ github.run_number }}
+          name: سِراج — الأغلفة، بناء رقم ${{ github.run_number }}
+          body: |
+            ملف التثبيت: **SIRAJ-Covers.apk** — اكتب اسم الكتاب (والمؤلف) فيرسم لك غلافاً بشكل «المخطوطة» وبخط Amiri، وتحفظه صورة PNG بدقة عالية.
+            يُثبَّت إلى جانب سِراج (معرّف مختلف) ويعمل دون إنترنت. الأغلفة مولَّدة من النص الذي تكتبه وليست أغلفة الطبعات الحقيقية.
+            الالتزام: ${{ github.sha }}
+          make_latest: "false"
+          files: dist/SIRAJ-Covers.apk

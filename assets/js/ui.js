@@ -205,7 +205,7 @@
     root.dataset.elder = st.elder ? '1' : '0';
     root.style.setProperty('--fscale', String(st.fontScale));
     root.style.setProperty('--q-scale', String(st.quranScale));
-    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = th === 'dark' ? '#082820' : '#103B2F';
+    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = th === 'dark' ? '#211A11' : '#F8F1E0';
     S.theme = th; S.syncBars(th);
     S.$$ && S.$$('[data-act=toggleTheme]').forEach((b) => { b.innerHTML = S.icon(th === 'dark' ? 'sun' : 'moon'); b.setAttribute('aria-label', th === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'); });
     document.dispatchEvent(new CustomEvent('siraj:settings'));
@@ -320,23 +320,18 @@
     } catch (e) { /* */ }
   };
 
-  /* ---------- الغلاف المولَّد (SVG) ---------- */
-  const COVER_COLORS = [['#103B2F', '#082820'], ['#12433f', '#06201e'], ['#5a1f2b', '#2a0d14'], ['#17304a', '#0a1828'], ['#4a3320', '#251808'], ['#2f3d1f', '#141c0b']];
-  function wrap(text, max) {
-    const words = String(text).split(/\s+/), lines = []; let cur = '';
-    for (const w of words) { if ((cur + ' ' + w).trim().length > max && cur) { lines.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }
-    if (cur) lines.push(cur); return lines.slice(0, 5);
-  }
-  S.coverSvg = function (b) {
+  /* ---------- الغلاف المولَّد ---------- */
+  /* غلاف «مخطوطة» بحسب العنوان فقط (ليس غلافاً حقيقياً للكتاب). المحرّك في cover-art.js؛ هنا لون ثابت لكل كتاب من معرّفه. */
+  S.coverPal = function (b) {
+    const C = window.SIRAJ_COVER; const dark = C ? C.PALETTES.slice(0, 7) : [{ id: 'lapis', bg: '#1F3A6B' }];
     let hsh = 0; for (const c of String(b.id)) hsh = (hsh * 31 + c.charCodeAt(0)) >>> 0;
-    const [c1, c2] = COVER_COLORS[hsh % COVER_COLORS.length];
-    const lines = wrap(b.title || 'كتاب', 13);
-    const mx = Math.max.apply(null, lines.map((l) => l.length));
-    const fs = Math.min(lines.length > 3 ? 20 : 24, mx >= 12 ? 18 : mx >= 10 ? 21 : 24);
-    const ty = 118 - (lines.length - 1) * 14;
-    const tl = lines.map((l, i) => `<text x="90" y="${ty + i * 29}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="#EAD59A" font-family="Amiri,'Noto Naskh Arabic','DejaVu Sans',serif">${esc(l)}</text>`).join('');
-    const au = esc(String(b.author || '').replace(/\(.*?\)/g, '').trim().slice(0, 30));
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 240"><defs><linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c1}"/><stop offset="1" stop-color="${c2}"/></linearGradient></defs><rect width="180" height="240" fill="url(#a)"/><rect x="8" y="8" width="164" height="224" fill="none" stroke="#D6B15E" stroke-width="2"/><rect x="13" y="13" width="154" height="214" fill="none" stroke="#D6B15E" stroke-opacity=".5"/><g transform="translate(90 56)" fill="none" stroke="#D6B15E" stroke-width="1.6"><rect x="-14" y="-14" width="28" height="28"/><rect x="-14" y="-14" width="28" height="28" transform="rotate(45)"/><circle r="4" fill="#D6B15E"/></g>${tl}<path d="M40 190h100" stroke="#D6B15E" stroke-opacity=".6"/><text x="90" y="213" text-anchor="middle" font-size="12" fill="#F6F1E5" font-family="Amiri,'Noto Naskh Arabic','DejaVu Sans',serif">${au}</text></svg>`;
+    const p = dark[hsh % dark.length];
+    return { id: p.id, bg: p.bg, c1: C ? C.mix(p.bg, '#ffffff', 0.1) : p.bg, c2: C ? C.mix(p.bg, '#000000', 0.2) : p.bg };
+  };
+  S.coverSvg = function (b) {
+    const C = window.SIRAJ_COVER; const p = S.coverPal(b);
+    const svg = C ? C.svg({ title: b.title || 'كتاب', author: String(b.author || '').replace(/\(.*?\)/g, '').trim(), color: p.id })
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 428"><rect width="300" height="428" fill="' + p.bg + '"/></svg>';
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   };
 
@@ -344,10 +339,12 @@
   S.toast = function (msg, kind) {
     let box = document.getElementById('toasts');
     if (!box) { box = document.createElement('div'); box.id = 'toasts'; box.setAttribute('role', 'status'); box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
-    const t = document.createElement('div'); t.className = 'toast ' + (kind || '');
+    /* نفس الرسالة ما زالت ظاهرة (نقرات متكررة): لا نكدّسها، بل نُبقي الموجودة */
+    for (const el of box.children) if (el.dataset.msg === String(msg) && !el.dataset.gone) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; return; }
+    const t = document.createElement('div'); t.className = 'toast ' + (kind || ''); t.dataset.msg = String(msg);
     t.innerHTML = `<span>${esc(msg)}</span>`; box.appendChild(t);
     while (box.children.length > 3) box.firstChild.remove();
-    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 320); }, kind === 'err' ? 5200 : 2600);
+    setTimeout(() => { t.dataset.gone = '1'; t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 320); }, kind === 'err' ? 5200 : 2600);
   };
 
   /* ---------- النوافذ (مع دعم زر الرجوع في أندرويد) ---------- */
@@ -416,7 +413,9 @@
   f.area = (name, label, value, o) => { o = o || {}; return S.h`<div class="field">${label ? S.h`<label for="f_${name}">${label}${o.required ? S.raw(' <span class="bad">*</span>') : ''}</label>` : ''}<textarea class="textarea ${o.ltr ? 'ltr' : ''}" id="f_${name}" name="${name}" rows="${o.rows || 4}" ${S.raw(attr({ placeholder: o.placeholder, required: o.required }))}>${value == null ? '' : value}</textarea>${o.hint ? S.h`<span class="hint">${o.hint}</span>` : ''}</div>`; };
   f.select = (name, label, options, value, o) => { o = o || {}; return S.h`<div class="field">${label ? S.h`<label for="f_${name}">${label}</label>` : ''}<select class="select" id="f_${name}" name="${name}" ${S.raw(attr({ 'data-chg': o.chg, 'data-k': o.k, 'data-num': o.num }))}>${options.map((x) => S.h`<option value="${x.v}" ${String(x.v) === String(value) ? S.raw('selected') : ''}>${x.t}</option>`)}</select>${o.hint ? S.h`<span class="hint">${o.hint}</span>` : ''}</div>`; };
   f.check = (name, label, checked) => S.h`<label class="check"><input type="checkbox" name="${name}" ${checked ? S.raw('checked') : ''}><span>${label}</span></label>`;
-  f.file = (name, label, accept, hint) => S.h`<div class="field"><label>${label}</label><div class="filebox"><input type="file" name="${name}" accept="${accept || ''}">${hint ? S.h`<span class="hint">${hint}</span>` : ''}</div></div>`;
+  /* حقل ملف بزرّ واضح واسم الملف في سطر مستقل (بدل عنصر المتصفح الأصلي الذي يتداخل نصّه في الشاشات الضيقة) */
+  f.file = (name, label, accept, hint) => S.h`<div class="field"><label>${label}</label><div class="filebox"><label class="btn block filebtn">${S.icon('upload')} <span>اختيار ملف</span><input class="sr-file" type="file" name="${name}" accept="${accept || ''}"></label><div class="fname" aria-live="polite">لم يُختر ملف بعد</div>${hint ? S.h`<span class="hint">${hint}</span>` : ''}</div></div>`;
+  document.addEventListener('change', (e) => { const i = e.target; if (!(i && i.matches && i.matches('.filebox input[type=file]'))) return; const n = i.closest('.filebox').querySelector('.fname'); if (n) n.textContent = i.files && i.files[0] ? i.files[0].name : 'لم يُختر ملف بعد'; });
   f.read = function (root) {
     const out = {};
     S.$$('[name]', root).forEach((el) => {
@@ -444,6 +443,8 @@
     notice: (kind, title, body) => S.h`<div class="notice ${kind}">${S.icon(kind === 'err' ? 'alert' : kind === 'ok' ? 'check-circle' : kind === 'warn' ? 'alert' : 'info')}<div>${title ? S.h`<b>${title}</b>` : ''}${body}</div></div>`,
     badge: (txt, kind) => S.h`<span class="badge ${kind || ''}">${txt}</span>`,
     ring(pct, label) { const r = 38, c = 2 * Math.PI * r; return S.h`<div class="ring-wrap"><svg viewBox="0 0 90 90"><circle class="trk" cx="45" cy="45" r="${r}"/><circle class="prg" cx="45" cy="45" r="${r}" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - S.clamp(pct, 0, 100) / 100)}"/></svg><b>${label != null ? label : S.n(Math.round(pct)) + '%'}</b></div>`; },
+    /* فاصل مزخرف: خط – معيّن – خط */
+    ornament: () => S.raw('<svg class="mk-orn" viewBox="0 0 210 14" aria-hidden="true"><path d="M0 7h88M122 7h88" stroke="currentColor" stroke-width="1" fill="none"/><path d="M105 1l6 6-6 6-6-6z" fill="currentColor"/><circle cx="92" cy="7" r="1.6" fill="currentColor"/><circle cx="118" cy="7" r="1.6" fill="currentColor"/></svg>'),
     sectionTitle: (t, link, label) => S.h`<div class="sec-title"><span>${t}</span>${link ? S.h`<a class="small" href="${link}">${label || 'عرض الكل'}</a>` : ''}</div>`,
     li: (o) => S.h`<${S.raw(o.href ? 'a' : 'button')} class="li" ${S.raw(o.href ? `href="${esc(o.href)}"` : `data-act="${esc(o.act || '')}"${o.attrs ? ' ' + o.attrs : ''}`)}>${o.icon ? S.h`<span class="li-ico">${S.icon(o.icon)}</span>` : ''}<span class="li-body"><span class="li-t">${o.t}</span>${o.s ? S.h`<span class="li-s">${o.s}</span>` : ''}</span><span class="li-end">${o.end || ''}${S.icon('chevron-left', 'rtl-flip-no')}</span></${S.raw(o.href ? 'a' : 'button')}>`
   };

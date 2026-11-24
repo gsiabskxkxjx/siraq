@@ -10,13 +10,15 @@ const RANGES = {
 };
 
 /** root: جذر المستودع (فيه node_modules)، out: مجلد www الهدف الذي فيه index.html و assets/css/style.css */
-export function bundleFonts(root, out) {
+export function bundleFonts(root, out, opt) {
+  const skip = new Set((opt && opt.skip) || []);
   const nm = join(root, 'node_modules', '@fontsource');
   const outDir = join(out, 'assets', 'fonts');
   mkdirSync(outDir, { recursive: true });
   let css = '/* مولَّد بواسطة scripts/lib-fonts.mjs من حزم @fontsource (رخصة SIL OFL) */\n';
   let n = 0;
   for (const [id, family, weights] of FONTS) {
+    if (skip.has(id)) continue;
     const dir = join(nm, id, 'files');
     if (!existsSync(dir)) { console.log('::warning title=خط ناقص::حزمة الخط ' + id + ' غير موجودة؛ ستُستخدم خطوط النظام'); continue; }
     const have = new Set(readdirSync(dir));
@@ -36,7 +38,8 @@ export function bundleFonts(root, out) {
     .replace(/<noscript><link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*><\/noscript>\s*/g, '');
   if (n) {
     writeFileSync(join(out, 'assets', 'css', 'fonts.css'), css);
-    html = html.replace('<link rel="stylesheet" href="assets/css/style.css">', '<link rel="stylesheet" href="assets/css/fonts.css">\n<link rel="stylesheet" href="assets/css/style.css">');
+    const anchor = '<link rel="stylesheet" href="' + ((opt && opt.anchor) || 'assets/css/style.css') + '">';
+    html = html.replace(anchor, '<link rel="stylesheet" href="assets/css/fonts.css">\n' + anchor);
   }
   writeFileSync(idx, html);
   console.log('خطوط محلية: ' + n + ' ملف' + (n ? '' : ' (لا شيء؛ خطوط النظام)'));

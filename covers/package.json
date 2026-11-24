@@ -1,0 +1,22 @@
+{
+  "name": "siraj-covers-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "سِراج — الأغلفة: اكتب اسم الكتاب فيصير غلافاً بشكل المخطوطة (غلاف أندرويد Capacitor)",
+  "scripts": {
+    "prepare:www": "node ../scripts/prepare-covers.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "@fontsource/amiri": "^5.0.0"
+  }
+}

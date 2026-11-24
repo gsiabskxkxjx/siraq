@@ -55,7 +55,6 @@
   });
 
   /* ---------- قارئ الدعاء ---------- */
-  let tts = null;
   /* تكرار مقطع (A–B) على التسجيل الصوتي المرتبط بالدعاء إن وُجد */
   const AB = { a: null, b: null }; const fmtT = (x) => (x == null ? '—' : Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0'));
   const abPaint = () => { const A = S.$('#dua-a'), B = S.$('#dua-b'), st = S.$('#dua-abst'); if (!A) return; A.textContent = fmtT(AB.a); B.textContent = fmtT(AB.b); st.textContent = AB.a != null && AB.b != null ? 'يتكرر المقطع من ' + fmtT(AB.a) + ' إلى ' + fmtT(AB.b) : 'لا مقطع محدد.'; };
@@ -95,13 +94,13 @@
   const full = async (id) => { const d = await S.db.get('duas', id); return d.title + '\n\n' + d.text + '\n\nالمصدر: ' + srcLine(d) + '\n— عبر تطبيق سِراج'; };
   S.act('duaCopy', async (el) => S.copy(await full(el.dataset.id)));
   S.act('duaShare', async (el) => { const d = await S.db.get('duas', el.dataset.id); S.share({ title: d.title, text: await full(el.dataset.id) }); });
-  function stopTts() { try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) { /* */ } tts = null; }
+  function stopTts() { S.tts.stop(); }
   S.act('duaTts', async (el) => {
-    if (!('speechSynthesis' in window)) return S.toast('الجهاز لا يدعم القراءة الآلية', 'err');
-    if (tts) { stopTts(); return S.toast('أُوقفت القراءة'); }
-    const d = await S.db.get('duas', el.dataset.id); const voices = speechSynthesis.getVoices(); const ar = voices.find((v) => /^ar/i.test(v.lang));
-    if (!ar && voices.length) S.toast('لا يوجد صوت عربي مثبّت على جهازك؛ قد تكون القراءة غير واضحة', 'err');
-    const u = new SpeechSynthesisUtterance(d.text); u.lang = ar ? ar.lang : 'ar-SA'; if (ar) u.voice = ar; u.rate = 0.85; u.onend = () => { tts = null; }; tts = u; speechSynthesis.speak(u);
-    S.toast('قراءة آلية بصوت جهازك — وليست تلاوة بشرية');
+    if (S.tts.playing) { stopTts(); return S.toast('أُوقفت القراءة'); }
+    if (!S.tts.supported()) return S.toast('هذا الجهاز لا يوفّر قراءة آلية. ثبّت «خدمات الكلام من Google» (Speech Services by Google) من متجر Play ثم أعد المحاولة.', 'err');
+    const d = await S.db.get('duas', el.dataset.id); const ar = await S.tts.hasArabic();
+    if (ar === false) S.toast('لا يوجد صوت عربي مثبّت على جهازك؛ ثبّته من إعدادات الهاتف ← تحويل النص إلى كلام', 'err');
+    else S.toast('قراءة آلية بصوت جهازك — وليست تلاوة بشرية');
+    S.tts.speak(d.text, { rate: 0.85 }).catch((e) => { if (e && e.message !== 'unsupported') S.toast('تعذّرت القراءة الآلية على هذا الجهاز', 'err'); });
   });
 })();

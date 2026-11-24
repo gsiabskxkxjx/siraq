@@ -1,13 +1,14 @@
 # تحويل سِراج إلى تطبيق أندرويد (APK) عبر GitHub
 
-التطبيقان (سِراج و«سِراج — التحكم») ويب (HTML/JS). نغلّفهما بـ **Capacitor 8** داخل غلاف أندرويد، ويبني GitHub Actions ملفين تلقائياً عند كل دفع إلى الفرع `main`، دون الحاجة إلى حاسوب:
+التطبيقات الثلاثة (سِراج و«سِراج — التحكم» و«سِراج — الأغلفة») ويب (HTML/JS). نغلّفها بـ **Capacitor 8** داخل غلاف أندرويد، ويبني GitHub Actions ملفين تلقائياً عند كل دفع إلى الفرع `main`، دون الحاجة إلى حاسوب:
 
 | التطبيق | Workflow | الملف | وسم الإصدار | معرّف الحزمة |
 |---|---|---|---|---|
 | سِراج (للمستخدم) | `android.yml` «Build Android APK» | `SIRAJ.apk` | `apk-N` | `com.siraj.app` |
 | سِراج — التحكم (للناشر) | `android-control.yml` «Build Control APK» | `SIRAJ-Control.apk` | `control-N` | `com.siraj.control` |
+| سِراج — الأغلفة | `android-covers.yml` «Build Covers APK» | `SIRAJ-Covers.apk` | `covers-N` | `com.siraj.covers` |
 
-يُثبَّتان معاً على الهاتف. شرح التحكم والمفتاح والحزم في [`CONTROL.md`](CONTROL.md).
+تُثبَّت الثلاثة معاً على الهاتف. شرح الأغلفة في [`COVERS.md`](COVERS.md). شرح التحكم والمفتاح والحزم في [`CONTROL.md`](CONTROL.md).
 
 ## كيف تحمّل الـAPK من الهاتف
 1. افتح المستودع على GitHub من المتصفح (أو تطبيق GitHub).
@@ -70,3 +71,9 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 يتطلب Node 22+ وJDK 21 وAndroid SDK 36.
+
+## القراءة الآلية (تحويل النص إلى كلام)
+WebView أندرويد لا يوفّر غالباً `speechSynthesis`، لذلك يستعمل سِراج إضافة `@capacitor-community/text-to-speech` (محرك الهاتف نفسه) عبر `assets/js/tts.js`، ويعود إلى `speechSynthesis` في المتصفح. يضيف `scripts/patch-android.py` (مع `SIRAJ_TTS=1` في `android.yml`) عنصر `<queries>` لخدمة `TTS_SERVICE` احتياطاً لأندرويد 11+. القراءة بصوت **محرك هاتفك** وليست تلاوة بشرية؛ يلزم صوت عربي مثبّت (إعدادات الهاتف ← تحويل النص إلى كلام؛ مثلاً «خدمات الكلام من Google»). النص الطويل يُقسَّم إلى مقاطع ≤ 1500 حرف. **لم تُجرَّب على جهاز حقيقي** — اختبارها الآلي بمحاكاة الإضافة فقط.
+
+## المظهر
+واجهة سِراج بنمط «مخطوطة» (رقّ نهاري/ليلي، لازورد وذهب، خط Amiri) في `assets/css/makhtuta.css` فوق `style.css`. خط Cairo يبقى لتطبيق التحكم فقط (لا يُضمَّن في APK سِراج).

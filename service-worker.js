@@ -8,9 +8,10 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = '17dbb8f4e3';
+const VERSION = '76c1e8ad20';
 const PRECACHE = [
   './',
+  './assets/css/makhtuta.css',
   './assets/css/responsive.css',
   './assets/css/style.css',
   './assets/data/duas-data.js',
@@ -34,6 +35,7 @@ const PRECACHE = [
   './assets/js/app.js',
   './assets/js/assistant.js',
   './assets/js/calendar.js',
+  './assets/js/cover-art.js',
   './assets/js/daily.js',
   './assets/js/duas.js',
   './assets/js/encyclopedia.js',
@@ -53,6 +55,7 @@ const PRECACHE = [
   './assets/js/storage.js',
   './assets/js/tasbeeh.js',
   './assets/js/thaqalayn.js',
+  './assets/js/tts.js',
   './assets/js/ui.js',
   './assets/js/worship.js',
   './assets/lib/pdfjs/LICENSE-pdfjs.txt',

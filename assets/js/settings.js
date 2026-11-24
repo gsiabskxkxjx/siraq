@@ -127,7 +127,7 @@
           <li>بحث الكتب المفتوحة (اختياري): واجهة archive.org.</li>
         </ul>
         <div class="row wrap">${S.data.quran.attribution.links.map(([t, u]) => S.h`<a class="chip" href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`)}</div></div>
-      <div class="card"><div class="card-t">${S.icon('flag')} ما ليس مربوطاً بعد</div><p class="small muted nm">لا يوجد خادم في هذه النسخة: تسجيل المستخدمين الحقيقي، المزامنة بين الأجهزة، المساعد الذكي الحقيقي، ونشر الكتب العام تحتاج بنية خلفية (Supabase) موثقة في docs/schema.sql، وتظهر في الواجهة بوسم «غير مربوط».</p></div>
+      <div class="card"><div class="card-t">${S.icon('flag')} ما ليس مربوطاً بعد</div><p class="small muted nm">لا يوجد خادم في هذه النسخة: تسجيل المستخدمين الحقيقي، المزامنة بين الأجهزة، المساعد الذكي الحقيقي، ونشر الكتب العام تحتاج بنية خلفية (Supabase), وتظهر في الواجهة بوسم «غير مربوط».</p></div>
     </div>`
   }));
 })();

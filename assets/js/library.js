@@ -98,13 +98,20 @@
   /* ---------- مكوّنات العرض ---------- */
   const val = (x) => (x == null || x === '' ? S.h`<span class="badge warn">غير موثّق</span>` : x);
   const statusBadge = (b) => b.status === 'published' ? S.ui.badge('منشور', 'ok') : b.status === 'pending' ? S.ui.badge('بانتظار الموافقة', 'warn') : b.status === 'rejected' ? S.ui.badge('مرفوض', 'bad') : S.ui.badge('يحتاج مراجعة', 'info');
-  const cover = (b) => S.h`<div class="cover"><img data-cover="${b.id}" src="${S.coverSvg(b)}" alt="" loading="lazy" decoding="async"></div>`;
+  /* غلاف الكتاب: صورة المستخدم إن رفع غلافاً، وإلا غلاف «مخطوطة» مرسوم بـCSS بخط التطبيق نفسه (أخف من صورة SVG) */
+  const cover = (b) => {
+    if (b.hasCover) return S.h`<div class="cover"><img data-cover="${b.id}" src="${S.coverSvg(b)}" alt="" loading="lazy" decoding="async"></div>`;
+    const p = S.coverPal(b);
+    return S.h`<div class="cover cv" style="--cv:${p.bg};--cv1:${p.c1};--cv2:${p.c2}" role="img" aria-label="${b.title}"><span class="cv-t">${b.title}</span><i class="cv-o"></i></div>`;
+  };
+  L.cover = cover;
+  const shelfBook = (b) => S.h`<a class="bk" href="#/library/book/${b.id}">${cover(b)}<span class="bk-a">${String(b.author || '').replace(/\(.*?\)/g, '').trim()}</span></a>`;
   L.row = (b) => S.h`<a class="bookrow" href="#/library/book/${b.id}">${cover(b)}<div class="grow"><div class="bk-t">${b.title}</div><div class="bk-a">${b.author}</div><div class="row wrap mt-s">${S.ui.badge((S.sectionById[b.section] || {}).title || '')}${b.subcat ? S.ui.badge(b.subcat) : ''}${b.hasPdf ? S.ui.badge('PDF محلي', 'ok') : ''}${b.status !== 'published' ? statusBadge(b) : ''}${S.fav.has('book', b.id) ? S.icon('heart', 'fill') : ''}</div></div></a>`;
   L.card = (b) => S.h`<a class="bookcard" href="#/library/book/${b.id}">${cover(b)}<div class="bk-t">${b.title}</div><span class="bk-a">${b.author}</span></a>`;
   S.ui.bookRow = L.row; S.ui.bookCard = L.card;
 
   function sectionCard(s, cnt) {
-    return S.h`<a class="sec-card" href="#/library/sec/${s.id}"><span class="sn">${S.icon(S.hasIcon(s.icon) ? s.icon : 'book-open')}</span><span class="grow"><b>${s.n}. ${s.title}</b><span class="small muted" style="display:block">${S.n(cnt)} كتاب</span></span>${S.icon('chevron-left')}</a>`;
+    return S.h`<a class="lr" href="#/library/sec/${s.id}"><em>${S.n(s.n)}.</em><span style="font-weight:700">${s.title}</span><span class="ld"></span><b>${S.n(cnt)}</b></a>`;
   }
 
   /* ---------- صفحة المكتبة ---------- */
@@ -113,18 +120,21 @@
     const recent = L.published().slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || '')).slice(0, 10);
     const last = S.progress.last('book'); const lastBook = last && L.byId.get(last.ref);
     const rec = L.recommended(8);
+    const shelfBooks = (rec.books.length ? rec.books : recent).slice(0, 8);
     return {
       title: 'المكتبة', nav: 'library', back: false,
       actions: [{ icon: 'heart', label: 'المفضلة', href: '#/library/favorites' }, { icon: 'search', label: 'بحث', href: '#/library/search' }],
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="lib-q" type="search" placeholder="ابحث في الكتب والمؤلفين والموضوعات…" enterkeyhint="search" autocomplete="off"></div>
         <div class="chips"><a class="chip" href="#/library/search?sort=recent">${S.icon('clock')} الأحدث</a><a class="chip" href="#/library/top">${S.icon('chart')} الأكثر قراءة</a><a class="chip" href="#/library/favorites">${S.icon('heart')} المفضلة</a><a class="chip" href="#/library/history">${S.icon('book-open')} سجل القراءة</a><a class="chip" href="#/library/authors">${S.icon('users')} المؤلفون</a><a class="chip" href="#/library/eras">${S.icon('timeline')} العصور</a><a class="chip" href="#/library/search?sort=alpha">${S.icon('sort')} أبجدياً</a></div>
-        ${S.ui.notice('gold', 'عن المكتبة', S.h`<span>تضم المكتبة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة (عنوان ومؤلف ونبذة) دون نصوص الكتب. تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
         ${last && lastBook ? S.h`<div class="card tap gold-edge" data-act="goto" data-to="/library/read/${lastBook.id}"><div class="card-t">${S.icon('book-open')} تابع القراءة</div><div class="row"><div style="width:54px">${cover(lastBook)}</div><div class="grow"><b>${lastBook.title}</b><div class="small muted">${lastBook.author}${last.page ? ' • صفحة ' + S.n(last.page) : ''}</div></div></div></div>` : ''}
+        <div class="mast-s">${S.n(total)} كتاباً في ${S.n(S.sections.length)} أقسام موضوعية${S.ui.ornament ? S.ui.ornament() : ''}</div>
+        ${shelfBooks.length ? S.h`${S.ui.sectionTitle('على الرف')}<div class="shelf"><div class="shelf-in">${shelfBooks.map(shelfBook)}</div></div>` : ''}
         ${S.ui.sectionTitle('الأقسام (' + S.n(S.sections.length) + ')')}
-        <div class="stack s">${S.sections.map((s) => sectionCard(s, counts[s.id] || 0))}</div>
+        <div class="toc">${S.sections.map((s) => sectionCard(s, counts[s.id] || 0))}</div>
         ${recent.length ? S.h`${S.ui.sectionTitle('أُضيف حديثاً', '#/library/search?sort=recent')}<div class="hscroll">${recent.map(L.card)}</div>` : ''}
         ${rec.books.length ? S.h`${S.ui.sectionTitle(rec.personalized ? 'مقترحة لك' : 'كتب مقترحة', '#/library/recommended')}<div class="hscroll">${rec.books.map(L.card)}</div><p class="tiny muted">اقتراحات محلية تعتمد على مفضلتك وسجل قراءتك في هذا الجهاز فقط.</p>` : ''}
+        ${S.ui.notice('gold', 'عن المكتبة', S.h`<span>تضم المكتبة <b>${S.n(total)}</b> كتاباً بمعلومات ببليوغرافية عامة (عنوان ومؤلف ونبذة) دون نصوص الكتب. تصل الإضافات والتصحيحات عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة.</span>`)}
       </div>`,
       mount(root) { const f = S.$('#lib-q', root); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') { S.router.go('/library/search?q=' + encodeURIComponent(f.value)); } }); }
     };

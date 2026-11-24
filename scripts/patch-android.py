@@ -51,6 +51,11 @@ def patch_manifest():
             return
         s = s.replace("</manifest>", add + "</manifest>")
         open(MANIFEST, "w", encoding="utf-8").write(s)
+    # أندرويد 11+ يخفي عن التطبيق محركات النطق ما لم يُصرَّح بذلك (حتى تعمل «القراءة الآلية»). يُفعَّل عبر SIRAJ_TTS=1
+    if os.environ.get("SIRAJ_TTS") == "1" and "TTS_SERVICE" not in s:
+        s = s.replace("</manifest>", '    <queries>\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>\n</manifest>')
+        open(MANIFEST, "w", encoding="utf-8").write(s)
+        print("manifest: أُضيف <queries> لمحركات النطق")
     print("manifest: الصلاحيات =", re.findall(r'uses-permission android:name="([^"]+)"', s))
 
 
