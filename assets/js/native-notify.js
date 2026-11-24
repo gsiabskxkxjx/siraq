@@ -164,6 +164,11 @@
     /* إشعار تجريبي بعد sec ثانية لتتأكد أنه يصل والتطبيق في الخلفية */
     async test(sec) {
       if (!available()) return { ok: false, reason: 'unavailable' };
+      const A = adh();
+      if (A && A.test) { /* اختبار المنبّه الحقيقي الذي يشغّل صوت الأذان (قناة المنبّه) */
+        try { await pushAudio(A); const r = await A.test({ sec: Math.max(5, sec || 10) }); return { ok: !!(r && r.ok), alarm: true, hasAudio: !!(r && r.hasAudio), sec: Math.max(5, sec || 10) }; }
+        catch (e) { /* يرجع إلى الإشعار العادي */ }
+      }
       const LN = plug(); await refreshPerm(); if (perm !== 'granted') return { ok: false, reason: perm };
       try { await ensureChannels(LN); await LN.schedule({ notifications: [toNative({ id: TEST_ID, title: 'تجربة إشعار سِراج', body: 'إن ظهر هذا الإشعار فالأذان والتذكيرات ستصلك والتطبيق مغلق.', at: new Date(Date.now() + Math.max(5, sec || 10) * 1000), ch: CH.adhan, extra: { route: '/prayer/settings', kind: 'test' } })] }); return { ok: true, seconds: Math.max(5, sec || 10) }; }
       catch (e) { return { ok: false, error: (e && e.message) || String(e) }; }

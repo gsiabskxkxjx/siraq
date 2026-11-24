@@ -10,7 +10,7 @@
   const META = () => S.kv.get('ctl.meta', { title: '', notes: '' });
   const HIST = () => S.kv.get('ctl.history', []);
   const nextSeq = () => Math.max((+S.kv.get('ctl.seq', 0) || 0) + 1, Math.floor(Date.now() / 60000));
-  const stripBook = (b) => ({ id: b.id, title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: b.tags || [], publisher: b.publisher || '', year: b.year === '' ? null : b.year, edition: b.edition || '', pages: b.pages === '' ? null : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', copyright: b.copyright || 'غير محدد' });
+  const stripBook = (b) => ({ id: b.id, title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: b.tags || [], publisher: b.publisher || '', year: b.year === '' ? null : b.year, edition: b.edition || '', pages: b.pages === '' ? null : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', streamUrl: b.streamUrl || '', copyright: b.copyright || 'غير محدد' });
   const stripDua = (d) => ({ id: d.id, kind: d.kind, title: d.title, cat: d.cat, commonSource: d.commonSource || '', note: d.note || '', text: d.text || '', textSource: d.text ? d.textSource : null });
   const stripEntry = (e) => ({ id: e.id, collection: e.collection, title: e.title, text: e.text || '', verses: e.verses || [], tags: e.tags || [], sources: e.sources || [], isnads: e.isnads || [], variants: e.variants || [], scholarRulings: e.scholarRulings || [], positions: e.positions || [], extra: e.extra || {} });
 
@@ -81,7 +81,7 @@
   S.act('adhanSave', async (el) => {
     const f = S.$('[name=adhanFile]', el.closest('.card')).files[0]; if (!f) return S.toast('اختر ملفاً صوتياً', 'err');
     if (!/^audio\//.test(f.type)) return S.toast('الملف ليس صوتياً', 'err'); if (f.size > 10 * 1048576) return S.toast('الحد الأقصى 10 ميغابايت', 'err');
-    await S.files.put('ctl.adhan', f, { name: f.name }); S.toast('حُفظ الأذان؛ يدخل الحزمة القادمة', 'ok'); S.router.refresh();
+    await S.files.put('ctl.adhan', f, { name: f.name }); S.toast('حُفظ الأذان. لا يصل المستخدم إلا بعد «إصدار حزمة» جديدة وتثبيتها في تطبيقه', 'ok'); S.router.refresh();
   });
   S.act('adhanDel', async () => { await S.files.del('ctl.adhan'); S.toast('أُزيل الأذان من الحزمة القادمة'); S.router.refresh(); });
   S.act('pkIssue', async () => {

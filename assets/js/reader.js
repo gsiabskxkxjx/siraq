@@ -25,8 +25,9 @@
     const b = L().byId.get(p.id); const back = '/library/book/' + p.id;
     if (!b || !L().visible(b)) return { title: 'قراءة', bar: true, back: '/library', html: S.ui.empty('alert', 'الكتاب غير متاح') };
     const f = b.hasPdf ? await S.files.get('pdf:' + b.id) : null;
-    if (!f) return { title: b.title, back, html: S.ui.empty('file', 'لا يوجد ملف PDF لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية؛ افتح رابط المصدر من صفحة الكتاب.', S.h`<a class="btn" href="#${back}">العودة</a>`) };
-    if (S.isFile) {
+    const streamUrl = !f && b.streamUrl && /^https:\/\//i.test(b.streamUrl) ? b.streamUrl : '';
+    if (!f && !streamUrl) return { title: b.title, back, html: S.ui.empty('file', 'لا يوجد ملف PDF لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية؛ افتح رابط المصدر من صفحة الكتاب.', S.h`<a class="btn" href="#${back}">العودة</a>`) };
+    if (S.isFile && f) {
       const u = URL.createObjectURL(f.blob);
       return { title: b.title, back, html: S.h`<div class="stack">${S.ui.notice('warn', 'القارئ المدمج غير متاح عند الفتح من ملف', 'يحتاج قارئ سِراج إلى تشغيل التطبيق عبر HTTPS أو localhost (راجع README). يمكنك الآن فتح الملف بتطبيق PDF في جهازك:')}<a class="btn primary block" href="${u}" target="_blank" rel="noopener">${S.icon('file')} فتح الملف خارجياً</a></div>` };
     }
@@ -40,21 +41,23 @@
         <div class="reader-foot"><button class="iconbtn" data-act="rdGo" data-d="-1" aria-label="الصفحة السابقة">${S.icon('chevron-right')}</button><input type="range" id="rd-range" min="1" max="1" value="1" aria-label="الصفحة" dir="rtl"><input type="number" id="rd-page" min="1" value="1" inputmode="numeric" aria-label="رقم الصفحة"><span id="rd-total" style="min-width:34px;text-align:center">/ —</span><button class="iconbtn" data-act="rdGo" data-d="1" aria-label="الصفحة التالية">${S.icon('chevron-left')}</button><button class="iconbtn" data-act="rdZoom" data-d="-0.2" aria-label="تصغير">${S.icon('minus')}</button><button class="iconbtn" data-act="rdZoom" data-d="0.2" aria-label="تكبير">${S.icon('plus')}</button></div>
         <div id="rd-sel" hidden style="position:absolute;inset-inline:12px;bottom:70px;z-index:5;background:var(--emerald-dark);border:1px solid var(--gold);border-radius:14px;padding:8px;display:flex;gap:8px;justify-content:center"><button class="btn sm gold" data-act="rdHl">${S.icon('edit')} تظليل</button><button class="btn sm" data-act="rdHlNote">${S.icon('notebook')} تظليل + ملاحظة</button><button class="btn sm" data-act="rdCopySel">${S.icon('copy')} نسخ</button></div>
       </div>`,
-      mount: () => openBook(b, f, +q.page || 0),
+      mount: () => openBook(b, f, +q.page || 0, streamUrl),
       unmount: cleanup
     };
   });
 
-  async function openBook(b, f, jumpTo) {
+  async function openBook(b, f, jumpTo, streamUrl) {
     const stage = document.getElementById('pdfstage'); cleanup();
     R = { b, scale: 1, zoom: S.kv.get('reader.zoom', 1), pages: [], cur: 1, textCache: {}, hl: {}, query: '', rendering: new Set(), selFn: null };
     try {
-      const lib = await loadPdfjs(); const buf = await f.blob.arrayBuffer();
-      R.doc = await lib.getDocument({ data: buf }).promise;
+      const lib = await loadPdfjs();
+      if (f) { const buf = await f.blob.arrayBuffer(); R.doc = await lib.getDocument({ data: buf }).promise; }
+      else { R.stream = true; R.doc = await lib.getDocument({ url: streamUrl, rangeChunkSize: 262144, disableAutoFetch: true, disableStream: false, withCredentials: false }).promise; }
     } catch (e) {
       if (e && e.name === 'PasswordException') stage.innerHTML = '<div class="loading">الملف محمي بكلمة مرور ولا يمكن فتحه.</div>';
+      else if (streamUrl) stage.innerHTML = `<div class="loading">تعذّر العرض المباشر (قد يكون الاتصال ضعيفاً أو الخادم لا يدعم البث).<br><a class="btn primary sm mt" target="_blank" rel="noopener noreferrer" href="${S.url(streamUrl)}">فتح الكتاب (رابط خارجي)</a> <a class="btn sm mt" href="#/library/book/${b.id}">رجوع</a></div>`;
       else stage.innerHTML = `<div class="loading">تعذّر فتح الملف: ${S.esc((e && e.message) || e)}<br><a class="btn sm mt" href="#/library/book/${b.id}">رجوع</a></div>`;
-      S.log('error', 'pdf open: ' + ((e && e.message) || e)); return;
+      S.log(streamUrl ? 'warn' : 'error', 'pdf open: ' + ((e && e.message) || e)); return;
     }
     const n = R.doc.numPages; R.n = n; stage.innerHTML = '';
     const p1 = await R.doc.getPage(1); R.vp1 = p1.getViewport({ scale: 1 });

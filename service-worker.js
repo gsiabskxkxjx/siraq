@@ -8,7 +8,7 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = 'ac6a0ee197';
+const VERSION = 'ed7b424123';
 const PRECACHE = [
   './',
   './android-resources/java/AdhanBootReceiver.java',

@@ -101,6 +101,20 @@ final class AdhanStore {
         return n;
     }
 
+    /** منبّه تجريبي واحد لا يمسّ جدول الأذان المخزَّن. */
+    static boolean scheduleOne(Context c, int id, long at, String title, String body) {
+        try {
+            AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+            PendingIntent p = pi(c, id, title, body);
+            if (canExact(c) && Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, p);
+            else if (Build.VERSION.SDK_INT >= 23) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, p);
+            else am.set(AlarmManager.RTC_WAKEUP, at, p);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     static boolean canExact(Context c) {
         try {
             AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);

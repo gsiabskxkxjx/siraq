@@ -85,6 +85,7 @@
     if (!str(b.sourceName) && !str(b.sourceUrl)) errs.push('المصدر مطلوب: اسم المصدر أو رابطه (من أين أُخذت بيانات الكتاب؟)');
     if (b.sourceUrl && !isUrl(b.sourceUrl)) errs.push('رابط المصدر يجب أن يبدأ بـ http(s)');
     if (b.digitalUrl && !isUrl(b.digitalUrl)) errs.push('رابط النسخة الرقمية يجب أن يبدأ بـ http(s)');
+    if (b.streamUrl) { if (!/^https:\/\/[^\s]+$/i.test(str(b.streamUrl))) errs.push('رابط العرض بالبث يجب أن يبدأ بـ https'); else if (!copyOk(b.copyright)) errs.push('العرض بالبث يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»'); }
     if (b.year != null && b.year !== '' && !(Number.isFinite(+b.year) && +b.year > 0 && +b.year < 3000)) errs.push('سنة النشر غير معقولة');
     if (b.pages != null && b.pages !== '' && !(Number.isFinite(+b.pages) && +b.pages > 0 && +b.pages < 100000)) errs.push('عدد الصفحات غير معقول');
     if (b.authorDeath != null && b.authorDeath !== '' && !(Number.isFinite(+b.authorDeath) && +b.authorDeath > -100 && +b.authorDeath < 1600)) errs.push('سنة وفاة المؤلف غير معقولة');

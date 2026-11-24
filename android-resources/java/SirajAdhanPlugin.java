@@ -73,6 +73,18 @@ public class SirajAdhanPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void test(PluginCall call) {
+        int sec = call.getInt("sec", 10);
+        if (sec < 5) sec = 5;
+        boolean ok = AdhanStore.scheduleOne(getContext(), 987654, System.currentTimeMillis() + sec * 1000L,
+                "تجربة الأذان", "هذا اختبار لصوت الأذان.");
+        JSObject r = new JSObject();
+        r.put("ok", ok);
+        r.put("hasAudio", AdhanStore.audioFile(getContext()).exists());
+        call.resolve(r);
+    }
+
+    @PluginMethod
     public void cancelAll(PluginCall call) {
         AdhanStore.cancelAll(getContext());
         AdhanStore.saveItems(getContext(), "[]");

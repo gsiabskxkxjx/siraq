@@ -65,7 +65,7 @@
     /* ---------------- التنظيف: لا يُنقل إلى القاعدة إلا الحقول المعروفة ---------------- */
     _book(x, ctx) {
       const b = { id: str(x.id), title: str(x.title), author: str(x.author), authorId: str(x.authorId), authorDeath: numOrNull(x.authorDeath), section: str(x.section), subcat: str(x.subcat), desc: str(x.desc), tags: strs(x.tags, 20),
-        publisher: str(x.publisher), year: numOrNull(x.year), edition: str(x.edition), pages: numOrNull(x.pages), lang: str(x.lang) || 'العربية', sourceName: str(x.sourceName), sourceUrl: str(x.sourceUrl), digitalUrl: str(x.digitalUrl),
+        publisher: str(x.publisher), year: numOrNull(x.year), edition: str(x.edition), pages: numOrNull(x.pages), lang: str(x.lang) || 'العربية', sourceName: str(x.sourceName), sourceUrl: str(x.sourceUrl), digitalUrl: str(x.digitalUrl), streamUrl: (/^https:\/\/[^\s]+$/i.test(str(x.streamUrl)) && S.schema.copyOk(str(x.copyright))) ? str(x.streamUrl) : '',
         copyright: str(x.copyright) || 'غير محدد', reviewStatus: 'وصل من الناشر عبر حزمة موقّعة', addedAt: str(x.addedAt) || ctx.createdIso, status: 'published', demo: false, hasPdf: false, hasCover: false, allowDownload: false, reads: 0, downloads: 0 };
       const er = [];
       if (!ID_RE.test(b.id)) er.push('معرّف كتاب غير صالح');

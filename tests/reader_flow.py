@@ -48,4 +48,29 @@ t.pg.wait_for_timeout(900); t.go('/library/book/' + BID); t.go('/library/read/' 
 t.check('الاستئناف عند آخر صفحة (9)', t.ev("document.getElementById('rd-page').value") == '9', t.ev("document.getElementById('rd-page').value"))
 t.check('سجل التقدم محفوظ', (t.ev("SIRAJ.progress.get('book','%s')" % BID) or {}).get('page') == 9)
 t.go('/library/book/' + BID); t.check('عدّاد القراءات زاد', (t.ev("SIRAJ.library.byId.get('%s').reads" % BID) or 0) >= 1)
+
+# ---- عرض مباشر بالبث (بدون تخزين) ----
+import re
+PDFB = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fixtures', 'sample.pdf'), 'rb').read(); ranges = []
+def handler(route):
+    h = route.request.headers; rg = h.get('range')
+    base = {'access-control-allow-origin': '*', 'access-control-allow-headers': 'range', 'access-control-expose-headers': 'content-range, accept-ranges, content-length', 'accept-ranges': 'bytes', 'content-type': 'application/pdf'}
+    if route.request.method == 'OPTIONS': return route.fulfill(status=204, headers=base)
+    if rg:
+        m = re.match(r'bytes=(\d+)-(\d*)', rg); a = int(m.group(1)); z = int(m.group(2)) if m.group(2) else len(PDFB) - 1; z = min(z, len(PDFB) - 1); ranges.append((a, z))
+        return route.fulfill(status=206, headers=dict(base, **{'content-range': 'bytes %d-%d/%d' % (a, z, len(PDFB))}), body=PDFB[a:z + 1])
+    return route.fulfill(status=200, headers=base, body=PDFB)
+t.pg.route('https://stream.test/**', handler)
+SB = 'b_stream_t'
+t.ev("""async (id) => { const b = Object.assign({}, SIRAJ.library.byId.get('b_shara-i'), { id, hasPdf: false, streamUrl: 'https://stream.test/big.pdf', copyright: SIRAJ.schema.COPY.find(c => c.ok).v }); await SIRAJ.library.save(b); }""", SB)
+t.go('/library/book/' + SB); t.check('زر «عرض مباشر» يظهر', 'عرض مباشر' in t.txt())
+t.go('/library/read/' + SB, 3500)
+t.check('البث: عدد الصفحات 12', t.ev("document.querySelectorAll('.pdf-page').length") == 12, t.ev("document.getElementById('pdfstage').innerText")[:120])
+t.check('البث: الصفحة 1 مرسومة', nonblank(1) > 200, nonblank(1))
+t.check('لا ملف محلي مخزّن للكتاب المبثوث', t.ev("SIRAJ.files.get('pdf:%s').then(f=>!f)" % SB))
+t.go('/library'); t.pg.wait_for_timeout(500)
+t.check('بعد الخروج: لا ملف محلي ولا تنزيل', t.ev("SIRAJ.files.get('pdf:%s').then(f=>!f)" % SB))
+# فشل الخادم: زر الرابط الخارجي
+t.pg.unroute('https://stream.test/**'); t.pg.route('https://stream.test/**', lambda r: r.abort())
+t.go('/library/read/' + SB, 3000); t.check('عند فشل البث يظهر زر الرابط الخارجي', 'فتح الكتاب (رابط خارجي)' in t.txt(), t.txt()[:120])
 t.done()

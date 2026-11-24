@@ -51,7 +51,7 @@
   /* ---------------- الكتب ---------------- */
   const subOptions = (sec, cur) => { const s = S.sectionById[sec]; return ['<option value="">— بلا —</option>'].concat((s ? s.subcats : []).map((x) => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`)).join(''); };
   /* نسخة قابلة للتعديل من كتاب مضمّن: معرّف جديد + replaces؛ عند نشرها «جاهزة» يُسحب الأصل من سِراج تلقائياً فتحلّ محله */
-  const cloneOfBook = (b, now) => ({ id: tid('pk'), title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: (b.tags || []).slice(), publisher: b.publisher || '', year: b.year == null ? '' : b.year, edition: b.edition || '', pages: b.pages == null ? '' : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', copyright: b.copyright || 'غير محدد', ready: false, replaces: b.id, updated: now });
+  const cloneOfBook = (b, now) => ({ id: tid('pk'), title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: (b.tags || []).slice(), publisher: b.publisher || '', year: b.year == null ? '' : b.year, edition: b.edition || '', pages: b.pages == null ? '' : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', streamUrl: b.streamUrl || '', copyright: b.copyright || 'غير محدد', ready: false, replaces: b.id, updated: now });
   /* كل الكتب في قائمة واحدة: ما عدّلتَه/أضفتَه، ثم كتب سِراج المضمّنة التي لم تعدّلها بعد (تُنسخ للتعديل عند الحفظ فقط) */
   S.router.add('/books', async (p, q) => {
     const term = S.norm(q.q || ''); const st = q.st || ''; const sec = q.sec || ''; const all = await list('books');
@@ -82,7 +82,7 @@
     return Object.assign(cloneOfBook(src, Date.now()), { id: '' });
   }
   S.router.add('/book/:id', async (p) => {
-    const isNew = p.id === 'new'; const b = isNew ? { id: '', title: '', author: '', authorDeath: '', section: S.sections[0].id, subcat: '', desc: '', tags: [], publisher: '', year: '', edition: '', pages: '', lang: 'العربية', sourceName: '', sourceUrl: '', digitalUrl: '', copyright: 'غير محدد', ready: false } : await getBook(p.id);
+    const isNew = p.id === 'new'; const b = isNew ? { id: '', title: '', author: '', authorDeath: '', section: S.sections[0].id, subcat: '', desc: '', tags: [], publisher: '', year: '', edition: '', pages: '', lang: 'العربية', sourceName: '', sourceUrl: '', digitalUrl: '', streamUrl: '', copyright: 'غير محدد', ready: false } : await getBook(p.id);
     if (!b) return { title: 'كتاب', back: '/books', html: S.ui.empty('alert', 'الكتاب غير موجود') };
     const authors = await allAuthors(); const pdf = b.id && b.hasPdf ? await S.files.get('ctl.pdf.' + b.id) : null;
     return {
@@ -99,7 +99,7 @@
         <div class="card"><div class="card-t">${S.icon('list')} الببليوغرافيا</div>${S.f.text('publisher', 'دار النشر', b.publisher)}
           <div class="grid3">${S.f.text('year', 'سنة النشر', b.year || '', { type: 'number', ltr: true })}${S.f.text('edition', 'الطبعة', b.edition)}${S.f.text('pages', 'الصفحات', b.pages || '', { type: 'number', ltr: true })}</div>${S.f.text('lang', 'اللغة', b.lang)}</div>
         <div class="card"><div class="card-t">${S.icon('link')} المصدر والحقوق <span class="bad">*</span></div>
-          ${S.f.text('sourceName', 'اسم المصدر (فهرس/موقع/طبعة)', b.sourceName)}${S.f.text('sourceUrl', 'رابط المصدر', b.sourceUrl, { ltr: true, placeholder: 'https://' })}${S.f.text('digitalUrl', 'رابط نسخة رقمية قانونية (اختياري)', b.digitalUrl, { ltr: true })}
+          ${S.f.text('sourceName', 'اسم المصدر (فهرس/موقع/طبعة)', b.sourceName)}${S.f.text('sourceUrl', 'رابط المصدر', b.sourceUrl, { ltr: true, placeholder: 'https://' })}${S.f.text('digitalUrl', 'رابط نسخة رقمية قانونية (اختياري)', b.digitalUrl, { ltr: true })}${S.f.text('streamUrl', 'رابط PDF مباشر للعرض بالبث (للكتب الكبيرة — اختياري)', b.streamUrl, { ltr: true, placeholder: 'https://…/book.pdf' })}
           ${S.f.select('copyright', 'حالة حقوق النشر', SC.COPY.map((c) => ({ v: c.v, t: c.v })), b.copyright)}
           <p class="tiny muted nm">لا تُنشر ملفات كتب عبر الحزم؛ الرابط الخارجي فقط.</p></div>
         <div class="card"><div class="card-t">${S.icon('file')} ملف PDF للكتاب</div>
@@ -120,7 +120,7 @@
     if (!str(d.title)) return S.toast('العنوان مطلوب', 'err');
     let a = { id: '', name: str(d.author), death: null };
     if (str(d.author)) a = await authorFor(d.author, d.authorDeath);
-    const rec = { id: id || tid('pk'), title: str(d.title), author: a.name, authorId: a.id, authorDeath: a.death || null, section: d.section, subcat: d.subcat, desc: str(d.desc), tags: d.tags.split(/[,،]/).map((x) => x.trim()).filter(Boolean), publisher: str(d.publisher), year: d.year, edition: str(d.edition), pages: d.pages, lang: str(d.lang) || 'العربية', sourceName: str(d.sourceName), sourceUrl: str(d.sourceUrl), digitalUrl: str(d.digitalUrl), copyright: d.copyright, ready: !!d.ready, updated: Date.now() };
+    const rec = { id: id || tid('pk'), title: str(d.title), author: a.name, authorId: a.id, authorDeath: a.death || null, section: d.section, subcat: d.subcat, desc: str(d.desc), tags: d.tags.split(/[,،]/).map((x) => x.trim()).filter(Boolean), publisher: str(d.publisher), year: d.year, edition: str(d.edition), pages: d.pages, lang: str(d.lang) || 'العربية', sourceName: str(d.sourceName), sourceUrl: str(d.sourceUrl), digitalUrl: str(d.digitalUrl), streamUrl: str(d.streamUrl), copyright: d.copyright, ready: !!d.ready, updated: Date.now() };
     if (root.dataset.replaces) rec.replaces = root.dataset.replaces;
     const errs = SC.validateBook(rec); if (!rec.authorId) errs.push('المؤلف مطلوب');
     if (!old && !rec.replaces) { const k = S.norm(rec.title) + '|' + S.norm(rec.author); const dup = bundledBooks().find((x) => S.norm(x.title) + '|' + S.norm(x.author) === k) || (await list('books')).find((x) => S.norm(x.title) + '|' + S.norm(x.author) === k); if (dup && !(await S.confirm('يوجد كتاب مطابق: «' + dup.title + '». هل تريد المتابعة رغم التكرار؟', { yes: 'متابعة' }))) return; }
