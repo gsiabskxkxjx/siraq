@@ -17,9 +17,9 @@ SAH = [{'id': i, 'arabicText': fake(i, 'اختبار دعاء رقم') + ' ' + '
 BOOKS = [{'bookId': 'Al-Kafi-Volume-1', 'BookName': 'Al-Kafi - Volume 1', 'author': 'Shaykh al-Kulayni'},
          {'bookId': 'Man-La-Yahduruh-al-Faqih-Volume-1', 'BookName': 'Man La Yahduruh al-Faqih', 'author': 'Shaykh al-Saduq'},
          {'bookId': 'Al-Sahifa-al-Sajjadiyya', 'BookName': 'Al-Sahifa al-Sajjadiyya'},
-         {'bookId': 'Broken-Book', 'BookName': 'Broken'}, {'bookId': 'Unknown-Book-X', 'BookName': 'Some Unknown Book', 'author': 'Someone'}]
+         {'bookId': 'Broken-Book', 'BookName': 'Broken'}, {'bookId': 'Kitab-al-Duafa-Ibn-al-Ghadairi', 'BookName': "Kitab al-Du'afa", 'author': 'Ibn al-Ghadairi'}, {'bookId': 'Unknown-Book-X', 'BookName': 'Some Unknown Book', 'author': 'Someone'}]
 UNK = [{'id': i, 'arabicText': fake(i, 'اختبار كتاب مجهول رقم')} for i in range(30)]
-DATA = {'/allbooks': BOOKS, '/Al-Kafi-Volume-1': KAFI, '/Man-La-Yahduruh-al-Faqih-Volume-1': FAQIH, '/Al-Sahifa-al-Sajjadiyya': SAH, '/Unknown-Book-X': UNK}
+DATA = {'/Kitab-al-Duafa-Ibn-al-Ghadairi': [{'id': i, 'arabicText': fake(i, 'اختبار رجال رقم')} for i in range(1, 20)], '/allbooks': BOOKS, '/Al-Kafi-Volume-1': KAFI, '/Man-La-Yahduruh-al-Faqih-Volume-1': FAQIH, '/Al-Sahifa-al-Sajjadiyya': SAH, '/Unknown-Book-X': UNK}
 MODE = {'allbooks_fail': False}
 class H(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -45,6 +45,7 @@ k = by['Al-Kafi-Volume-1']
 check('الصالح من الكافي يستثني القصير والإنجليزي والمكرر والطويل جداً (201 مقبولاً؛ والمأخوذ 20 = ceil(100/5 كتب))', k['valid'] == 201 and k['taken'] == 20, k)
 check('أسماء عربية للكتب المعروفة', k['title'] == 'الكافي' and by['Man-La-Yahduruh-al-Faqih-Volume-1']['title'] == 'من لا يحضره الفقيه', [b['title'] for b in j['books']])
 check('كتاب مجهول يبقى باسم الخدمة ويحتفظ بمؤلفه', by['Unknown-Book-X']['title'] == 'Some Unknown Book' and by['Unknown-Book-X']['author'] == 'Someone')
+check('كتاب الضعفاء (رجال) لا يُستورد أدعيةً ولا روايات', 'Kitab-al-Duafa-Ibn-al-Ghadairi' not in by and not any('اختبار رجال' in x['text'] for x in j['duas'] + j['items']))
 check('الصحيفة تُصنَّف أدعية لا روايات', by['Al-Sahifa-al-Sajjadiyya']['kind'] == 'dua' and len(j['duas']) == 10 and all(x['book'] == 'الصحيفة السجادية' for x in j['duas']))
 check('الإجمالي ضمن الحد (100 تقريباً) والعيّنة موزعة (ليست أول N)', len(j['items']) <= 100 + 5 and max(int(x['number']) for x in j['items'] if x['bookId'] == 'Al-Kafi-Volume-1') > 150, len(j['items']))
 check('لا ترجمة إنجليزية في المخرجات', 'English translation' not in json.dumps(j, ensure_ascii=False) and 'English chapter' not in json.dumps(j, ensure_ascii=False))

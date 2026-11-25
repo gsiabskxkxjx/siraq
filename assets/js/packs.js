@@ -11,7 +11,6 @@
   'use strict';
   const S = window.SIRAJ; const P = S.pcrypto; const SC = S.schema; const str = SC.str;
   const MAX_CHARS = 130 * 1048576; /* الحمولة صغيرة؛ الحجم من الأذان (≤10 م.ب) وملفات PDF (≤60 م.ب) بترميز base64 */
-  const PDF_MAX = 25 * 1048576, PDF_TOTAL = 60 * 1048576;
   const LIM = { books: 6000, authors: 6000, duas: 6000, entries: 30000, notices: 30, withdraw: 20000 };
   const ID_RE = /^[A-Za-z0-9_.:-]{3,64}$/;
   const STORE = { books: 'books', authors: 'authors', duas: 'duas', entries: 'entries' };
@@ -65,7 +64,7 @@
     /* ---------------- التنظيف: لا يُنقل إلى القاعدة إلا الحقول المعروفة ---------------- */
     _book(x, ctx) {
       const b = { id: str(x.id), title: str(x.title), author: str(x.author), authorId: str(x.authorId), authorDeath: numOrNull(x.authorDeath), section: str(x.section), subcat: str(x.subcat), desc: str(x.desc), tags: strs(x.tags, 20),
-        publisher: str(x.publisher), year: numOrNull(x.year), edition: str(x.edition), pages: numOrNull(x.pages), lang: str(x.lang) || 'العربية', sourceName: str(x.sourceName), sourceUrl: str(x.sourceUrl), digitalUrl: str(x.digitalUrl), streamUrl: (/^https:\/\/[^\s]+$/i.test(str(x.streamUrl)) && S.schema.copyOk(str(x.copyright))) ? str(x.streamUrl) : '',
+        publisher: str(x.publisher), year: numOrNull(x.year), edition: str(x.edition), pages: numOrNull(x.pages), lang: str(x.lang) || 'العربية', sourceName: str(x.sourceName), sourceUrl: str(x.sourceUrl), digitalUrl: str(x.digitalUrl), links: arr(x.links).slice(0, 8).map((l) => ({ name: str(l && l.name).slice(0, 80), url: str(l && l.url) })).filter((l) => l.name && /^https:\/\/[^\s]+$/i.test(l.url)),
         copyright: str(x.copyright) || 'غير محدد', reviewStatus: 'وصل من الناشر عبر حزمة موقّعة', addedAt: str(x.addedAt) || ctx.createdIso, status: 'published', demo: false, hasPdf: false, hasCover: false, allowDownload: false, reads: 0, downloads: 0 };
       const er = [];
       if (!ID_RE.test(b.id)) er.push('معرّف كتاب غير صالح');
@@ -128,27 +127,8 @@
       /* السحب: المحتوى المضمّن المُسحَب يُحذف ويُسجَّل حتى لا يعود عند الإقلاع */
       const wd = pl.withdraw || {}; const newW = { books: [...new Set(strs(wd.books, LIM.withdraw))], duas: [...new Set(strs(wd.duas, LIM.withdraw))], entries: [...new Set(strs(wd.entries, LIM.withdraw))] };
       const oldW = st.withdrawn[keyId] || { books: [], duas: [], entries: [] };
-      /* ملفات PDF: بصمة الحمولة الموقّعة هي المرجع؛ الملف في غلاف الحزمة ويُقبل فقط إن طابقت بصمته وكان PDF فعلاً وحقوقه تسمح */
-      const blobs = v.env && v.env.blobs && typeof v.env.blobs === 'object' ? v.env.blobs : {}; const refs = new Map(arr(pl.pdfs).filter((r) => r && ID_RE.test(str(r.id)) && /^[0-9a-f]{64}$/.test(str(r.sha))).map((r) => [str(r.id), r]));
-      let pdfOk = 0, pdfTotal = 0;
-      for (const rec of out.books) {
-        const ref = refs.get(rec.id); let done = false;
-        if (ref) {
-          try {
-            const raw = blobs[ref.sha];
-            if (typeof raw !== 'string' || !/^[A-Za-z0-9+/=]+$/.test(raw)) throw new Error('الملف غير مرفق');
-            if (!S.schema.copyOk(rec.copyright)) throw new Error('حالة حقوق الكتاب لا تسمح بنشر ملف');
-            const bin = atob(raw); const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-            if (u8.length > PDF_MAX || pdfTotal + u8.length > PDF_TOTAL) throw new Error('الحجم يتجاوز الحد');
-            if (String.fromCharCode.apply(null, u8.subarray(0, 5)) !== '%PDF-') throw new Error('ليس PDF');
-            const hex = [...new Uint8Array(await crypto.subtle.digest('SHA-256', u8))].map((x) => x.toString(16).padStart(2, '0')).join('');
-            if (hex !== ref.sha) throw new Error('البصمة لا تطابق');
-            await S.files.put('pdf:' + rec.id, new Blob([u8], { type: 'application/pdf' }), { name: str(ref.name).slice(0, 120) });
-            rec.hasPdf = true; rec.allowDownload = !!ref.allow; pdfTotal += u8.length; pdfOk++; done = true;
-          } catch (e) { rejected.push('PDF كتاب «' + rec.title + '»: ' + e.message); }
-        }
-        if (!done) { rec.hasPdf = false; rec.allowDownload = false; await S.files.del('pdf:' + rec.id).catch(() => {}); }
-      }
+      /* لا قراءة PDF ولا تنزيل في التطبيق: الكتب بيانات ببليوغرافية وروابط مصادر خارجية فقط (أي ملف PDF في الحزمة يُتجاهل) */
+      for (const rec of out.books) { rec.hasPdf = false; rec.allowDownload = false; await S.files.del('pdf:' + rec.id).catch(() => {}); }
       if (out.books.length) await S.db.putMany('books', out.books); if (out.authors.length) await S.db.putMany('authors', out.authors);
       if (out.duas.length) await S.db.putMany('duas', out.duas); if (out.entries.length) await S.db.putMany('entries', out.entries);
       for (const k of Object.keys(STORE)) for (const r of stale[k]) { if (k === 'books') await S.library.remove(r.id); else await S.db.del(STORE[k], r.id); removed++; }
@@ -175,7 +155,7 @@
           await S.db.put('audiolib', { id: 'adhan_pack', kind: 'adhan', title: str(a.name).slice(0, 80) || 'أذان', blob: new Blob([u8], { type: str(a.mime) }), size: u8.length, source: 'الناشر (حزمة موقّعة)', ts: Date.now() }); adhan = true;
         }
       } catch (e) { /* ملف أذان تالف: يُتجاهل دون إفشال الحزمة */ }
-      const written = { adhan, pdfs: pdfOk, books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
+      const written = { adhan, books: out.books.length, authors: out.authors.length, duas: out.duas.length, entries: out.entries.length };
       st.keys[keyId] = { seq: pl.seq, packId: pl.id, at: Date.now() };
       st.history.unshift({ at: Date.now(), packId: pl.id, seq: pl.seq, title: str(pl.title).slice(0, 120), key: keyId, written, removed, rejected: rejected.length, fingerprint: v.fingerprint });
       st.history = st.history.slice(0, 30);
@@ -191,13 +171,74 @@
     }
   });
 
-  /* ---------------- الواجهة ---------------- */
+  /* ---------------- التحديث التلقائي: يجلب الحزم الموقّعة من رابط النشر ويثبّتها بعد التحقق من التوقيع ---------------- */
+  /* الرابط وسيلة نقل فقط؛ لا يُقبل شيء إلا إن طابق توقيعه مفتاح الناشر المضمّن، فلا يضرّ لو سُرق الرابط أو العبث به */
   let pending = null;
-  const fmtCount = (c) => [c.books && S.n(c.books) + ' كتاب', c.authors && S.n(c.authors) + ' مؤلف', c.duas && S.n(c.duas) + ' دعاء/زيارة', c.entries && S.n(c.entries) + ' مدخل', c.pdfs && S.n(c.pdfs) + ' ملف PDF'].filter(Boolean).join(' • ') || 'لا شيء';
+  const FILE_RE = /^packs\/[A-Za-z0-9._-]{1,80}\.sirajpack$/;
+  const upd = () => S.kv.get('upd.status', null);
+  Object.assign(T, {
+    updateUrl() { const u = String(window.SIRAJ_UPDATE_URL || '').trim(); return /^https:\/\/[^\s]+\/$/.test(u) ? u : ''; },
+    status: upd,
+    async autoCheck(opts) {
+      const o = opts || {}; const base = T.updateUrl(); if (!base) return { ok: false, reason: 'no-url' };
+      if (T._busy) return { ok: false, reason: 'busy' }; T._busy = true;
+      const done = async (r) => { T._busy = false; await S.kv.set('upd.status', Object.assign({ at: Date.now() }, r)); return r; };
+      try {
+        const last = upd(); if (!o.force && last && last.ok && Date.now() - last.at < 30 * 60 * 1000) { T._busy = false; return Object.assign({ cached: true }, last); }
+        if (navigator.onLine === false) return await done({ ok: false, reason: 'offline' });
+        const r = await fetch(base + 'index.json?t=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) return await done({ ok: false, reason: 'index-' + r.status });
+        const idx = await r.json();
+        if (!idx || idx.format !== 'siraj-index/1' || !Array.isArray(idx.packs)) return await done({ ok: false, reason: 'index-invalid' });
+        const keys = await T.trusted(); const st = state(); const applied = [];
+        for (const k of keys) {
+          const mine = idx.packs.filter((x) => x && x.keyId === k.id && Number.isInteger(x.seq) && FILE_RE.test(str(x.file))).sort((a, b) => b.seq - a.seq);
+          const top = mine[0]; const prev = st.keys[k.id]; if (!top || (prev && top.seq <= prev.seq)) continue;
+          const pr = await fetch(base + top.file, { cache: 'no-store' }); if (!pr.ok) return await done({ ok: false, reason: 'pack-' + pr.status });
+          const text = await pr.text(); const v = await T.verify(text);
+          if (!v.ok) { S.log('warn', 'تحديث مرفوض: ' + v.reason); return await done({ ok: false, reason: 'rejected', detail: v.code }); }
+          if (v.same) continue;
+          const res = await T.apply(v); applied.push({ seq: v.payload.seq, title: str(v.payload.title), written: res.written });
+        }
+        if (applied.length && !o.silent) S.toast('تم تحديث المحتوى تلقائياً', 'ok');
+        if (applied.length) { try { S.router.refresh(); } catch (e) { /* */ } }
+        return await done({ ok: true, applied: applied.length, seq: applied.length ? applied[applied.length - 1].seq : null });
+      } catch (e) { S.log('warn', 'التحديث التلقائي: ' + e.message); return await done({ ok: false, reason: 'error', detail: e.message }); }
+    },
+    /* عند البدء ثم كل ساعة ما دام التطبيق مفتوحاً */
+    init() { if (!(S.isNative || S.kv.get('dev.autoupd', false))) return; setTimeout(() => T.autoCheck({ silent: false }), 2500); setInterval(() => T.autoCheck({}), 60 * 60 * 1000); }
+  });
+
+  /* ---------------- الواجهة: عرض الحالة فقط (لا اختيار ملفات؛ التحديثات من الناشر تلقائية) ---------------- */
+  const fmtCount = (c) => [c.books && S.n(c.books) + ' كتاب', c.authors && S.n(c.authors) + ' مؤلف', c.duas && S.n(c.duas) + ' دعاء/زيارة', c.entries && S.n(c.entries) + ' مدخل'].filter(Boolean).join(' • ') || 'لا شيء';
+  const WHY = { offline: 'لا يوجد اتصال بالإنترنت.', 'no-url': 'رابط التحديثات غير مضبوط في هذه النسخة.', rejected: 'وصل تحديث لم يُقبل لأن توقيعه لا يطابق الناشر.', error: 'تعذّر الاتصال بخادم التحديثات.' };
   S.router.add('/updates', async () => {
+    const keys = await T.trusted(); const st = state(); const inst = await T.installedCounts(); const u = upd();
+    return {
+      title: 'تحديثات المحتوى', nav: 'more', back: '/about',
+      html: S.h`<div class="stack">
+        <div class="card"><div class="card-t">${S.icon('download')} التحديث التلقائي</div>
+          <p class="small muted nm">يصل المحتوى الجديد من الناشر تلقائياً عند فتح التطبيق وأنت متصل بالإنترنت، بعد التحقق من توقيعه. لا حاجة لاختيار ملفات.</p>
+          <div class="kv"><span>آخر فحص</span><b>${u ? S.fmt.dt(u.at) : 'لم يُفحص بعد'}</b></div>
+          ${u && !u.ok ? S.ui.notice('warn', 'تعذّر الفحص', WHY[u.reason] || ('رمز: ' + (u.reason || '—'))) : ''}
+          <button class="btn block mt" data-act="updNow">${S.icon('refresh')} تحقق الآن</button></div>
+        <div class="card"><div class="card-t">${S.icon('shield')} الناشرون الموثوقون</div>
+          ${keys.length ? keys.map((k) => S.h`<div class="kv"><span>${k.name}</span><b class="op-ltr">${k.id}</b></div>`) : S.ui.notice('warn', 'لا يوجد مفتاح ناشر في هذا الإصدار', 'لن يقبل التطبيق أي تحديث.')}</div>
+        <div class="card"><div class="card-t">${S.icon('database')} ما وصل من الناشر</div><div class="kv"><span>المحتوى المثبَّت من التحديثات</span><b>${fmtCount(inst)}</b></div>
+          ${Object.entries(st.keys || {}).map(([id, k]) => S.h`<div class="kv"><span>آخر حزمة من ${id}</span><b>رقم ${S.n(k.seq)} — ${S.fmt.dt(k.at)}</b></div>`)}</div>
+        ${(st.history || []).length ? S.h`<div class="card"><div class="card-t">${S.icon('list')} السجل</div>${st.history.slice(0, 10).map((h) => S.h`<div class="kv"><span>${h.title || h.packId}</span><b>رقم ${S.n(h.seq)} — ${S.fmt.dt(h.at)}</b></div>`)}</div>` : ''}
+      </div>`
+    };
+  });
+  S.act('updNow', async () => {
+    const r = await T.autoCheck({ force: true, silent: true });
+    if (r.ok) S.toast(r.applied ? 'تم تحديث المحتوى' : 'المحتوى محدّث', 'ok'); else S.toast(WHY[r.reason] || 'تعذّر الفحص', 'err');
+    S.router.refresh();
+  });
+  S.router.add('/updates/file', async () => {
     const keys = await T.trusted(); const st = state(); const inst = await T.installedCounts();
     return {
-      title: 'تحديثات المحتوى', nav: 'more', back: '/more',
+      title: 'تثبيت حزمة من ملف (للناشر دون إنترنت)', nav: 'more', back: '/updates',
       html: S.h`<div class="stack">
         ${S.ui.tip('info', 'كيف يصل المحتوى؟', 'الكتب والأدعية والمداخل الجديدة لا تُضاف من داخل التطبيق ولا من أي مستخدم. يصدر الناشر ملف تحديث موقّعاً رقمياً (.sirajpack) من تطبيق «سِراج — التحكم»، فتختاره هنا ويتحقق سِراج من التوقيع قبل أن يقبل منه شيئاً.')}
         <div class="card"><div class="card-t">${S.icon('shield')} الناشرون الموثوقون</div>
@@ -212,6 +253,7 @@
       </div>`
     };
   });
+  /* مسار غير مرتبط في الواجهة: تثبيت ملف حزمة يدوياً (الناشر بلا إنترنت) — التحقق من التوقيع نفسه */
   const box = () => S.$('#pack-res');
   S.act('packCheck', async () => {
     const f = S.$('[name=packfile]').files[0]; const out = box(); pending = null;

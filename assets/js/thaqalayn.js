@@ -12,6 +12,12 @@
 
   function okItem(it) { return it && str(it.id) && str(it.book) && str(it.text).length >= 20 && str(it.number) && /^https:\/\//.test(str(it.url)); }
 
+  /* عنوان للدعاء: عنوان الباب إن وُجد، وإلا مطلع النص (أول كلمات)، ثم اسم الكتاب ورقم البند في مصدر الدعاء */
+  function duaTitle(it) {
+    const w = str(it.text).replace(/\s+/g, ' ').trim().split(' ');
+    const inc = w.slice(0, 7).join(' ') + (w.length > 7 ? '…' : '');
+    return str(it.chapter) ? it.chapter + ' (' + it.number + ')' : inc;
+  }
   const T = (S.thaqalayn = {
     last: null,
     /* يقرأ الملف المضمَّن ويستورده. force=true يتجاوز شرط «أصلي فقط» وبصمة التكرار (للاختبار/الاستعادة اليدوية) */
@@ -40,7 +46,7 @@
       duas.forEach((it, i) => {
         const id = 'nth_' + it.id; if (S.packs && S.packs.isWithdrawn('duas', id)) return; keepD.add(id); const cur = haveD.get(id); if (cur && !cur.bundled) return;
         ds.push({
-          id, kind: 'dua', title: it.book + ' — ' + it.number, cat: /صحيفة/.test(it.book) ? 'sahifa' : 'books', commonSource: it.book, note: 'مستورد آلياً من Thaqalayn ولم يُراجَع في سِراج.',
+          id, kind: 'dua', title: duaTitle(it), cat: /صحيفة/.test(it.book) ? 'sahifa' : 'books', commonSource: it.book, note: 'مستورد آلياً من Thaqalayn ولم يُراجَع في سِراج.',
           text: it.text, textSource: { book: it.book, author: str(it.author), edition: '', part: '', page: '', url: it.url }, textStatus: 'documented', audio: null, demo: false, bundled: true, imported: true, order: 2000 + i
         });
       });

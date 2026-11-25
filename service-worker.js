@@ -8,7 +8,7 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = 'ed7b424123';
+const VERSION = '7155b8ae7a';
 const PRECACHE = [
   './',
   './android-resources/java/AdhanBootReceiver.java',
@@ -57,7 +57,6 @@ const PRECACHE = [
   './assets/js/quran-audio.js',
   './assets/js/quran-duas.js',
   './assets/js/quran.js',
-  './assets/js/reader.js',
   './assets/js/schema.js',
   './assets/js/settings.js',
   './assets/js/storage.js',
@@ -66,9 +65,6 @@ const PRECACHE = [
   './assets/js/tts.js',
   './assets/js/ui.js',
   './assets/js/worship.js',
-  './assets/lib/pdfjs/LICENSE-pdfjs.txt',
-  './assets/lib/pdfjs/pdf.min.mjs',
-  './assets/lib/pdfjs/pdf.worker.min.mjs',
   './index.html',
   './manifest.json',
   './offline.html'

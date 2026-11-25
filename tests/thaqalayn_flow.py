@@ -38,7 +38,7 @@ t.check('مرشح الكتاب يُظهر الكافي فقط (30)', ('30' in x 
 t.go('/research/narrations/nth_kafi_5', 700); x = t.txt()
 t.check('صفحة الرواية: تنبيه الاستيراد + رابط التحقق + النص', 'نص مستورد آلياً' in x and 'thaqalayn.net' in t.ev("document.getElementById('view').innerHTML") and 'نص اختبار صريح' in x, x[:300])
 t.go('/duas/cat/sahifa', 700); x = t.txt()
-t.check('الأدعية المستوردة تظهر في تصنيف الصحيفة', 'الصحيفة السجادية — 1' in x and 'الصحيفة السجادية — 3' in x, x[:300])
+t.check('الأدعية المستوردة تظهر في تصنيف الصحيفة بعنوان من مطلع النص', 'الصحيفة السجادية' in x and 'نص اختبار صريح' in x and '—' not in x.split('الصحيفة السجادية')[0][-3:], x[:300])
 t.go('/home', 900); x = t.txt()
 t.check('الرئيسية: حديث اليوم يعرض مصدراً (كتاب ورقم)', 'حديث اليوم' in x and 'المصدر:' in x and 'رقم' in x, x[:900])
 

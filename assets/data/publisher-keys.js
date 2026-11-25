@@ -8,3 +8,7 @@
 window.SIRAJ_PUBLISHER_KEYS = [
   { "name": "الناشر", "id": "9df05ff68810d3a2", "jwk": { "kty": "EC", "crv": "P-256", "x": "jfcKlDjfJggNEhghKuwOFCq8iD2OA3O3jaS3hqL86vQ", "y": "wLHzIMahWlS1TU_FYtgqJMNA3YW-aBjm9pMdDy61PQ8" } }
 ];
+
+/* رابط نشر التحديثات (يجب أن ينتهي بـ /): مستودع GitHub عام ينشر إليه تطبيق التحكم. يحتوي index.json وحزماً موقّعة فقط.
+   الرابط وسيلة نقل لا غير: أي حزمة لا يطابق توقيعها المفتاح أعلاه تُرفض. */
+window.SIRAJ_UPDATE_URL = 'https://raw.githubusercontent.com/gsiabskxkxjx/siraj-updates/main/';

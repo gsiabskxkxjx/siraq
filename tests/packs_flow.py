@@ -46,7 +46,7 @@ chk = t.ev("""(async()=>{const k=window.SIRAJ_PUBLISHER_KEYS[0];const j=k.jwk;
   let ok=false;try{await crypto.subtle.importKey('jwk',{kty:j.kty,crv:j.crv,x:j.x,y:j.y,ext:true},{name:'ECDSA',namedCurve:'P-256'},false,['verify']);ok=true}catch(e){}
   return {id,ok,pub:!('d' in j)}})()""")
 t.check('المشحون: البصمة = أول 16 خانة من SHA-256(x.y) والنقطة على المنحنى P-256 ولا مفتاح خاص', chk['id'] == SHIPPED and chk['ok'] and chk['pub'], chk)
-t.go('/updates'); t.check('صفحة التحديثات تعرض بصمة الناشر الموثوق', SHIPPED in t.txt() and 'لا يوجد مفتاح ناشر' not in t.txt(), t.txt()[:200])
+t.go('/updates/file'); t.check('صفحة التحديثات تعرض بصمة الناشر الموثوق', SHIPPED in t.txt() and 'لا يوجد مفتاح ناشر' not in t.txt(), t.txt()[:200])
 t.b.close(); t.p.stop()
 
 # ===== أ) بلا أي مفتاح موثوق (سيناريو افتراضي بقائمة فارغة: كل حزمة تُرفض) =====
@@ -56,7 +56,7 @@ def empty_keys(r):
     return False
 t = T(override=empty_keys); pg = t.pg
 t.check('بلا مفتاح: القائمة فارغة', t.ev("(window.SIRAJ_PUBLISHER_KEYS||[]).length") == 0)
-t.go('/updates'); t.check('يعرض غياب مفتاح الناشر', 'لا يوجد مفتاح ناشر' in t.txt())
+t.go('/updates/file'); t.check('يعرض غياب مفتاح الناشر', 'لا يوجد مفتاح ناشر' in t.txt())
 pg.set_input_files('[name=packfile]', OUT + '/pack1.sirajpack'); pg.click('[data-act=packCheck]'); pg.wait_for_timeout(700)
 t.check('أي حزمة تُرفض بلا مفتاح موثوق', 'لا يوجد مفتاح ناشر موثوق' in t.ev("document.getElementById('pack-res').innerText") and t.ev("document.querySelector('[data-act=packApply]')") is None)
 t.check('لا مسارات إدارة ولا رفع ملفات من المستخدم', t.ev("!SIRAJ.admin && !SIRAJ.ailibrary"))
@@ -84,7 +84,7 @@ def dbget(store, i): return t.ev("(s,i)=>SIRAJ.db.get(s,i)", [store, i]) if Fals
 # بيانات المستخدم قبل التحديثات
 pg.evaluate("SIRAJ.db.put('notes',{id:'n_user1',text:'ملاحظتي الخاصة',ts:1}).then(()=>SIRAJ.kv.set('user.marker',{a:1}))")
 nb0 = pg.evaluate("SIRAJ.db.all('books').then(a=>a.length)"); nd0 = pg.evaluate("SIRAJ.db.all('duas').then(a=>a.length)")
-t.go('/updates'); tx = t.txt()
+t.go('/updates/file'); tx = t.txt()
 t.check('يعرض الناشرَين الموثوقَين ببصمتيهما', PUB['id'] in tx and KB['id'] in tx and 'ناشر التحكم' in tx, tx[:300])
 
 # ---- الحزمة 1 الحقيقية من تطبيق التحكم ----
@@ -111,7 +111,7 @@ t.check('بيانات المستخدم لم تُمَسّ', pg.evaluate("SIRAJ.db
 st = pg.evaluate("SIRAJ.kv.get('packs.state')"); t.check('حالة الحزم: seq والمفتاح', st['keys'][PUB['id']]['seq'] == M['seq1'] and st['history'][0]['rejected'] == 0, st)
 
 # إعادة تثبيت نفسها: آمنة
-t.go('/updates'); txt = check_pack(OUT + '/pack1.sirajpack'); t.check('الحزمة نفسها: «مثبّتة من قبل»', 'مثبّتة من قبل' in txt)
+t.go('/updates/file'); txt = check_pack(OUT + '/pack1.sirajpack'); t.check('الحزمة نفسها: «مثبّتة من قبل»', 'مثبّتة من قبل' in txt)
 
 # ---- هجمات على الملف ----
 env1 = json.load(open(OUT + '/pack1.sirajpack'))
@@ -140,8 +140,8 @@ t.check('السحب: الكتاب المضمّن حُذف', dbget('books', bund[
 t.check('الإعلان وصل إلى الإشعارات مرة واحدة', pg.evaluate("SIRAJ.db.all('notifications').then(a=>a.filter(n=>n.id.startsWith('pk_%s_')&&n.title==='إعلان اختباري').length)" % PUB['id']) == 1)
 pg.reload(); pg.wait_for_function("document.documentElement.dataset.ready==='1'"); pg.wait_for_timeout(800)
 t.check('بعد إعادة التشغيل: المسحوب لا يعود (الزرع يحترم السحب)', dbget('books', bund['id']) is None and pg.evaluate("SIRAJ.packs.isWithdrawn('books','%s')" % bund['id']))
-t.go('/updates'); txt = install(OUT + '/pack2.sirajpack'); t.check('إعادة تثبيت الحزمة 2: لا تكرار للإعلان', pg.evaluate("SIRAJ.db.all('notifications').then(a=>a.filter(n=>n.title==='إعلان اختباري').length)") == 1)
-t.go('/updates'); txt = check_pack(OUT + '/pack1.sirajpack')
+t.go('/updates/file'); txt = install(OUT + '/pack2.sirajpack'); t.check('إعادة تثبيت الحزمة 2: لا تكرار للإعلان', pg.evaluate("SIRAJ.db.all('notifications').then(a=>a.filter(n=>n.title==='إعلان اختباري').length)") == 1)
+t.go('/updates/file'); txt = check_pack(OUT + '/pack1.sirajpack')
 t.check('منع الرجوع: الحزمة 1 بعد 2 مرفوضة', 'أقدم من المثبّتة' in txt and not pg.query_selector('[data-act=packApply]'), txt[:160])
 
 # ---- حزم المفتاح B: تحقق العناصر رغم صحة التوقيع ----
@@ -177,7 +177,7 @@ t.check('XSS: عنوان فيه HTML لا يُنفَّذ ولا يُنشأ عن�
 st = pg.evaluate("SIRAJ.kv.get('packs.state')"); t.check('تاريخ B يسجّل عدد المرفوض', st['history'][0]['key'] == KB['id'] and st['history'][0]['rejected'] >= 11, st['history'][0])
 
 # ---- seq: نفس الرقم بمعرّف مختلف يرفض ----
-t.go('/updates'); txt = check_pack(save('b-conflict', sign(KB, base('packB_OTHER', 100)))); t.check('الرقم نفسه بمعرّف مختلف → مرفوض', 'معرّفها مختلف' in txt and not pg.query_selector('[data-act=packApply]'), txt[:160])
+t.go('/updates/file'); txt = check_pack(save('b-conflict', sign(KB, base('packB_OTHER', 100)))); t.check('الرقم نفسه بمعرّف مختلف → مرفوض', 'معرّفها مختلف' in txt and not pg.query_selector('[data-act=packApply]'), txt[:160])
 txt = check_pack(save('b-older', sign(KB, base('packB_0', 50)))); t.check('رقم أقدم من المثبّت للمفتاح نفسه → مرفوض', 'أقدم' in txt)
 # مفتاح التحكم ومفتاح B مستقلان في عدّاد seq: حزمة B برقم صغير جداً كانت ستُقبل لو لم يثبّت B سابقاً، لكن seq 150 > 100 مقبول
 # ---- حزمة B2: لقطة + رفع السحب + حذف المتقادم ----
@@ -189,35 +189,57 @@ orig2 = pg.evaluate("SIRAJ.data.sample.books.find(b=>b.id==='%s')" % wd_book)
 t.check('رفع السحب يعيد الكتاب المضمّن (من بيانات التطبيق)', (dbget('books', wd_book) or {}).get('title') == orig2['title'] and not pg.evaluate("SIRAJ.packs.isWithdrawn('books','%s')" % wd_book))
 t.check('حزم ناشر التحكم لم تتأثر بحزم B', dbget('books', M['bookId']) is not None and dbget('entries', M['entryId']) is not None)
 
-# ---- ملفات PDF داخل الحزمة: بصمة موقّعة + ملف في الغلاف ----
+# ---- لا PDF في التطبيق: أي PDF داخل الحزمة يُتجاهل، وروابط المصادر تُنقّى (https فقط) ----
 PDFB = b'%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n'; SHA = hashlib.sha256(PDFB).hexdigest(); B64 = base64.b64encode(PDFB).decode()
 def with_blobs(env, blobs): env = dict(env); env['blobs'] = blobs; return env
-okc, badc = 'ملك عام (انتهت مدة الحماية)', 'غير محدد'
-pl_pdf = base('packB_pdf', 170, authors=[AUTH_B], books=[book('bk_pdf_ok', copyright=okc), book('bk_pdf_tamper', copyright=okc), book('bk_pdf_rights', copyright=badc), book('bk_pdf_none', copyright=okc, streamUrl='https://example.org/big.pdf'), book('bk_stream_bad', copyright=badc, streamUrl='https://example.org/x.pdf'), book('bk_stream_http', copyright=okc, streamUrl='http://example.org/x.pdf')],
-    pdfs=[{'id': 'bk_pdf_ok', 'sha': SHA, 'size': len(PDFB), 'name': 'a.pdf', 'allow': True}, {'id': 'bk_pdf_tamper', 'sha': hashlib.sha256(b'other').hexdigest(), 'size': 5, 'name': 'b.pdf', 'allow': True}, {'id': 'bk_pdf_rights', 'sha': SHA, 'size': len(PDFB), 'name': 'c.pdf', 'allow': True}])
-envp = sign(KB, pl_pdf); txt = install(save('b-pdf', with_blobs(envp, {SHA: B64, hashlib.sha256(b'other').hexdigest(): base64.b64encode(PDFB).decode()})))
+okc = 'ملك عام (انتهت مدة الحماية)'
+LK = [{'name': 'نور', 'url': 'https://www.noor-book.com/x'}, {'name': 'خاطئ', 'url': 'http://insecure.example/y'}, {'name': 'js', 'url': 'javascript:alert(1)'}, {'name': '', 'url': 'https://a.example/z'}]
+pl_pdf = base('packB_pdf', 170, authors=[AUTH_B], books=[book('bk_pdf_ok', copyright=okc, links=LK), book('bk_pdf_none', copyright=okc)],
+    pdfs=[{'id': 'bk_pdf_ok', 'sha': SHA, 'size': len(PDFB), 'name': 'a.pdf', 'allow': True}])
+envp = sign(KB, pl_pdf); txt = install(save('b-pdf', with_blobs(envp, {SHA: B64})))
 bk = dbget('books', 'bk_pdf_ok'); fl = pg.evaluate("SIRAJ.files.get('pdf:bk_pdf_ok').then(f=>f?f.size:0)")
-t.check('PDF صالح: يُحفظ الملف ويُوسم الكتاب hasPdf ويُسمح بالتنزيل', bk and bk['hasPdf'] is True and bk['allowDownload'] is True and fl == len(PDFB), (bk, fl))
-t.check('PDF ببصمة لا تطابق الملف: يُرفض الملف ويبقى الكتاب بلا PDF', dbget('books', 'bk_pdf_tamper') is not None and dbget('books', 'bk_pdf_tamper')['hasPdf'] is False and 'لا تطابق' in txt, txt[:300])
-t.check('PDF مع حقوق «غير محدد»: يُرفض', dbget('books', 'bk_pdf_rights')['hasPdf'] is False and 'حالة حقوق' in txt)
-t.check('كتاب بلا مرجع PDF: hasPdf خطأ', dbget('books', 'bk_pdf_none')['hasPdf'] is False)
-t.check('رابط بث https مع حقوق صالحة: يُحفظ', dbget('books', 'bk_pdf_none').get('streamUrl') == 'https://example.org/big.pdf', dbget('books', 'bk_pdf_none'))
-t.check('رابط بث مع حقوق غير محدد أو http: يُهمل', not dbget('books', 'bk_stream_bad').get('streamUrl') and not dbget('books', 'bk_stream_http').get('streamUrl'))
-# استبدال الحزمة بلقطة بلا PDF يزيل الملف
-txt = install(save('b-pdf2', sign(KB, base('packB_pdf2', 171, authors=[AUTH_B], books=[book('bk_pdf_ok', copyright=okc)]))))
-t.check('لقطة جديدة بلا PDF تزيل الملف القديم', dbget('books', 'bk_pdf_ok')['hasPdf'] is False and pg.evaluate("SIRAJ.files.get('pdf:bk_pdf_ok').then(f=>!f)"))
-# غلاف بملف مُعدَّل بعد التوقيع في الحمولة (تغيير البصمة) يُبطل التوقيع
-tam = json.loads(envp['payload']); tam['pdfs'][0]['sha'] = '0' * 64; e2 = dict(envp); e2['payload'] = json.dumps(tam, ensure_ascii=False); txt = check_pack(save('b-pdf-tamper', with_blobs(e2, {SHA: B64})))
-t.check('تعديل بصمة PDF في الحمولة يُبطل التوقيع', 'لم يُقبل' in txt or 'التوقيع' in txt and 'صحيح' not in txt, txt[:200])
+t.check('PDF داخل الحزمة يُتجاهل: لا ملف محفوظ ولا hasPdf ولا تنزيل', bk and bk['hasPdf'] is False and bk['allowDownload'] is False and fl == 0, bk)
+t.check('روابط المصادر: https فقط وباسم', bk['links'] == [{'name': 'نور', 'url': 'https://www.noor-book.com/x'}], bk.get('links'))
+t.check('كتاب بلا روابط: links مصفوفة فارغة', dbget('books', 'bk_pdf_none')['links'] == [])
 
 # ---- النسخ الاحتياطي لا يحقن محتوى ----
 inj = {'app': 'SIRAJ', 'stores': {'books': [{'id': 'evil_book', 'title': 'شرير', 'status': 'published', 'section': 'fiqh'}], 'duas': [{'id': 'evil_dua', 'title': 'x', 'text': 'y'}], 'entries': [{'id': 'evil_en', 'collection': 'fiqh_terms', 'title': 'x'}], 'users': [{'id': 'u_evil', 'role': 'admin'}], 'notes': [{'id': 'n_restored', 'text': 'ملاحظة مستعادة'}]}, 'kv': {'packs.state': {'keys': {}, 'history': [], 'withdrawn': {}}, 'seed.v': 0, 'auth.session': {'uid': 'u_evil'}, 'user.restored': 1}}
 n = pg.evaluate("t=>SIRAJ.backup.import(t)", json.dumps(inj))
 t.check('الاستعادة تقبل بيانات المستخدم فقط', pg.evaluate("SIRAJ.db.get('notes','n_restored').then(x=>!!x)") and pg.evaluate("SIRAJ.kv.get('user.restored')") == 1)
 t.check('الاستعادة لا تحقن كتباً/أدعية/مداخل/مستخدمين', all(dbget(s, i) is None for s, i in [('books', 'evil_book'), ('duas', 'evil_dua'), ('entries', 'evil_en')]) and pg.evaluate("SIRAJ.db.all('users').then(a=>a.length)") == 0)
-t.check('الاستعادة لا تعبث بحالة الحزم ولا الجلسات', pg.evaluate("SIRAJ.kv.get('packs.state')")['keys'][KB['id']]['seq'] == 171 and pg.evaluate("SIRAJ.kv.get('auth.session')") is None and pg.evaluate("SIRAJ.kv.get('seed.v')") != 0)
+t.check('الاستعادة لا تعبث بحالة الحزم ولا الجلسات', pg.evaluate("SIRAJ.kv.get('packs.state')")['keys'][KB['id']]['seq'] == 170 and pg.evaluate("SIRAJ.kv.get('auth.session')") is None and pg.evaluate("SIRAJ.kv.get('seed.v')") != 0)
 bk = pg.evaluate("SIRAJ.backup.export().then(b=>b.text())"); jb = json.loads(bk)
 t.check('تصدير النسخة: لا كتب/أدعية/مداخل ولا حالة الحزم', not ({'books', 'duas', 'entries', 'authors', 'users'} & set(jb['stores'])) and 'packs.state' not in jb['kv'])
 t.check('نسخة المستخدم تحوي ملاحظته', any(x['id'] == 'n_user1' for x in jb['stores']['notes']))
-t.go('/updates'); t.shot('packs_after'); t.check('صفحة التحديثات تعرض السجل', 'السجل' in t.txt() and 'حزمة' in t.txt())
+t.go('/updates/file'); t.shot('packs_after'); t.check('صفحة التحديثات تعرض السجل', 'السجل' in t.txt() and 'حزمة' in t.txt())
+# ---- التحديث التلقائي من رابط النشر (index.json + حزم موقّعة) ----
+UPD = {'index': None, 'files': {}, 'hits': []}
+def upd_route(route):
+    u = route.request.url.replace('https://upd.test/', '').split('?')[0]; UPD['hits'].append(u)
+    if u == 'index.json' and UPD['index'] is not None: return route.fulfill(status=200, content_type='application/json', body=json.dumps(UPD['index']))
+    if u in UPD['files']: return route.fulfill(status=200, content_type='application/json', body=UPD['files'][u])
+    return route.fulfill(status=404, body='no')
+pg.route('https://upd.test/**', upd_route)
+pg.evaluate("window.SIRAJ_UPDATE_URL = 'https://upd.test/'")
+okc = 'ملك عام (انتهت مدة الحماية)'
+envA = sign(KB, base('packB_auto', 180, authors=[AUTH_B], books=[book('bk_auto', copyright=okc)]))
+UPD['files']['packs/siraj-pack-180.sirajpack'] = json.dumps(envA)
+UPD['index'] = {'format': 'siraj-index/1', 'packs': [{'keyId': KB['id'], 'seq': 180, 'file': 'packs/siraj-pack-180.sirajpack'}]}
+r = pg.evaluate("SIRAJ.packs.autoCheck({force:true, silent:true})")
+t.check('تحديث تلقائي: يجلب الحزمة الموقّعة ويثبّتها بلا اختيار ملف', r.get('ok') and r.get('applied') == 1 and dbget('books', 'bk_auto') is not None, r)
+r = pg.evaluate("SIRAJ.packs.autoCheck({force:true, silent:true})")
+t.check('تحديث تلقائي: لا إعادة تثبيت لنفس الرقم', r.get('ok') and r.get('applied') == 0 and UPD['hits'].count('packs/siraj-pack-180.sirajpack') == 1, (r, UPD['hits']))
+envT = sign(KB, base('packB_tamper', 181, authors=[AUTH_B], books=[book('bk_tamper', copyright=okc)])); pt = json.loads(envT['payload']); pt['books'][0]['title'] = 'مُعدَّل بعد التوقيع'; envT['payload'] = json.dumps(pt, ensure_ascii=False)
+UPD['files']['packs/siraj-pack-181.sirajpack'] = json.dumps(envT)
+UPD['index']['packs'] = [{'keyId': KB['id'], 'seq': 181, 'file': 'packs/siraj-pack-181.sirajpack'}]
+r = pg.evaluate("SIRAJ.packs.autoCheck({force:true, silent:true})")
+t.check('تحديث تلقائي: حزمة معبوث بها تُرفض ولا يدخل محتواها', (not r.get('ok')) and r.get('reason') == 'rejected' and dbget('books', 'bk_tamper') is None, r)
+UPD['index']['packs'] = [{'keyId': KB['id'], 'seq': 190, 'file': '../evil.sirajpack'}, {'keyId': 'ffff', 'seq': 191, 'file': 'packs/x.sirajpack'}]
+hits0 = len(UPD['hits']); r = pg.evaluate("SIRAJ.packs.autoCheck({force:true, silent:true})")
+t.check('تحديث تلقائي: مسار ملف غير آمن أو مفتاح غير موثوق يُتجاهل دون جلب', r.get('ok') and r.get('applied') == 0 and UPD['hits'][hits0:] == ['index.json'], (r, UPD['hits'][hits0:]))
+UPD['index'] = {'format': 'other'}; r = pg.evaluate("SIRAJ.packs.autoCheck({force:true, silent:true})")
+t.check('تحديث تلقائي: فهرس غير صالح يفشل بهدوء', (not r.get('ok')) and r.get('reason') == 'index-invalid', r)
+t.go('/updates'); tx = t.txt()
+t.check('صفحة التحديثات: تلقائية بلا إدخال ملفات ولا ملفات مرفوعة', 'التحديث التلقائي' in tx and 'تحقق الآن' in tx and not t.ev("!!document.querySelector('input[type=file]')"), tx[:200])
 t.done()
+

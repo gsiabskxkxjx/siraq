@@ -48,11 +48,9 @@
           <div class="grid2 mt"><button class="btn" data-act="backupExport" data-files="0">${S.icon('download')} نسخة احتياطية (بدون ملفات)</button><button class="btn" data-act="backupExport" data-files="1">${S.icon('download')} نسخة كاملة بالملفات</button></div>
           ${S.f.file('bkfile', 'استعادة من نسخة احتياطية', 'application/json,.json')}
           <button class="btn block" data-act="backupImport">${S.icon('upload')} استعادة</button>
-          <a class="btn block mt" href="#/updates">${S.icon('download')} تحديثات المحتوى</a>
           <button class="btn danger block mt" data-act="resetDemo">${S.icon('refresh')} إعادة المحتوى المضمّن إلى أصله</button>
         </div>
-        <div class="card"><div class="card-t">${S.icon('download')} التثبيت</div><p class="small muted nm">ثبّت سِراج على الشاشة الرئيسية ليعمل كتطبيق مستقل.</p><button class="btn gold block" data-act="install">تثبيت التطبيق</button></div>
-        <div class="list">${S.ui.li({ icon: 'wifi', t: 'حالة الاتصال والتخزين', href: '#/status' })}${S.ui.li({ icon: 'info', t: 'عن سِراج والمصادر والتراخيص', href: '#/about' })}</div>
+        <div class="list">${S.ui.li({ icon: 'download', t: 'تحديثات المحتوى', href: '#/updates' })}${S.ui.li({ icon: 'info', t: 'عن سِراج والمصادر والتراخيص', href: '#/about' })}</div>
       </div>`
     };
   });
@@ -72,62 +70,20 @@
   });
 
   /* ---------- حالة الاتصال والتخزين ---------- */
-  S.router.add('/status', async () => {
-    const info = await S.storageInfo(); const counts = {};
-    for (const s of ['books', 'files', 'quran', 'audio', 'duas', 'entries', 'favorites', 'notes', 'prayerlog', 'tasbeeh']) { try { counts[s] = await S.db.count(s); } catch (e) { counts[s] = '؟'; } }
-    let cacheNames = []; try { if (window.caches) cacheNames = await caches.keys(); } catch (e) { /* */ }
-    const ctrl = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
-    const swTxt = { ready: ctrl ? 'مفعّل ويتحكم بالصفحة' : 'مسجّل (يتحكم بعد إعادة التحميل)', registering: 'قيد التسجيل', file: 'غير متاح عند الفتح من ملف (file://) — يلزم HTTPS أو localhost', insecure: 'غير متاح: الصفحة ليست HTTPS', failed: 'فشل التسجيل', native: 'غير مطلوب: الملفات مضمّنة داخل تطبيق أندرويد' }[S.swState] || 'غير معروف';
-    const errs = S.logs.filter((l) => l.level === 'error').slice(-8);
-    const qs = S.quran && S.quran.hasText ? S.quran.hasText() : false;
-    return {
-      title: 'حالة التطبيق', nav: 'more', back: '/more',
-      html: S.h`<div class="stack">
-        <div class="card"><div class="kv"><span>الاتصال بالإنترنت</span><b class="${navigator.onLine ? 'ok' : 'bad'}">${navigator.onLine ? 'متصل' : 'غير متصل'}</b></div>
-          <div class="kv"><span>البروتوكول</span><b class="op-ltr">${location.protocol}//${location.host || '(ملف محلي)'}</b></div>
-          <div class="kv"><span>Service Worker (العمل دون إنترنت)</span><b>${swTxt}</b></div>
-          <div class="kv"><span>ذاكرة التطبيق المؤقتة</span><b class="op-ltr">${cacheNames.length ? cacheNames.join(', ') : '—'}</b></div>
-          <div class="kv"><span>قاعدة البيانات (IndexedDB)</span><b class="${info.idb ? 'ok' : 'bad'}">${info.idb ? 'تعمل' : 'غير متاحة — ' + info.error}</b></div>
-          <div class="kv"><span>نص المصحف على الجهاز</span><b class="${qs ? 'ok' : ''}">${qs ? 'محمّل' : 'غير محمّل'}</b></div>
-          <div class="kv"><span>الإصدار</span><b class="op-ltr">${S.version}</b></div>
-          <button class="btn block mt" data-act="netTest">${S.icon('wifi')} اختبار الاتصال الفعلي</button><div id="nettest" class="small muted mt"></div></div>
-        ${S.isFile ? S.ui.tip('warn', 'تعمل الآن من ملف مباشر', 'التخزين المحلي يعمل لكن ميزات HTTPS (التثبيت، العمل دون إنترنت عبر Service Worker، GPS، الإشعارات) تتطلب رفع المجلد على استضافة HTTPS أو تشغيله على localhost. راجع README.') : ''}
-        <div class="card"><div class="card-t">${S.icon('database')} محتوى قاعدة البيانات</div>${Object.entries(counts).map(([k, v]) => S.h`<div class="kv"><span class="op-ltr">${k}</span><b>${S.n(v)}</b></div>`)}</div>
-        <div class="card"><div class="card-t">${S.icon('alert')} آخر الأخطاء البرمجية</div>${errs.length ? errs.map((e) => S.h`<div class="small bad">${e.msg}</div>`) : S.h`<p class="small muted nm">لا أخطاء مسجّلة في هذه الجلسة.</p>`}</div>
-        <div class="grid2"><button class="btn" data-act="clearCaches">مسح الذاكرة المؤقتة للتطبيق</button><button class="btn" data-act="persistStorage">طلب التخزين الدائم</button></div>
-      </div>`
-    };
-  });
-  S.act('netTest', async (el) => {
-    const out = S.$('#nettest'); out.textContent = 'جارٍ الاختبار…'; const t0 = performance.now();
-    try { const r = await fetch('manifest.json?t=' + Date.now(), { cache: 'no-store' }); out.textContent = r.ok ? 'تم الوصول إلى الخادم خلال ' + S.n(Math.round(performance.now() - t0)) + ' مللي ثانية.' : 'استجاب الخادم برمز ' + r.status; }
-    catch (e) { out.textContent = S.isFile ? 'لا يمكن الاختبار عند الفتح من ملف.' : 'تعذّر الوصول إلى الخادم (قد تكون دون اتصال).'; }
-  });
-  S.act('clearCaches', async () => {
-    if (!(await S.confirm('سيُمسح ما خُزِّن للعمل دون إنترنت وتُلغى تسجيلات Service Worker (لا تتأثر بياناتك). متابعة؟'))) return;
-    try { if (window.caches) for (const k of await caches.keys()) await caches.delete(k); if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) { return S.fail(e); }
-    S.toast('تم المسح. أعد تحميل الصفحة', 'ok');
-  });
-  S.act('persistStorage', async () => { const ok = await S.db.persist(); S.toast(ok ? 'تم تثبيت التخزين' : 'لم يمنح المتصفح التخزين الدائم', ok ? 'ok' : 'err'); S.router.refresh(); });
-
-  /* ---------- عن التطبيق ---------- */
   S.router.add('/about', () => ({
     title: 'عن سِراج', nav: 'more', back: '/more',
     html: S.h`<div class="stack">
-      <div class="card center"><img src="assets/images/logo.png" alt="سِراج" style="max-width:220px;margin:auto"><p class="gold nm">نور العلم وهداية الطريق</p><p class="small muted nm">القرآن • العترة • المعرفة</p><p class="tiny muted">الإصدار ${S.version}</p></div>
-      ${S.ui.tip('info', 'عن بيانات المكتبة', S.data.sample.meta.dataNotice)}
+      <div class="card center"><img src="assets/images/icon-512.png" alt="سِراج" width="112" height="112" style="border-radius:24px;margin:auto;display:block"><h2 class="h2 mt-s nm">سِراج</h2><p class="gold nm">نور العلم وهداية الطريق</p><p class="small muted nm">القرآن • العترة • المعرفة</p><p class="small muted nm">الإصدار ${S.version}</p></div>
       <div class="card"><div class="card-t">${S.icon('shield')} ضوابط المحتوى</div>
-        <ul class="small"><li>لا يُنشئ سِراج كتباً ولا مؤلفين ولا روايات ولا فتاوى. كل مادة دينية تُضاف بمصدرها.</li><li>وجود ملف PDF على الإنترنت لا يعني إذن إعادة نشره؛ لا يُنشر كتاب دون حالة حقوق واضحة.</li><li>الأحكام الشرعية تُنسب لمرجعها؛ والمساعد العلمي لا يُصدر فتاوى.</li><li>لا يُنشر شيء تلقائياً: قرار النشر النهائي لمالك التطبيق افتراضياً.</li></ul></div>
+        <ul class="small"><li>لا يُنشئ سِراج كتباً ولا مؤلفين ولا روايات ولا فتاوى. كل مادة دينية تُضاف بمصدرها.</li><li>روابط الكتب تفتح خارج التطبيق؛ وجود كتاب على موقع لا يعني إذن إعادة نشره.</li><li>الأحكام الشرعية تُنسب لمرجعها، والمساعد العلمي لا يُصدر فتاوى.</li><li>لا يُنشر شيء تلقائياً: قرار النشر النهائي لمالك التطبيق، ولا يقبل التطبيق إلا ما وُقّع بمفتاحه.</li></ul></div>
+      <div class="list">${S.ui.li({ icon: 'download', t: 'تحديثات المحتوى', href: '#/updates' })}</div>
       <div class="card"><div class="card-t">${S.icon('link')} المصادر والتراخيص</div>
         <ul class="small">
           <li>نص القرآن الكريم: ${S.data.quran.attribution.text}</li>
-          <li>قارئ PDF: مكتبة PDF.js (Mozilla) — رخصة Apache-2.0.</li>
           <li>الخطوط: Cairo وAmiri وAmiri Quran عبر Google Fonts — رخصة SIL OFL.</li>
           <li>صوتيات التلاوة: عبر شبكة cdn.islamic.network (تُحمَّل بإذن المستخدم وتُحفظ على جهازه).</li>
-          <li>بحث الكتب المفتوحة (اختياري): واجهة archive.org.</li>
         </ul>
         <div class="row wrap">${S.data.quran.attribution.links.map(([t, u]) => S.h`<a class="chip" href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`)}</div></div>
-      <div class="card"><div class="card-t">${S.icon('flag')} ما ليس مربوطاً بعد</div><p class="small muted nm">لا يوجد خادم في هذه النسخة: تسجيل المستخدمين الحقيقي، المزامنة بين الأجهزة، المساعد الذكي الحقيقي، ونشر الكتب العام تحتاج بنية خلفية (Supabase), وتظهر في الواجهة بوسم «غير مربوط».</p></div>
     </div>`
   }));
 })();

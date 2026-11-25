@@ -97,7 +97,7 @@
       html: S.h`<div class="stack">
         <div class="mast">
           <div class="mast-top"><div class="row"><button class="iconbtn" data-act="toggleTheme" aria-label="${S.theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'}">${S.icon(S.theme === 'dark' ? 'sun' : 'moon')}</button><a class="iconbtn" href="#/notifications" aria-label="الإشعارات" style="position:relative">${S.icon('bell')}<span class="dot" data-bell hidden></span></a><a class="iconbtn" href="#/settings" aria-label="الإعدادات">${S.icon('settings')}</a></div></div>
-          <div class="brand-c"><img src="assets/images/logo-mark.png" alt="" width="46" height="56"><b>سِراج</b><small>نور العلم وهداية الطريق</small></div>
+          <div class="brand-c"><img src="assets/images/icon-192.png" alt="" width="46" height="46" style="border-radius:11px"><b>سِراج</b><small>نور العلم وهداية الطريق</small></div>
           ${S.ui.ornament()}
           <div class="greet">${greeting()}</div>
           <div class="dates"><span class="dchip">${S.hijriStr(now)}</span><span class="dchip">${S.fmt.gdate(now)}</span></div>
@@ -116,7 +116,7 @@
         ${recent.length ? S.h`${S.ui.sectionTitle('كتب أُضيفت حديثاً', '#/library/search?sort=recent')}<div class="hscroll">${recent.map(L.card)}</div>` : ''}
         ${rec.books.length ? S.h`${S.ui.sectionTitle('اقتراحات القراءة اليومية', '#/library/recommended')}<div class="stack s">${rec.books.map(L.row)}</div>` : ''}
         ${notes.length ? S.h`${S.ui.sectionTitle('آخر الإشعارات', '#/notifications')}<div class="list">${notes.slice(0, 3).map((n) => S.h`<div class="li"><span class="li-body"><span class="li-t">${n.title}</span><span class="li-s">${n.body || ''}</span></span><span class="li-end tiny">${S.fmt.dt(n.ts)}</span></div>`)}</div>` : ''}
-        <p class="tiny muted center">الإصدار ${S.version} — <a href="#/status">حالة التطبيق</a> • <a href="#/about">عن سِراج</a></p>
+        <p class="tiny muted center">الإصدار ${S.version} — <a href="#/about">عن سِراج</a></p>
       </div>`,
       mount() { if (!S.settings.onboarded) onboarding(); }
     };
@@ -150,8 +150,8 @@
     ['العبادة والمواقيت', [['mosque', 'مواقيت الصلاة', 'حساب فلكي حسب موقعك', '/prayer'], ['compass', 'اتجاه القبلة', 'من إحداثياتك إلى الكعبة', '/qibla'], ['calendar', 'التقويم الهجري والمناسبات', 'وأيام الصيام المستحب', '/calendar'], ['check-circle', 'جدول قضاء الصلاة', 'تتبّع ما عليك قضاؤه', '/qada'], ['calc', 'حاسبة الخمس والزكاة', 'حساب مع بيان المرجع', '/worship/calc'], ['droplet', 'الوضوء والصلاة والأحكام', 'مع نسبة كل حكم لمرجعه', '/worship']]],
     ['القرآن والدعاء', [['book-open', 'القرآن الكريم', '114 سورة • 30 جزءاً', '/quran'], ['heart-handshake', 'الأدعية والزيارات', 'فهرس بمصادر موثقة', '/duas'], ['beads', 'المسبحة', 'عدّاد وأهداف وإحصاءات', '/tasbeeh'], ['sparkle', 'الأوراد والأعمال اليومية', 'ورد، تحدي قراءة، أذكار', '/daily'], ['notebook', 'دفتر التدبر', 'ملاحظاتك على الآيات', '/tadabbur']]],
     ['الموسوعات', [['star', 'العقائد', 'أصول الدين والإمامة', '/aqeedah'], ['users', 'الأئمة الاثنا عشر (ع)', 'سِيَر وجدول زمني', '/imams'], ['network', 'موسوعة الأبحاث العلمية', '20 وحدة بحثية', '/research'], ['sparkle', 'مساعد سِراج العلمي', 'يجيب من المكتبة مع الإحالة', '/assistant']]],
-    ['المكتبة والتحديثات', [['library', 'المكتبة', 'أقسام موضوعية', '/library'], ['download', 'تحديثات المحتوى', 'حزم موقّعة من الناشر', '/updates']]],
-    ['التطبيق', [['settings', 'الإعدادات', 'المظهر والخط والنسخ الاحتياطي', '/settings'], ['wifi', 'حالة الاتصال والتخزين', 'التشخيص', '/status'], ['info', 'عن سِراج والمصادر والتراخيص', '', '/about']]]
+    ['المكتبة والتحديثات', [['library', 'المكتبة', 'أقسام موضوعية', '/library'], ['download', 'تحديثات المحتوى', 'تصل تلقائياً من الناشر', '/updates']]],
+    ['التطبيق', [['settings', 'الإعدادات', 'المظهر والخط والنسخ الاحتياطي', '/settings'], ['info', 'عن سِراج والمصادر والتراخيص', '', '/about']]]
   ];
   S.router.add('/more', () => ({
     title: 'المزيد', nav: 'more', back: false,

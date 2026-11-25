@@ -110,7 +110,6 @@
 
 ## 8) الإسناد والتراخيص
 - نص القرآن: **Tanzil** (tanzil.net) برخصة CC BY 3.0 عبر **AlQuran.cloud**، يُعرض دون تعديل. التلاوات من `cdn.islamic.network`.
-- قارئ PDF: **PDF.js** (Mozilla) برخصة Apache-2.0 — الترخيص في `assets/lib/pdfjs/LICENSE-pdfjs.txt`.
 - الخطوط: Cairo وAmiri وAmiri Quran من Google Fonts (تُحمَّل عند الاتصال، وتُستعمل خطوط النظام العربية عند انقطاعه).
 - معاملات الخمس والزكاة: مكتب السيد السيستاني (sistani.org).
 - الشعار والأيقونات أصلية من تصميم المشروع (فانوس ذهبي) ولا تحاكي علامة قائمة.
@@ -119,7 +118,7 @@
 ## 9) هيكل الملفات
 ```
 index.html  manifest.json  service-worker.js  offline.html  README.md
-assets/{css,js,data,images,lib/pdfjs}
+assets/{css,js,data,images}
 control/                 تطبيق «سِراج — التحكم» (الناشر): index.html, js/, css/, package.json, capacitor.config.json
 covers/                  تطبيق «سِراج — الأغلفة»: index.html, js/, css/, assets/images, package.json, capacitor.config.json
 docs/{schema.sql,ARCHITECTURE.md,ANDROID.md,CONTROL.md,import-templates/}

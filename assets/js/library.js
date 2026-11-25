@@ -106,7 +106,7 @@
   };
   L.cover = cover;
   const shelfBook = (b) => S.h`<a class="bk" href="#/library/book/${b.id}">${cover(b)}<span class="bk-a">${String(b.author || '').replace(/\(.*?\)/g, '').trim()}</span></a>`;
-  L.row = (b) => S.h`<a class="bookrow" href="#/library/book/${b.id}">${cover(b)}<div class="grow"><div class="bk-t">${b.title}</div><div class="bk-a">${b.author}</div><div class="row wrap mt-s">${S.ui.badge((S.sectionById[b.section] || {}).title || '')}${b.subcat ? S.ui.badge(b.subcat) : ''}${b.hasPdf ? S.ui.badge('PDF محلي', 'ok') : ''}${b.status !== 'published' ? statusBadge(b) : ''}${S.fav.has('book', b.id) ? S.icon('heart', 'fill') : ''}</div></div></a>`;
+  L.row = (b) => S.h`<a class="bookrow" href="#/library/book/${b.id}">${cover(b)}<div class="grow"><div class="bk-t">${b.title}</div><div class="bk-a">${b.author}</div><div class="row wrap mt-s">${S.ui.badge((S.sectionById[b.section] || {}).title || '')}${b.subcat ? S.ui.badge(b.subcat) : ''}${b.status !== 'published' ? statusBadge(b) : ''}${S.fav.has('book', b.id) ? S.icon('heart', 'fill') : ''}</div></div></a>`;
   L.card = (b) => S.h`<a class="bookcard" href="#/library/book/${b.id}">${cover(b)}<div class="bk-t">${b.title}</div><span class="bk-a">${b.author}</span></a>`;
   S.ui.bookRow = L.row; S.ui.bookCard = L.card;
 
@@ -127,7 +127,6 @@
       html: S.h`<div class="stack">
         <div class="searchbox">${S.icon('search')}<input class="input" id="lib-q" type="search" placeholder="ابحث في الكتب والمؤلفين والموضوعات…" enterkeyhint="search" autocomplete="off"></div>
         <div class="chips"><a class="chip" href="#/library/search?sort=recent">${S.icon('clock')} الأحدث</a><a class="chip" href="#/library/top">${S.icon('chart')} الأكثر قراءة</a><a class="chip" href="#/library/favorites">${S.icon('heart')} المفضلة</a><a class="chip" href="#/library/history">${S.icon('book-open')} سجل القراءة</a><a class="chip" href="#/library/authors">${S.icon('users')} المؤلفون</a><a class="chip" href="#/library/eras">${S.icon('timeline')} العصور</a><a class="chip" href="#/library/search?sort=alpha">${S.icon('sort')} أبجدياً</a></div>
-        ${last && lastBook ? S.h`<div class="card tap gold-edge" data-act="goto" data-to="/library/read/${lastBook.id}"><div class="card-t">${S.icon('book-open')} تابع القراءة</div><div class="row"><div style="width:54px">${cover(lastBook)}</div><div class="grow"><b>${lastBook.title}</b><div class="small muted">${lastBook.author}${last.page ? ' • صفحة ' + S.n(last.page) : ''}</div></div></div></div>` : ''}
         <div class="mast-s">${S.n(total)} كتاباً في ${S.n(S.sections.length)} أقسام موضوعية${S.ui.ornament ? S.ui.ornament() : ''}</div>
         ${shelfBooks.length ? S.h`${S.ui.sectionTitle('على الرف')}<div class="shelf"><div class="shelf-in">${shelfBooks.map(shelfBook)}</div></div>` : ''}
         ${S.ui.sectionTitle('الأقسام (' + S.n(S.sections.length) + ')')}
@@ -223,26 +222,28 @@
   });
 
   /* ---------- صفحة الكتاب ---------- */
-  function searchLinks(b) {
-    const q = encodeURIComponent(b.title + ' ' + (b.author || '').replace(/\(.*?\)/g, ''));
-    return [['archive.org', 'https://archive.org/search?query=' + q], ['lib.eshia.ir', 'https://lib.eshia.ir/'], ['al-islam.org', 'https://www.al-islam.org/'], ['noorlib.ir', 'https://www.noorlib.ir/'], ['shiaonlinelibrary.com', 'https://shiaonlinelibrary.com/'], ['thaqalayn.net', 'https://thaqalayn.net/'], ['مكتبة العتبة العباسية', 'https://alkafeel.net/library/']];
+  /* روابط الكتاب: الموثّقة من الناشر أولاً (b.links ثم رابط المصدر ثم الرقمي)، ثم بحث مقيّد بكل مكتبة (لا ندّعي وجود الكتاب فيها) */
+  const SITES = [['نور (noor-book)', 'noor-book.com'], ['مكتبة أهل البيت (eshia)', 'lib.eshia.ir'], ['مكتبة الشيعة', 'al-shia.org'], ['رافد', 'rafed.net'], ['المكتبة الشيعية الإلكترونية', 'shiaonlinelibrary.com'], ['الإسلام (al-islam.org)', 'al-islam.org'], ['نور لايب (noorlib)', 'noorlib.ir']];
+  function bookLinks(b) {
+    const out = []; const seen = new Set(); const add = (n, u, k) => { if (u && /^https?:\/\//i.test(u) && !seen.has(u)) { seen.add(u); out.push([n, u, k]); } };
+    (Array.isArray(b.links) ? b.links : []).forEach((l) => l && add(String(l.name || 'رابط'), String(l.url || ''), 'link'));
+    add('رابط المصدر' + (b.sourceName ? ' — ' + b.sourceName : ''), b.sourceUrl, 'link'); add('النسخة الرقمية', b.digitalUrl, 'link');
+    const t = (b.title + ' ' + (b.author || '').replace(/\(.*?\)/g, '')).trim();
+    SITES.forEach(([n, d]) => add('بحث في ' + n, 'https://www.google.com/search?q=' + encodeURIComponent('"' + b.title + '" ' + d.replace(/^/, 'site:')), 'search'));
+    add('بحث في Archive.org', 'https://archive.org/search?query=' + encodeURIComponent(t), 'search'); add('بحث عام عن الكتاب', 'https://www.google.com/search?q=' + encodeURIComponent(t + ' pdf'), 'search');
+    return out;
   }
   S.router.add('/library/book/:id', async (p) => {
     const b = L.byId.get(p.id);
     if (!b || !L.visible(b)) return { title: 'كتاب', back: '/library', html: S.ui.empty('alert', 'الكتاب غير متاح', 'قد يكون قيد المراجعة أو محذوفاً.') };
     const sec = S.sectionById[b.section] || {}; const fav = S.fav.has('book', b.id); const au = L.authors.get(b.authorId);
     const sim = L.similar(b, 8);
-    const f = b.hasPdf ? await S.files.get('pdf:' + b.id) : null;
     return {
       title: 'تفاصيل الكتاب', nav: 'library', back: '/library/sec/' + b.section,
       actions: [{ icon: fav ? 'heart' : 'heart', label: 'مفضلة', act: 'bookFav', attrs: `data-id="${S.esc(b.id)}"` }, { icon: 'share', label: 'مشاركة', act: 'bookShare', attrs: `data-id="${S.esc(b.id)}"` }],
       html: S.h`<div class="stack">
         <div class="detail-head">${cover(b)}<div class="grow"><div class="h2">${b.title}</div><a href="#/library/author/${b.authorId}" class="muted">${b.author}</a><div class="row wrap mt-s">${S.ui.badge(sec.title || '', 'gold')}${b.subcat ? S.ui.badge(b.subcat) : ''}${statusBadge(b)}</div>${fav ? S.h`<div class="small mt-s ok">${S.icon('heart', 'fill')} في المفضلة</div>` : ''}</div></div>
-        <div class="grid2">
-          ${b.hasPdf ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة</a>` : b.streamUrl ? S.h`<a class="btn primary" href="#/library/read/${b.id}">${S.icon('book-open')} قراءة (عرض مباشر بدون تحميل)</a>` : b.digitalUrl ? S.h`<a class="btn primary" target="_blank" rel="noopener noreferrer" href="${S.url(b.digitalUrl)}">${S.icon('book-open')} فتح الكتاب (رابط خارجي)</a>` : S.h`<button class="btn" disabled>${S.icon('file')} لا يوجد PDF</button>`}
-          ${b.hasPdf && b.allowDownload ? S.h`<button class="btn" data-act="bookDownload" data-id="${b.id}">${S.icon('download')} تنزيل</button>` : S.h`<button class="btn" disabled title="التنزيل مسموح فقط عند ثبوت الترخيص">${S.icon('lock')} التنزيل غير مسموح</button>`}
-        </div>
-        ${!b.hasPdf ? S.ui.tip('info', 'لا يوجد ملف محلي لهذا الكتاب', 'الكتب في هذه النسخة بيانات ببليوغرافية فقط؛ استخدم روابط المصدر أدناه للوصول إلى النسخ المتاحة قانونياً.') : ''}
+        ${bookLinks(b).some((x) => x[2] === 'link') ? S.h`<div class="stack s">${bookLinks(b).filter((x) => x[2] === 'link').slice(0, 1).map(([n, u]) => S.h`<a class="btn primary block" target="_blank" rel="noopener noreferrer" href="${S.url(u)}">${S.icon('book-open')} فتح الكتاب — ${n}</a>`)}</div>` : ''}
         <div class="card"><div class="card-t">${S.icon('info')} نبذة تعريفية</div><p class="nm">${b.desc || S.raw('<span class="badge warn">غير موثّقة</span>')}</p></div>
         <div class="card"><div class="card-t">${S.icon('list')} البيانات الببليوغرافية</div><dl class="kv">
           <dt>المؤلف</dt><dd>${b.author}${b.authorDeath ? ' (ت ' + S.n(b.authorDeath) + ' هـ)' : ''}</dd>
@@ -252,13 +253,11 @@
           <dt>اللغة</dt><dd>${val(b.lang)}</dd>
           <dt>حقوق النشر</dt><dd>${b.copyright && b.copyright !== 'غير محدد' ? S.ui.badge(b.copyright, 'ok') : S.ui.badge('غير محدد — لا يُنشر دون ترخيص', 'warn')}</dd>
           <dt>حالة المراجعة</dt><dd>${String(b.reviewStatus || '').replace(/^بيانات تجريبية\s*[–-]\s*/, 'معلومات عامة — ')}</dd><dt>تاريخ الإضافة</dt><dd>${b.addedAt ? S.fmt.dt(b.addedAt) : '—'}</dd><dt>حالة النشر</dt><dd>${statusBadge(b)}</dd>
-          ${b.hasPdf && f ? S.h`<dt>الملف المحلي</dt><dd>${S.fmt.bytes(f.size)}</dd>` : ''}
         </dl></div>
         <div class="card"><div class="card-t">${S.icon('link')} المصادر والروابط</div>
           <div class="stack s">
-            ${b.sourceUrl ? S.h`<a class="btn sm" target="_blank" rel="noopener noreferrer" href="${S.url(b.sourceUrl)}">${S.icon('globe')} رابط المصدر${b.sourceName ? ' — ' + b.sourceName : ''}</a>` : S.h`<span class="small muted">رابط المصدر غير موثّق لهذا الكتاب.</span>`}
-            ${b.digitalUrl ? S.h`<a class="btn sm" target="_blank" rel="noopener noreferrer" href="${S.url(b.digitalUrl)}">${S.icon('file')} رابط النسخة الرقمية</a>` : ''}
-            <details class="acc"><summary>ابحث عن الكتاب في المصادر المقترحة</summary><div class="acc-b stack s">${searchLinks(b).map(([n, u]) => S.h`<a class="btn sm ghost" target="_blank" rel="noopener noreferrer" href="${u}">${n}</a>`)}<p class="tiny muted nm">فتح هذه الروابط يتم خارج التطبيق. تحقّق من حقوق كل كتاب بشكل مستقل؛ وجود PDF ليس دليلاً على جواز إعادة نشره.</p></div></details>
+            ${bookLinks(b).map(([n, u, kind]) => S.h`<a class="btn sm ${kind === 'search' ? 'ghost' : ''}" target="_blank" rel="noopener noreferrer" href="${S.url(u)}">${S.icon(kind === 'search' ? 'search' : 'globe')} ${n}</a>`)}
+            <p class="tiny muted nm">الروابط تُفتح خارج التطبيق. روابط «بحث» تفتح نتائج البحث عن الكتاب في ذلك الموقع ولا تعني وجود الكتاب فيه؛ تحقّق من حقوق كل نسخة.</p>
           </div></div>
         ${au ? S.h`<div class="card"><div class="card-t">${S.icon('user')} سيرة المؤلف</div><p class="nm"><b>${au.name}</b>${au.death ? ' — ت ' + S.n(au.death) + ' هـ' : ''}</p>${au.note ? S.h`<p class="small muted nm">${au.note}</p>` : ''}<a class="small" href="#/library/author/${au.id}">كل كتب المؤلف في المكتبة</a></div>` : ''}
         ${b.demo ? S.h`<p class="nm">${S.ui.badge('معلومات عامة — لم تُراجَع على طبعة بعينها', 'warn')}</p>` : ''}
@@ -268,8 +267,4 @@
   });
   S.act('bookFav', async (el) => { const id = el.dataset.id; const on = await S.fav.toggle('book', id); S.toast(on ? 'أُضيف إلى المفضلة' : 'أُزيل من المفضلة', 'ok'); S.router.refresh(); });
   S.act('bookShare', (el) => { const b = L.byId.get(el.dataset.id); S.share({ title: b.title, text: b.title + ' — ' + b.author + '\n(عبر تطبيق سِراج)' }); });
-  S.act('bookDownload', async (el) => {
-    const b = L.byId.get(el.dataset.id); const f = await S.files.get('pdf:' + b.id); if (!f) return S.toast('الملف غير موجود', 'err');
-    S.download(f.blob, (b.title.replace(/[\\/:*?"<>|]/g, '_').slice(0, 80) || 'book') + '.pdf'); b.downloads = (b.downloads || 0) + 1; await L.save(b); S.stat.inc('downloads:' + b.id);
-  });
 })();

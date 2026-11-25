@@ -169,17 +169,15 @@ t.go('/books', 700); nb = t.ev("SIRAJ.data.sample.books.length")
 t.check('«الكتب» تعرض كتب سِراج المضمّنة مباشرة (بدّون تبويب جانبي)', t.ev("document.querySelectorAll('#view .li').length") >= 40 and 'مضمّن' in t.txt() and nb >= 400, t.txt()[:200])
 t.go('/books?st=bundled&q=' + t.ev("encodeURIComponent(SIRAJ.data.sample.books[0].title.split(' ')[0])"), 700)
 first = t.ev("SIRAJ.data.sample.books[0].id"); pg.click(f'a.li[href="#/book/{first}"]'); pg.wait_for_timeout(900)
-t.check('فتح كتاب مضمّن يعرض نموذج التعديل ببياناته وإرفاق PDF', t.ev("document.querySelector('[name=title]').value") == t.ev("SIRAJ.data.sample.books[0].title") and 'ملف PDF للكتاب' in t.txt())
+t.check('فتح كتاب مضمّن يعرض نموذج التعديل ببياناته وروابط المصادر', t.ev("document.querySelector('[name=title]').value") == t.ev("SIRAJ.data.sample.books[0].title") and 'روابط الكتاب من مصادر عدة' in t.txt())
 t.check('فتحه لا يكتب شيئاً قبل الحفظ', t.ev("SIRAJ.db.all('books').then(a=>a.filter(b=>b.replaces==='%s').length)" % first) == 0)
 pg.click('[data-act=bkSave]'); pg.wait_for_timeout(900)
 clone = t.ev("SIRAJ.db.all('books').then(a=>a.find(b=>b.replaces==='%s'))" % first)
 t.check('الحفظ ينشئ نسخة معدّلة (مسودة) بمعرّف جديد', clone and clone['id'] != first and clone['ready'] is False)
 t.go('/book/' + first, 700); t.check('إعادة فتح المضمّن تفتح نسختك لا نسخة جديدة', t.ev("document.getElementById('bkform').dataset.id") == clone['id'])
-pg.fill('[name=sourceName]', 'فهرس اختباري'); pg.fill('[name=sourceUrl]', 'https://example.org/b'); pg.set_input_files('[name=pdfFile]', '/tmp/test-book.pdf'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(1200)
-t.check('PDF مع حقوق «غير محدد»: لا يُقبل جاهزاً', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready)" % clone['id']) is False and t.ev("SIRAJ.db.get('books','%s').then(b=>b.hasPdf)" % clone['id']) is True)
-t.go('/book/' + clone['id'], 700); pg.select_option('[name=copyright]', 'مرخّص — Creative Commons'); pg.check('[name=allowDownload]'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(1200)
-t.check('بحقوق «مرخّص»: يصير جاهزاً ومعه PDF', t.ev("SIRAJ.db.get('books','%s').then(b=>b.ready&&b.hasPdf&&b.allowDownload)" % clone['id']) is True)
-t.go('/books?st=pdf', 600); t.check('فلتر «فيها PDF»', clone['id'] in t.ev("[...document.querySelectorAll('#view a.li')].map(a=>a.getAttribute('href')).join(' ')"))
+pg.fill('[name=sourceName]', 'فهرس اختباري'); pg.fill('[name=sourceUrl]', 'https://example.org/b'); pg.fill('[name=links]', 'نور | https://www.noor-book.com/x\nرابط خاطئ | http://insecure.example/y\nأرشيف | https://archive.org/details/zz'); pg.check('[name=ready]'); pg.click('[data-act=bkSave]'); pg.wait_for_timeout(1200)
+t.check('روابط المصادر المتعددة: https فقط وتُحفظ', t.ev("SIRAJ.db.get('books','%s').then(b=>JSON.stringify(b.links))" % clone['id']) == '[{"name":"نور","url":"https://www.noor-book.com/x"},{"name":"أرشيف","url":"https://archive.org/details/zz"}]')
+t.check('لا حقل PDF في نموذج الكتاب ولا مرفقات', t.ev("!document.querySelector('[name=pdfFile]')") is True and t.ev("SIRAJ.db.get('books','%s').then(b=>!b.hasPdf)" % clone['id']) is True)
 t.go('/duas'); dfirst = t.ev("document.querySelector('[data-act=duaClone]').dataset.id"); pg.click(f'[data-act=duaClone][data-id="{dfirst}"]'); pg.wait_for_timeout(900)
 t.check('دعاء مضمّن: ينسخ مسودة للتعديل', '/dua/pd_' in t.ev("location.hash") and t.ev("SIRAJ.db.all('duas').then(a=>a.some(d=>d.replaces==='%s'&&!d.ready))" % dfirst))
 # الإصدار: الأصل يُسحب تلقائياً والنسخة تدخل بمعرّفها الجديد ومعها PDF بالبصمة
@@ -192,15 +190,32 @@ else:
 dl.value.save_as(OUT + '/pack3.sirajpack'); env3 = json.load(open(OUT + '/pack3.sirajpack')); pl3 = json.loads(env3['payload'])
 t.check('الحزمة: نسخة الكتاب بمعرّفها الجديد وسحب الأصل تلقائياً', clone['id'] in [b['id'] for b in pl3['books']] and first in pl3['withdraw']['books'] and first not in [b['id'] for b in pl3['books']], pl3['withdraw'])
 t.check('الحزمة: لا حقل replaces/ready/hasPdf ضمن الكتاب', not ({'replaces', 'ready', 'hasPdf', 'allowDownload'} & set(next(b for b in pl3['books'] if b['id'] == clone['id']))))
-sha = hashlib.sha256(PDFB).hexdigest(); ref = [x for x in pl3['pdfs'] if x['id'] == clone['id']]
-t.check('الحمولة تحمل بصمة SHA-256 للـPDF والملف في الغلاف بالبصمة نفسها', len(ref) == 1 and ref[0]['sha'] == sha and ref[0]['allow'] is True and base64.b64decode(env3['blobs'][sha]) == PDFB, ref)
-t.check('التوقيع صحيح والغلاف يحمل الملف (تحقق مستقل)', indep_verify(env3, pub['jwk']) and 'pdfs' in pl3)
+t.check('الحمولة تحمل روابط الكتاب بلا أي PDF', next(b for b in pl3['books'] if b['id'] == clone['id']).get('links') and 'pdfs' not in pl3 and 'blobs' not in env3, pl3.get('pdfs'))
+t.check('التوقيع صحيح (تحقق مستقل)', indep_verify(env3, pub['jwk']))
 
-# ملف أكبر من 25 م.ب: يُحفظ محلياً (حتى 1 غ.ب) لكن الإصدار يمنعه برسالة واضحة
-t.ev("""async (id) => { try { window.__orig = await SIRAJ.files.get('ctl.pdf.' + id); await SIRAJ.files.put('ctl.pdf.' + id, new Blob(['%PDF-1.4\\n', new Uint8Array(26 * 1048576)], { type: 'application/pdf' }), { name: 'big.pdf' }); return 'ok ' + (await SIRAJ.files.get('ctl.pdf.' + id)).size; } catch (e) { return 'ERR ' + e; } }""", clone['id'])
-t.go('/home', 400); t.go('/publish', 1200); t.check('ملف PDF أكبر من 25 م.ب يمنع الإصدار برسالة تشير إلى رابط البث', 'ولا يمكن إرساله داخل الحزمة' in t.txt(), t.txt()[:300])
-t.ev("""async (id) => { await SIRAJ.files.put('ctl.pdf.' + id, window.__orig.blob, { name: window.__orig.name }); }""", clone['id'])
-t.check('نموذج الكتاب يعلن حد 1 غيغابايت', 'حتى 1 غيغابايت' in (t.go('/book/' + clone['id'], 700) or t.txt()) or 'حتى 1 غيغابايت' in t.txt())
+# ---------- 9ج) النشر المباشر إلى GitHub (وهمي): الحزمة ثم الفهرس، بموافقة صريحة ----------
+GH = {'puts': [], 'files': {}}
+def gh_route(route):
+    rq = route.request; u = rq.url.split('/contents/')[-1].split('?')[0]
+    if rq.method == 'GET': return route.fulfill(status=200 if u in GH['files'] else 404, content_type='application/json', body=json.dumps({'sha': 'abc123'}) if u in GH['files'] else '{}', headers={'access-control-allow-origin': '*'})
+    if rq.method == 'OPTIONS': return route.fulfill(status=204, headers={'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*'})
+    body = json.loads(rq.post_data); GH['puts'].append((u, body, rq.headers.get('authorization'))); GH['files'][u] = 1
+    return route.fulfill(status=201, content_type='application/json', headers={'access-control-allow-origin': '*'}, body='{}')
+pg.route('https://api.github.com/repos/**', gh_route)
+t.go('/publish', 900); pg.fill('[name=pubRepo]', 'owner/siraj-updates'); pg.fill('[name=pubToken]', 'github_pat_TEST'); pg.click('[data-act=pubSave]'); pg.wait_for_timeout(500)
+t.check('إعدادات النشر تُحفظ محلياً', t.ev("SIRAJ.kv.get('ctl.pub')") == {'repo': 'owner/siraj-updates', 'token': 'github_pat_TEST'})
+t.go('/home', 300); t.go('/publish', 900)
+if not t.ev("SIRAJ.keys.isUnlocked()"):
+    pg.click('[data-act=pkIssue]'); pg.wait_for_selector('.modal'); pg.fill('.modal [name=v]', PASS); click_modal('فتح'); pg.wait_for_timeout(600)
+else:
+    pg.click('[data-act=pkIssue]'); pg.wait_for_timeout(1500)
+pg.wait_for_selector('.modal'); t.check('النشر يطلب موافقة صريحة قبل الرفع', 'للمستخدمين' in t.ev("document.querySelector('.modal').innerText") and len(GH['puts']) == 0)
+click_modal('نشر الآن'); pg.wait_for_timeout(2500)
+names = [x[0] for x in GH['puts']]
+t.check('رُفعت الحزمة أولاً ثم الفهرس', len(names) == 2 and names[0].startswith('packs/siraj-pack-') and names[0].endswith('.sirajpack') and names[1] == 'index.json', names)
+idx = json.loads(base64.b64decode(GH['puts'][1][1]['content']).decode()); packenv = json.loads(base64.b64decode(GH['puts'][0][1]['content']).decode())
+t.check('الفهرس يشير للحزمة المرفوعة بمفتاح الناشر ورقمها', idx['format'] == 'siraj-index/1' and idx['packs'][0]['file'] == names[0] and idx['packs'][0]['keyId'] == packenv['keyId'] and idx['packs'][0]['seq'] == json.loads(packenv['payload'])['seq'], idx)
+t.check('الحزمة المرفوعة موقّعة وصحيحة بتحقق مستقل، والمفتاح يُرسل في الترويسة', indep_verify(packenv, pub['jwk']) and GH['puts'][0][2] == 'Bearer github_pat_TEST')
 
 # ---------- 10) التنقل ورجوع أندرويد ----------
 t.go('/home'); t.check('الرئيسية تعرض آخر حزمة', 'آخر حزمة' in t.txt())

@@ -17,6 +17,13 @@
     validate: (it) => S.schema.validateDua(it)
   });
 
+  /* روابط بحث خارجية لنص الدعاء/الزيارة (لا نصوص من عندنا): بحث مقيّد بكل مكتبة */
+  const DSITES = [['مكتبة أهل البيت (eshia)', 'lib.eshia.ir'], ['مكتبة الشيعة', 'al-shia.org'], ['رافد', 'rafed.net'], ['نور (noor-book)', 'noor-book.com'], ['الإسلام (al-islam.org)', 'al-islam.org']];
+  function duaLinks(d) {
+    const t = d.title + (d.commonSource && /مفاتيح/.test(d.commonSource) ? ' مفاتيح الجنان' : ' ' + (d.commonSource || ''));
+    const out = DSITES.map(([n, dom]) => ['بحث في ' + n, 'https://www.google.com/search?q=' + encodeURIComponent('"' + d.title + '" site:' + dom)]);
+    out.push(['بحث عام عن النص', 'https://www.google.com/search?q=' + encodeURIComponent(t.trim())]); return out;
+  }
   S.router.add('/duas', async (p, q) => {
     const all = await D.all(); const term = (q.q || '').trim(); const cats = D.cats();
     const counts = {}; all.forEach((d) => (counts[d.cat] = (counts[d.cat] || 0) + 1));
@@ -81,7 +88,8 @@
           ${audioUrl ? S.h`<div class="card"><div class="card-t">${S.icon('volume')} تسجيل صوتي</div><audio controls preload="none" id="dua-au" src="${audioUrl}" style="width:100%"></audio>
             <div class="card flat mt"><div class="small"><b>تكرار مقطع</b> — شغّل التسجيل ثم حدّد بداية المقطع ونهايته ليتكرر</div><div class="grid3 mt-s"><button class="btn sm" data-act="duaA">بداية: <b id="dua-a">—</b></button><button class="btn sm" data-act="duaB">نهاية: <b id="dua-b">—</b></button><button class="btn sm" data-act="duaABclr">إلغاء</button></div><label class="check"><input type="checkbox" id="dua-all" data-chg="duaLoopAll"><span>تكرار التسجيل كاملاً</span></label><div class="tiny muted" id="dua-abst">لا مقطع محدد.</div></div>
             <div class="tiny muted">${d.audioNote || 'ملف صوتي مرتبط بالدعاء. تأكد من ترخيصه.'}</div></div>` : ''}`
-          : S.ui.empty('scroll', 'النص الموثق غير مضاف بعد', 'لا يُنشئ سِراج نصوص الأدعية من عنده. عند إضافة النص من كتاب معتمد (مثل مفاتيح الجنان أو الصحيفة السجادية) مع الطبعة والصفحة يظهر هنا للقراءة.', S.h`<a class="btn" href="#/updates">تحديثات المحتوى</a>`)}
+          : S.ui.empty('scroll', 'النص الموثق غير مضاف بعد', 'لا يُنشئ سِراج نصوص الأدعية من عنده. عند إضافة النص من كتاب معتمد (مثل مفاتيح الجنان أو الصحيفة السجادية) مع الطبعة والصفحة يظهر هنا للقراءة.')}
+        ${!ok ? S.h`<div class="card"><div class="card-t">${S.icon('link')} اقرأ النص من مصادر خارجية</div><div class="stack s">${duaLinks(d).map(([n, u]) => S.h`<a class="btn sm ghost" target="_blank" rel="noopener noreferrer" href="${u}">${S.icon('search')} ${n}</a>`)}<p class="tiny muted nm">روابط بحث تفتح خارج التطبيق عن «${d.title}»؛ لا يضمن سِراج وجوده فيها ولا صحة النسخة، فتحقّق من الطبعة والمصدر.</p></div></div>` : ''}
         <div class="card"><div class="card-t">${S.icon('link')} المصدر</div><p class="nm">${srcLine(d) || 'غير محدد'}</p>${d.textSource && d.textSource.url ? S.h`<a class="small" href="${d.textSource.url}" target="_blank" rel="noopener noreferrer">رابط المصدر</a>` : ''}<p class="tiny muted nm mt">${d.note || ''}</p></div>
         ${ok ? S.h`<a class="btn block" href="#/daily/reminders?dua=${d.id}">${S.icon('bell')} جدولة قراءة هذا الدعاء</a>` : ''}
       </div>`,

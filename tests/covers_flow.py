@@ -151,7 +151,7 @@ t4.check('بلا محرك: صفحة TTS تشرح الحل', 'خدمات الكل
 t4.go('/prayer/settings', 900)
 t4.check('إعدادات الصلاة بلا إشارة إلى ملفات المطوّر', 'docs/' not in t4.txt() and '.md' not in t4.txt())
 t4.check('لا زر تجربة ولا رفع أذان في تطبيق المستخدم', t4.ev("!document.querySelector('[data-act=testAdhan],[data-act=nnTest],[data-act=saveAdhan],.filebox')"))
-t4.go('/updates', 800)
+t4.go('/updates/file', 800)
 t4.check('حقل الملف: زر واسم الملف بلا تداخل', t4.ev("(()=>{const b=document.querySelector('.filebox .filebtn').getBoundingClientRect();const n=document.querySelector('.filebox .fname').getBoundingClientRect();return n.top>=b.bottom-1})()"))
 t4.check('اسم الملف يُحدَّث عند الاختيار', (lambda: (t4.pg.set_input_files('.filebox input[type=file]', {'name': 'adhan-test.mp3', 'mimeType': 'audio/mpeg', 'buffer': b'ID3'}), t4.pg.wait_for_timeout(200), 'adhan-test.mp3' in t4.ev("document.querySelector('.filebox .fname').textContent"))[-1])())
 t4.fails += FAILS3

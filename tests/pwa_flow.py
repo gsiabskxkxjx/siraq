@@ -17,7 +17,7 @@ sw = open(os.path.join(ROOT, 'service-worker.js'), encoding='utf8').read()
 urls = re.findall(r"^  '(\./[^']*)'", sw, re.M)
 miss = [u for u in urls if u != './' and not os.path.exists(os.path.join(ROOT, u[2:]))]
 t.check('SW: كل ملفات PRECACHE موجودة', not miss, miss)
-t.check('SW: يشمل الملفات الأساسية', all(('./' + x) in urls for x in ['index.html', 'offline.html', 'manifest.json', 'assets/js/daily.js', 'assets/js/app.js', 'assets/lib/pdfjs/pdf.min.mjs']))
+t.check('SW: يشمل الملفات الأساسية', all(('./' + x) in urls for x in ['index.html', 'offline.html', 'manifest.json', 'assets/js/daily.js', 'assets/js/app.js']))
 # كل سكربت وملف CSS في index.html مُدرج
 idx = open(os.path.join(ROOT, 'index.html'), encoding='utf8').read()
 refs = [r for r in re.findall(r'(?:src|href)="(assets/[^"]+)"', idx)]
@@ -46,8 +46,9 @@ resp = pg.evaluate("fetch('offline.html').then(r=>r.status+':'+r.headers.get('co
 t.check('دون اتصال: offline.html متاحة', resp.startswith('200'), resp)
 nav = pg.evaluate("fetch('index.html?x=1').then(r=>r.status)")
 t.check('دون اتصال: index.html يُخدم من الذاكرة', nav == 200, nav)
-t.go('/status', 600)
-t.check('صفحة الحالة تذكر الخدمة/التخزين', 'service' in t.txt().lower() or 'Service' in t.txt() or 'دون اتصال' in t.txt() or 'الذاكرة' in t.txt(), t.txt()[:200])
+t.go('/updates', 600)
+t.check('صفحة التحديثات: تلقائية بلا اختيار ملفات', 'التحديث التلقائي' in t.txt() and 'تحقق الآن' in t.txt() and not t.ev("!!document.querySelector('input[type=file]')"), t.txt()[:200])
+t.go('/status', 400); t.check('لا توجد صفحة «حالة التطبيق» (نسخة تجريبية محذوفة)', 'حالة التطبيق' not in t.txt())
 t.shot('offline-status')
 t.ctx.set_offline(False)
 # كل ملفات PRECACHE موجودة فعلاً (وإلا فشل تثبيت Service Worker كله)

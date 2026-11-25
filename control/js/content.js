@@ -51,14 +51,14 @@
   /* ---------------- الكتب ---------------- */
   const subOptions = (sec, cur) => { const s = S.sectionById[sec]; return ['<option value="">— بلا —</option>'].concat((s ? s.subcats : []).map((x) => `<option ${x === cur ? 'selected' : ''}>${esc(x)}</option>`)).join(''); };
   /* نسخة قابلة للتعديل من كتاب مضمّن: معرّف جديد + replaces؛ عند نشرها «جاهزة» يُسحب الأصل من سِراج تلقائياً فتحلّ محله */
-  const cloneOfBook = (b, now) => ({ id: tid('pk'), title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: (b.tags || []).slice(), publisher: b.publisher || '', year: b.year == null ? '' : b.year, edition: b.edition || '', pages: b.pages == null ? '' : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', streamUrl: b.streamUrl || '', copyright: b.copyright || 'غير محدد', ready: false, replaces: b.id, updated: now });
+  const cloneOfBook = (b, now) => ({ id: tid('pk'), title: b.title, author: b.author, authorId: b.authorId, authorDeath: b.authorDeath || null, section: b.section, subcat: b.subcat || '', desc: b.desc || '', tags: (b.tags || []).slice(), publisher: b.publisher || '', year: b.year == null ? '' : b.year, edition: b.edition || '', pages: b.pages == null ? '' : b.pages, lang: b.lang || 'العربية', sourceName: b.sourceName || '', sourceUrl: b.sourceUrl || '', digitalUrl: b.digitalUrl || '', copyright: b.copyright || 'غير محدد', ready: false, replaces: b.id, updated: now });
   /* كل الكتب في قائمة واحدة: ما عدّلتَه/أضفتَه، ثم كتب سِراج المضمّنة التي لم تعدّلها بعد (تُنسخ للتعديل عند الحفظ فقط) */
   S.router.add('/books', async (p, q) => {
     const term = S.norm(q.q || ''); const st = q.st || ''; const sec = q.sec || ''; const all = await list('books');
     const clones = new Map(all.filter((b) => b.replaces).map((b) => [b.replaces, b]));
     const own = all.slice().sort((a, b) => (b.updated || 0) - (a.updated || 0)).map((b) => ({ b, own: true }));
     const bun = bundledBooks().filter((b) => !clones.has(b.id)).map((b) => ({ b, own: false }));
-    let rows = st === 'bundled' ? bun : st === 'ready' ? own.filter((x) => x.b.ready) : st === 'draft' ? own.filter((x) => !x.b.ready) : st === 'pdf' ? own.filter((x) => x.b.hasPdf) : own.concat(bun);
+    let rows = st === 'bundled' ? bun : st === 'ready' ? own.filter((x) => x.b.ready) : st === 'draft' ? own.filter((x) => !x.b.ready) : own.concat(bun);
     if (sec) rows = rows.filter((x) => x.b.section === sec); if (term) rows = rows.filter((x) => S.norm(x.b.title + ' ' + x.b.author).includes(term));
     const lim = Math.max(60, +q.n || 60);
     const url = (o) => '#/books?' + Object.entries(Object.assign({ st: st, q: q.q, sec: sec }, o)).filter(([, v]) => v).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
@@ -68,7 +68,7 @@
       html: S.h`<div class="stack"><div class="searchbox">${S.icon('search')}<input class="input" id="bq" value="${q.q || ''}" placeholder="بحث في كل الكتب"></div>
         <div class="chips">${chip('', 'الكل (' + S.n(own.length + bun.length) + ')')}${chip('bundled', 'مضمّنة (' + S.n(bun.length) + ')')}${chip('draft', 'مسودات')}${chip('ready', 'جاهز')}${chip('pdf', 'فيها PDF')}</div>
         <div class="chips"><a class="chip ${!sec ? 'active' : ''}" href="${url({ sec: '', n: '' })}">كل الأقسام</a>${S.sections.map((x) => S.h`<a class="chip ${sec === x.id ? 'active' : ''}" href="${url({ sec: x.id, n: '' })}">${x.title}</a>`)}</div>
-        <div class="small muted">${S.n(rows.length)} كتاب — اضغط أي كتاب لتعديله وإرفاق PDF</div>
+        <div class="small muted">${S.n(rows.length)} كتاب — اضغط أي كتاب لتعديله</div>
         <div class="list">${rows.length ? rows.slice(0, lim).map(({ b, own: o }) => S.h`<a class="li" href="#/book/${b.id}"><span class="li-body"><span class="li-t">${b.title || '(بلا عنوان)'}</span><span class="li-s">${b.author || ''} • ${secTitle(b.section)}${b.replaces ? ' • معدّل عن المضمّن' : ''}${b.hasPdf ? ' • PDF' : ''}</span></span><span class="li-end">${o ? badge(b) : S.ui.badge('مضمّن', '')}</span></a>`) : S.ui.empty('library', 'لا كتب', 'غيّر البحث أو القسم، أو أضف كتاباً.', S.h`<a class="btn primary" href="#/book/new">إضافة كتاب</a>`)}</div>
         ${rows.length > lim ? S.h`<a class="btn block" href="${url({ n: lim + 60 })}">عرض المزيد (${S.n(rows.length - lim)})</a>` : ''}</div>`,
       mount() { const f = S.$('#bq'); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') S.router.go('/books?q=' + encodeURIComponent(f.value) + (st ? '&st=' + st : '') + (sec ? '&sec=' + sec : '')); }); }
@@ -82,9 +82,9 @@
     return Object.assign(cloneOfBook(src, Date.now()), { id: '' });
   }
   S.router.add('/book/:id', async (p) => {
-    const isNew = p.id === 'new'; const b = isNew ? { id: '', title: '', author: '', authorDeath: '', section: S.sections[0].id, subcat: '', desc: '', tags: [], publisher: '', year: '', edition: '', pages: '', lang: 'العربية', sourceName: '', sourceUrl: '', digitalUrl: '', streamUrl: '', copyright: 'غير محدد', ready: false } : await getBook(p.id);
+    const isNew = p.id === 'new'; const b = isNew ? { id: '', title: '', author: '', authorDeath: '', section: S.sections[0].id, subcat: '', desc: '', tags: [], publisher: '', year: '', edition: '', pages: '', lang: 'العربية', sourceName: '', sourceUrl: '', digitalUrl: '', copyright: 'غير محدد', ready: false } : await getBook(p.id);
     if (!b) return { title: 'كتاب', back: '/books', html: S.ui.empty('alert', 'الكتاب غير موجود') };
-    const authors = await allAuthors(); const pdf = b.id && b.hasPdf ? await S.files.get('ctl.pdf.' + b.id) : null;
+    const authors = await allAuthors();
     return {
       title: isNew ? 'إضافة كتاب' : 'تعديل كتاب', nav: 'content', back: '/books',
       html: S.h`<div class="stack" id="bkform" data-id="${b.id}" data-replaces="${b.replaces || ''}"><div id="bk-errs"></div>
@@ -99,15 +99,12 @@
         <div class="card"><div class="card-t">${S.icon('list')} الببليوغرافيا</div>${S.f.text('publisher', 'دار النشر', b.publisher)}
           <div class="grid3">${S.f.text('year', 'سنة النشر', b.year || '', { type: 'number', ltr: true })}${S.f.text('edition', 'الطبعة', b.edition)}${S.f.text('pages', 'الصفحات', b.pages || '', { type: 'number', ltr: true })}</div>${S.f.text('lang', 'اللغة', b.lang)}</div>
         <div class="card"><div class="card-t">${S.icon('link')} المصدر والحقوق <span class="bad">*</span></div>
-          ${S.f.text('sourceName', 'اسم المصدر (فهرس/موقع/طبعة)', b.sourceName)}${S.f.text('sourceUrl', 'رابط المصدر', b.sourceUrl, { ltr: true, placeholder: 'https://' })}${S.f.text('digitalUrl', 'رابط نسخة رقمية قانونية (اختياري)', b.digitalUrl, { ltr: true })}${S.f.text('streamUrl', 'رابط PDF مباشر للعرض بالبث (للكتب الكبيرة — اختياري)', b.streamUrl, { ltr: true, placeholder: 'https://…/book.pdf' })}
+          ${S.f.text('sourceName', 'اسم المصدر (فهرس/موقع/طبعة)', b.sourceName)}${S.f.text('sourceUrl', 'رابط المصدر', b.sourceUrl, { ltr: true, placeholder: 'https://' })}${S.f.text('digitalUrl', 'رابط نسخة رقمية قانونية (اختياري)', b.digitalUrl, { ltr: true })}
           ${S.f.select('copyright', 'حالة حقوق النشر', SC.COPY.map((c) => ({ v: c.v, t: c.v })), b.copyright)}
           <p class="tiny muted nm">لا تُنشر ملفات كتب عبر الحزم؛ الرابط الخارجي فقط.</p></div>
-        <div class="card"><div class="card-t">${S.icon('file')} ملف PDF للكتاب</div>
-          <p class="small muted nm">${pdf ? 'المرفق الحالي: ' + esc(pdf.name || 'book.pdf') + ' — ' + S.fmt.bytes(pdf.size) : 'لا يوجد ملف مرفق.'}</p>
-          ${S.f.file('pdfFile', 'اختر ملف PDF (حتى 1 غيغابايت)', 'application/pdf,.pdf')}
-          ${S.f.check('allowDownload', 'السماح للمستخدم بتنزيل الملف (وإلا يقرأه داخل سِراج فقط)', b.allowDownload)}${pdf ? S.f.check('pdfDel', 'إزالة الملف المرفق', false) : ''}
-          <p class="tiny muted nm">يُحفظ الملف في هذا التطبيق حتى 1 غيغابايت. لكن الملف الذي يتجاوز 25 م.ب لا يمكن إرساله داخل الحزمة (حد ذاكرة هاتف المستخدم)؛ ارفعه على استضافة تدعم البث (مثل Archive.org للكتب العامة) وضع رابطه في «رابط PDF مباشر للعرض بالبث» ليقرأه المستخدم بدون تحميل.</p>
-          <p class="tiny muted nm">لا يُرفق PDF إلا إذا كانت حالة حقوق النشر أعلاه «ملك عام» أو «مرخّص» أو «بإذن خطي». يصل المستخدم داخل الحزمة الموقّعة عند وسم الكتاب «جاهز للنشر».</p></div>
+        <div class="card"><div class="card-t">${S.icon('link')} روابط الكتاب من مصادر عدة</div>
+          ${S.f.area('links', 'سطر لكل رابط: الاسم | الرابط (https)', (b.links || []).map((l) => l.name + ' | ' + l.url).join('\n'), { rows: 4, ltr: true })}
+          <p class="tiny muted nm">تظهر للمستخدم أزرار «فتح الكتاب» تفتح الرابط خارج التطبيق. لا يقرأ التطبيق ملفات PDF ولا يحمّلها؛ ضع روابط صفحات الكتاب في المكتبات (نور، الشيعة، أرشيف…). أضف رابطاً فقط إن تأكدت أنه يفتح الكتاب المقصود.</p></div>
         <div class="card">${S.f.check('ready', 'جاهز للنشر (يدخل الحزمة القادمة)', b.ready)}<p class="tiny muted nm">يُفحص الكتاب عند الحفظ؛ إن لم يجتز الفحص يُحفظ مسودة.</p></div>
         <button class="btn primary block" data-act="bkSave">${S.icon('check')} حفظ</button>
         ${!isNew ? S.h`<button class="btn danger block" data-act="bkDel" data-id="${b.id}">${S.icon('trash')} حذف الكتاب</button>` : ''}</div>`
@@ -120,20 +117,13 @@
     if (!str(d.title)) return S.toast('العنوان مطلوب', 'err');
     let a = { id: '', name: str(d.author), death: null };
     if (str(d.author)) a = await authorFor(d.author, d.authorDeath);
-    const rec = { id: id || tid('pk'), title: str(d.title), author: a.name, authorId: a.id, authorDeath: a.death || null, section: d.section, subcat: d.subcat, desc: str(d.desc), tags: d.tags.split(/[,،]/).map((x) => x.trim()).filter(Boolean), publisher: str(d.publisher), year: d.year, edition: str(d.edition), pages: d.pages, lang: str(d.lang) || 'العربية', sourceName: str(d.sourceName), sourceUrl: str(d.sourceUrl), digitalUrl: str(d.digitalUrl), streamUrl: str(d.streamUrl), copyright: d.copyright, ready: !!d.ready, updated: Date.now() };
+    const rec = { id: id || tid('pk'), title: str(d.title), author: a.name, authorId: a.id, authorDeath: a.death || null, section: d.section, subcat: d.subcat, desc: str(d.desc), tags: d.tags.split(/[,،]/).map((x) => x.trim()).filter(Boolean), publisher: str(d.publisher), year: d.year, edition: str(d.edition), pages: d.pages, lang: str(d.lang) || 'العربية', sourceName: str(d.sourceName), sourceUrl: str(d.sourceUrl), digitalUrl: str(d.digitalUrl), copyright: d.copyright, ready: !!d.ready, updated: Date.now() };
     if (root.dataset.replaces) rec.replaces = root.dataset.replaces;
     const errs = SC.validateBook(rec); if (!rec.authorId) errs.push('المؤلف مطلوب');
     if (!old && !rec.replaces) { const k = S.norm(rec.title) + '|' + S.norm(rec.author); const dup = bundledBooks().find((x) => S.norm(x.title) + '|' + S.norm(x.author) === k) || (await list('books')).find((x) => S.norm(x.title) + '|' + S.norm(x.author) === k); if (dup && !(await S.confirm('يوجد كتاب مطابق: «' + dup.title + '». هل تريد المتابعة رغم التكرار؟', { yes: 'متابعة' }))) return; }
     if (errs.length) { if (rec.ready) { rec.ready = false; showErrs('#bk-errs', 'لا يمكن وسمه «جاهز» — يُحفظ مسودة حتى تُصلح:', errs); } else showErrs('#bk-errs', 'ملاحظات للإكمال قبل النشر:', errs); }
-    /* PDF: إرفاق/استبدال/إزالة */
-    const pf = S.$('[name=pdfFile]', root) && S.$('[name=pdfFile]', root).files[0]; rec.hasPdf = !!(old && old.hasPdf); rec.allowDownload = !!d.allowDownload;
-    if (d.pdfDel && old && old.hasPdf) { await S.files.del('ctl.pdf.' + rec.id); rec.hasPdf = false; }
-    if (pf) {
-      const head = await pf.slice(0, 5).text();
-      if (head !== '%PDF-') return S.toast('الملف ليس PDF صالحاً', 'err'); if (pf.size > 1073741824) return S.toast('الملف أكبر من 1 غيغابايت', 'err');
-      await S.files.put('ctl.pdf.' + rec.id, pf, { name: pf.name }); rec.hasPdf = true;
-    }
-    if (rec.hasPdf && !SC.copyOk(rec.copyright)) { errs.push('إرفاق PDF يتطلب حالة حقوق «ملك عام» أو «مرخّص» أو «بإذن خطي»'); if (rec.ready) rec.ready = false; showErrs('#bk-errs', 'ملاحظات للإكمال قبل النشر:', errs); }
+    rec.links = (d.links || '').split('\n').map((l) => l.split('|')).map((a) => ({ name: str(a[0]).trim(), url: str(a.slice(1).join('|')).trim() })).filter((l) => l.name && /^https:\/\/[^\s]+$/i.test(l.url)).slice(0, 8);
+    rec.hasPdf = false; rec.allowDownload = false; if (old && old.hasPdf) await S.files.del('ctl.pdf.' + rec.id).catch(() => {});
     await S.db.put('books', Object.assign({}, old || {}, rec)); root.dataset.id = rec.id; /* بقاء المستخدم في النموذج: الحفظ التالي تعديل لا نسخة جديدة */ await S.audit(old ? 'book.edit' : 'book.add', rec.title, rec.ready ? 'ready' : 'draft');
     S.toast(rec.ready ? 'حُفظ وهو جاهز للنشر' : 'حُفظ كمسودة', 'ok'); if (!errs.length) S.router.go('/books');
   });

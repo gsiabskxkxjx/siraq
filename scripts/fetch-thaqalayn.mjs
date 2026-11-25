@@ -43,7 +43,9 @@ const KNOWN = [
   [/sahifa|sahifah|صحيفة/, 'الصحيفة السجادية', 'منسوبة إلى الإمام زين العابدين (ع)']
 ];
 // كتب تُعامَل أدعيةً لا روايات (يُعرض كل بند في «الأدعية»)
-const DUA_BOOK = /sahifa|sahifah|صحيفة|munajat|مناجاة|ziyarat|زيارات|dua|دعاء|mafatih|مفاتيح/;
+const DUA_BOOK = /sahifa|sahifah|صحيفة|munajat|مناجاة|ziyarat|زيارات|dua(?!f)|دعاء|mafatih|مفاتيح/;
+// كتب رجال وتضعيف ليست أدعية ولا روايات تُعرض (مثل «كتاب الضعفاء»): تُستبعد كلياً
+export const NOT_CONTENT = /du.{0,2}afa|ضعفاء|rijal|رجال/;
 
 const AR = /[؀-ۿ]/g;
 const arabicRatio = (s) => { const letters = (s.match(/[\p{L}]/gu) || []).length; if (!letters) return 0; return (s.match(AR) || []).length / letters; };
@@ -92,10 +94,11 @@ async function main() {
     id: String(first(b, ['bookId', 'id', 'slug', 'BookId'])), name: clean(first(b, ['BookName', 'bookName', 'name', 'title', 'englishName'])), author: clean(first(b, ['author', 'Author']))
   })).filter((b) => b.id);
   if (!books.length) throw new Error('قائمة الكتب فارغة أو بنية غير متوقعة');
-  const take = books.slice(0, MAX_BOOKS);
+  const take = books.filter((b) => !NOT_CONTENT.test((b.id + ' ' + b.name).toLowerCase())).slice(0, MAX_BOOKS);
   const perBook = Math.max(PER_BOOK_MIN, Math.min(PER_BOOK_MAX, Math.ceil(MAX_TOTAL / take.length)));
   const items = [], duas = [], booksOut = []; const seen = new Set(); let rejected = 0, failed = 0;
   for (const b of take) {
+    if (NOT_CONTENT.test((b.id + ' ' + b.name).toLowerCase())) { console.log('استُبعد كتاب رجال/تضعيف: ' + b.id); continue; }
     const isDua = DUA_BOOK.test((b.id + ' ' + b.name).toLowerCase());
     let raw;
     try { raw = asArray(await getJson(BASE + '/' + encodeURIComponent(b.id))); } catch (e) { failed++; console.log('تعذّر كتاب ' + b.id + ': ' + e.message); continue; }

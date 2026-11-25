@@ -76,13 +76,6 @@
 
   window.addEventListener('online', () => { S.online = true; S.toast('عاد الاتصال بالإنترنت', 'ok'); document.dispatchEvent(new CustomEvent('siraj:net')); });
   window.addEventListener('offline', () => { S.online = false; S.toast('أنت الآن دون اتصال — المحتوى المحمّل يعمل محلياً'); document.dispatchEvent(new CustomEvent('siraj:net')); });
-  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); S.installEvent = e; });
-  window.addEventListener('appinstalled', () => { S.installEvent = null; S.toast('تم تثبيت سِراج على جهازك', 'ok'); });
-
-  S.act('install', async () => {
-    if (S.installEvent) { S.installEvent.prompt(); await S.installEvent.userChoice; S.installEvent = null; }
-    else S.alert('تثبيت التطبيق', S.h`<p>لتثبيت سِراج: افتح قائمة Chrome (⋮) ثم اختر <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b>.</p><p class="small muted">يتطلب التثبيت فتح التطبيق عبر رابط HTTPS (انظر README). لا يعمل التثبيت عند فتح الملف مباشرة.</p>`);
-  });
 
   /* زر الرجوع في أندرويد: نافذة مفتوحة ← تُغلق؛ صفحة داخلية ← الصفحة الأم أو الرئيسية؛ الرئيسية ← ضغطتان للخروج */
   function installBackButton() {
@@ -113,7 +106,7 @@
       await seed();
       if (S.library) await S.library.init();
       if (S.quran && S.quran.init) await S.quran.init();
-      ['prayer', 'calendar', 'daily', 'worship', 'nativeNotify'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
+      ['prayer', 'calendar', 'daily', 'worship', 'nativeNotify', 'packs'].forEach((m) => { try { if (S[m] && S[m].init) S[m].init(); } catch (e) { S.log('error', 'init ' + m + ': ' + e.message, e.stack); } });
       registerSW(); installBackButton();
       if (S.thaqalayn && S.thaqalayn.init) S.thaqalayn.init();
       S.db.persist();
