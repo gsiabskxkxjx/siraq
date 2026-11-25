@@ -211,7 +211,7 @@
 
   /* ---------------- الواجهة: عرض الحالة فقط (لا اختيار ملفات؛ التحديثات من الناشر تلقائية) ---------------- */
   const fmtCount = (c) => [c.books && S.n(c.books) + ' كتاب', c.authors && S.n(c.authors) + ' مؤلف', c.duas && S.n(c.duas) + ' دعاء/زيارة', c.entries && S.n(c.entries) + ' مدخل'].filter(Boolean).join(' • ') || 'لا شيء';
-  const WHY = { offline: 'لا يوجد اتصال بالإنترنت.', 'no-url': 'رابط التحديثات غير مضبوط في هذه النسخة.', rejected: 'وصل تحديث لم يُقبل لأن توقيعه لا يطابق الناشر.', error: 'تعذّر الاتصال بخادم التحديثات.' };
+  const WHY = { offline: 'لا يوجد اتصال بالإنترنت.', 'no-url': 'رابط التحديثات غير مضبوط في هذه النسخة.', rejected: 'وصل تحديث لم يُقبل لأن توقيعه لا يطابق الناشر.', error: 'تعذّر الاتصال بخادم التحديثات.', 'index-404': 'لم يُعثر على ملف التحديثات: إما أن مستودع siraj-updates غير موجود أو ليس عامّاً (Public)، أو أن الناشر لم ينشر أي تحديث بعد من تطبيق المتحكم.' };
   S.router.add('/updates', async () => {
     const keys = await T.trusted(); const st = state(); const inst = await T.installedCounts(); const u = upd();
     return {
