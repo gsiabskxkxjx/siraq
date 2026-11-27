@@ -89,6 +89,9 @@ jobs:
           retention-days: 7
 
       - name: توقيع APK بمفتاح ثابت
+        env:
+          SIRAJ_KS_B64: ${{ secrets.SIRAJ_KS_B64 }}
+          SIRAJ_KS_PASS: ${{ secrets.SIRAJ_KS_PASS }}
         run: |
           APK="$(find control/android/app/build/outputs/apk/debug -name '*.apk' | head -1)"
           echo "APK المبني: $APK"
