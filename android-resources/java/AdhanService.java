@@ -16,7 +16,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import androidx.core.app.NotificationCompat;
-import java.io.File;
 
 /**
  * يشغّل الأذان عبر قناة صوت «المنبّه» (USAGE_ALARM): يُسمع والهاتف على الصامت،
@@ -144,16 +143,15 @@ public class AdhanService extends Service {
             return START_NOT_STICKY;
         }
 
-        File f = AdhanStore.audioFile(this);
-        if (!f.exists() || f.length() == 0) {
+        if (AdhanStore.rawId(this) == 0) {
             finishNow(true);
             return START_NOT_STICKY;
         }
-        play(f);
+        play();
         return START_NOT_STICKY;
     }
 
-    private void play(File f) {
+    private void play() {
         try {
             PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
             wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "siraj:adhan");
@@ -166,7 +164,12 @@ public class AdhanService extends Service {
                     .setUsage(AudioAttributes.USAGE_ALARM)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build());
-            mp.setDataSource(f.getAbsolutePath());
+            android.content.res.AssetFileDescriptor afd = getResources().openRawResourceFd(AdhanStore.rawId(this));
+            try {
+                mp.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
+            } finally {
+                afd.close();
+            }
             mp.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer m) {

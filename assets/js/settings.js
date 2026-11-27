@@ -48,7 +48,6 @@
           <div class="grid2 mt"><button class="btn" data-act="backupExport" data-files="0">${S.icon('download')} نسخة احتياطية (بدون ملفات)</button><button class="btn" data-act="backupExport" data-files="1">${S.icon('download')} نسخة كاملة بالملفات</button></div>
           ${S.f.file('bkfile', 'استعادة من نسخة احتياطية', 'application/json,.json')}
           <button class="btn block" data-act="backupImport">${S.icon('upload')} استعادة</button>
-          <button class="btn danger block mt" data-act="resetDemo">${S.icon('refresh')} إعادة المحتوى المضمّن إلى أصله</button>
         </div>
         <div class="list">${S.ui.li({ icon: 'download', t: 'تحديثات المحتوى', href: '#/updates' })}${S.ui.li({ icon: 'info', t: 'عن سِراج والمصادر والتراخيص', href: '#/about' })}</div>
       </div>`
@@ -64,11 +63,6 @@
     const n = await S.backup.import(await S.readFile(f, 'text'), { settings: true });
     if (S.library) await S.library.init(); S.toast('تمت استعادة ' + S.n(n) + ' سجلاً', 'ok'); S.router.refresh();
   });
-  S.act('resetDemo', async () => {
-    if (!(await S.confirm('سيُحذف المحتوى الذي وصل عبر تحديثات المحتوى ويعود المحتوى المضمّن في التطبيق كما كان. تبقى مفضلتك وملاحظاتك وإعداداتك. متابعة؟', { danger: true, yes: 'نعم، أعد التعيين' }))) return;
-    await S.resetDemo(); S.toast('أُعيد المحتوى المضمّن', 'ok'); S.router.refresh();
-  });
-
   /* ---------- حالة الاتصال والتخزين ---------- */
   S.router.add('/about', () => ({
     title: 'عن سِراج', nav: 'more', back: '/more',

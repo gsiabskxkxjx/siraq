@@ -133,8 +133,7 @@
       if (!S.settings.adhanOn) return;
       S.toast(title + ' — ' + body, 'ok'); S.vibrate([200, 100, 200]);
       let played = false;
-      if (isAdhan) { try { const custom = (await S.db.all('audiolib')).find((a) => a.kind === 'adhan' && a.blob); if (custom) { const au = new Audio(URL.createObjectURL(custom.blob)); await au.play(); played = true; } } catch (e) { /* قد يمنع المتصفح التشغيل التلقائي */ } }
-      const nat = S.nativeNotify && S.nativeNotify.active(); /* إشعار النظام وصل بنفسه: لا نكرره بإشعار الصفحة ولا بصوت إضافي */
+            const nat = S.nativeNotify && S.nativeNotify.active(); /* إشعار النظام وصل بنفسه: لا نكرره بإشعار الصفحة ولا بصوت إضافي */
       if (!played && !nat) { S.beep(523, 220, 0.2); setTimeout(() => S.beep(659, 220, 0.2), 260); setTimeout(() => S.beep(784, 380, 0.2), 520); }
       try { if (!nat && window.Notification && Notification.permission === 'granted') { const reg = S.sw || (navigator.serviceWorker && (await navigator.serviceWorker.getRegistration())); if (reg && reg.showNotification) reg.showNotification(title, { body, icon: 'assets/images/icon-192.png', tag: 'siraj-prayer' }); else new Notification(title, { body }); } } catch (e) { /* */ }
       S.notify.add({ title, body, kind: 'prayer' });
@@ -235,7 +234,7 @@
     S.mount(S.$('#nnStatus'), S.h`<div class="kv"><span>إذن الإشعارات</span><b class="${s.perm === 'granted' ? 'ok' : 'bad'}">${NN_PERM[s.perm] || NN_PERM.unknown}</b></div>
       <div class="kv"><span>الدقة في الوقت</span><b class="${ex ? 'bad' : 'ok'}">${s.exact === 'granted' ? 'دقيقة ✓' : ex ? 'تقريبية — فعّل «المنبّهات والتذكيرات»' : 'غير معروفة'}</b></div>
       <div class="kv"><span>إشعارات مجدولة الآن</span><b>${S.n(s.scheduled)}</b></div>
-      <div class="kv"><span>صوت الأذان</span><b class="${s.alarm && s.alarmAudio ? 'ok' : ''}">${s.alarm ? (s.alarmAudio ? 'أذان الناشر — يُسمع حتى في الصامت وعدم الإزعاج' : 'لم يصل ملف الأذان من الناشر بعد (صوت الهاتف الافتراضي)') : s.sound ? 'ملف مرفق مع التطبيق' : 'صوت إشعارات الهاتف الافتراضي'}</b></div>
+      <div class="kv"><span>صوت الأذان</span><b class="${s.alarm && s.alarmAudio ? 'ok' : ''}">${s.alarm ? (s.alarmAudio ? 'أذان التطبيق — يُسمع حتى في الصامت وعدم الإزعاج' : 'ملف الأذان غير مضمَّن في هذه النسخة (صوت الهاتف الافتراضي)') : s.sound ? 'ملف مرفق مع التطبيق' : 'صوت إشعارات الهاتف الافتراضي'}</b></div>
       ${S.settings.adhanOn ? '' : S.h`<div class="tiny bad">مفتاح «التنبيه عند دخول الوقت» أعلاه مطفأ، فلن يُجدول الأذان.</div>`}
       ${s.error ? S.h`<div class="tiny bad">${s.error}</div>` : ''}`);
     const b = S.$('#nnExact'); if (b) b.hidden = !(s.perm === 'granted' && ex);

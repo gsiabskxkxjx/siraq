@@ -28,12 +28,11 @@
   }
   const b64 = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
   async function buildPayload(g, meta) {
-    const ad = await S.files.get('ctl.adhan'); const w = S.kv.get('ctl.withdraw', { books: [], duas: [], entries: [] });
+    const w = S.kv.get('ctl.withdraw', { books: [], duas: [], entries: [] });
     const pl = {
       v: 1, app: 'SIRAJ', id: 'pack_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), seq: nextSeq(), created: new Date().toISOString(), title: str(meta.title), notes: str(meta.notes),
       authors: g.authors.map((a) => ({ id: a.id, name: a.name, death: a.death || null, note: a.note || '' })), books: g.books.map(stripBook), duas: g.duas.map(stripDua), entries: g.entries.map(stripEntry),
-      withdraw: { books: [...new Set((w.books || []).concat(g.replaced.books))], duas: [...new Set((w.duas || []).concat(g.replaced.duas))], entries: w.entries || [] }, notices: S.kv.get('ctl.notices', []).map((n) => ({ id: n.id, title: n.title, body: n.body })),
-      adhan: ad ? { name: ad.name || 'أذان', mime: ad.blob.type, data: await b64(ad.blob) } : undefined
+      withdraw: { books: [...new Set((w.books || []).concat(g.replaced.books))], duas: [...new Set((w.duas || []).concat(g.replaced.duas))], entries: w.entries || [] }, notices: S.kv.get('ctl.notices', []).map((n) => ({ id: n.id, title: n.title, body: n.body }))
     };
     return pl;
   }
@@ -41,7 +40,7 @@
 
   S.router.add('/publish', async () => {
     const g = await gather(); const meta = META(); const hist = HIST(); const w = S.kv.get('ctl.withdraw', { books: [], duas: [], entries: [] });
-    const adhan = await S.files.get('ctl.adhan'); const total = g.books.length + g.duas.length + g.entries.length; const dr = g.drafts;
+    const total = g.books.length + g.duas.length + g.entries.length; const dr = g.drafts;
     return {
       title: 'إصدار حزمة', nav: 'publish', back: false,
       html: S.h`<div class="stack">
@@ -51,7 +50,6 @@
           <div class="kv"><span>سحب من المضمّن</span><b>${S.n(new Set(w.books.concat(g.replaced.books)).size + new Set(w.duas.concat(g.replaced.duas)).size + w.entries.length)}</b></div>${g.replaced.books.length + g.replaced.duas.length ? S.h`<p class="tiny muted nm">منها ${S.n(g.replaced.books.length)} كتاب و${S.n(g.replaced.duas.length)} دعاء حلّ محلها تعديلك.</p>` : ''}<div class="kv"><span>إعلانات</span><b>${S.n(S.kv.get('ctl.notices', []).length)}</b></div>
           ${dr.books + dr.duas + dr.entries ? S.h`<p class="small muted nm mt">مسودات خارج الحزمة: ${S.n(dr.books)} كتاب، ${S.n(dr.duas)} دعاء، ${S.n(dr.entries)} مدخل.</p>` : ''}</div>
         ${g.errs.length ? S.ui.notice('err', 'لا يمكن الإصدار — أصلح هذه العناصر أو أعدها مسودة', S.h`<ul class="err-list">${g.errs.slice(0, 12).map((x) => S.h`<li>${x}</li>`)}</ul>`) : ''}
-        <div class="card"><div class="card-t">${S.icon('volume')} صوت الأذان (يصل المستخدمين مع الحزمة)</div><p class="small muted nm">${adhan ? 'الملف الحالي: ' + esc(adhan.name || 'أذان') + ' — ' + S.n(Math.round(adhan.size / 1024)) + ' ك.ب' : 'لم يُحدَّد ملف. ارفع تسجيلاً مرخّصاً لديك (حتى 10 م.ب).'}</p>${S.f.file('adhanFile', 'ملف صوتي للأذان', 'audio/*')}<div class="grid2"><button class="btn" data-act="adhanSave">${S.icon('upload')} حفظ الأذان</button>${adhan ? S.h`<button class="btn danger" data-act="adhanDel">إزالة</button>` : ''}</div></div>
         <div class="card">${S.f.text('ptitle', 'عنوان الحزمة', meta.title, { placeholder: 'مثال: إضافات شعبان' })}${S.f.area('pnotes', 'ملاحظات للمستخدمين — تظهر لهم قبل تثبيت الحزمة (اختياري)', meta.notes, { rows: 3 })}
           <button class="btn primary block" data-act="pkIssue" ${g.errs.length ? S.raw('disabled') : ''}>${S.icon('shield')} توقيع الحزمة وإصدارها</button>
           <p class="tiny muted nm mt">الحزمة لقطة كاملة: ما حذفتَه من الجاهز يُحذف من سِراج عند تثبيتها. الرقم القادم: <span class="fp">${S.n(nextSeq())}</span></p></div>
@@ -85,12 +83,6 @@
     await S.kv.set('ctl.pub', { repo, token }); S.toast(repo && token ? 'حُفظت إعدادات النشر' : 'أُلغي النشر المباشر', 'ok'); S.router.refresh();
   });
   const out = () => S.$('#pk-out');
-  S.act('adhanSave', async (el) => {
-    const f = S.$('[name=adhanFile]', el.closest('.card')).files[0]; if (!f) return S.toast('اختر ملفاً صوتياً', 'err');
-    if (!/^audio\//.test(f.type)) return S.toast('الملف ليس صوتياً', 'err'); if (f.size > 10 * 1048576) return S.toast('الحد الأقصى 10 ميغابايت', 'err');
-    await S.files.put('ctl.adhan', f, { name: f.name }); S.toast('حُفظ الأذان. لا يصل المستخدم إلا بعد «إصدار حزمة» جديدة وتثبيتها في تطبيقه', 'ok'); S.router.refresh();
-  });
-  S.act('adhanDel', async () => { await S.files.del('ctl.adhan'); S.toast('أُزيل الأذان من الحزمة القادمة'); S.router.refresh(); });
   S.act('pkIssue', async () => {
     const d = S.f.read(S.$('.view')); const meta = { title: str(d.ptitle), notes: str(d.pnotes) }; await S.kv.set('ctl.meta', meta);
     const g = await gather(); if (g.errs.length) return S.toast('أصلح الأخطاء أولاً', 'err');

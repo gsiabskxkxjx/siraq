@@ -17,14 +17,14 @@ a = ap.parse_args()
 
 DEFAULT = ['/home', '/more', '/library', '/library/sec/fiqh', '/library/search?q=%D8%B4%D8%B1%D8%A7%D8%A6%D8%B9', '/library/book/b_shara-i', '/library/authors', '/library/author/a_muhaqqiq', '/library/favorites', '/library/history', '/library/recommended', '/library/top',
            '/prayer', '/prayer/location', '/prayer/settings', '/prayer/stats', '/qibla', '/calendar', '/calendar/occasions',
-           '/tasbeeh', '/tasbeeh/stats', '/settings', '/status', '/about', '/notifications',
+           '/tasbeeh', '/tasbeeh/stats', '/settings', '/about', '/notifications',
            '/quran', '/quran/surah/1', '/quran/surah/112', '/quran/juz/1', '/quran/page/1', '/quran/ayah/2/255', '/quran/search?q=x', '/quran/bookmarks', '/quran/khatma', '/quran/download',
            '/duas', '/duas/cat/daily', '/duas/cat/sahifa', '/duas/item/d_sahifa', '/duas/favorites', '/updates',
            '/imams', '/imams/1', '/imams/12', '/imams/timeline', '/aqeedah', '/aqeedah/tawhid',
-           '/research', '/research/authors', '/research/map', '/research/places', '/research/compare-tafsir', '/research/verse-links', '/research/compare-narrations', '/research/narration-search', '/research/docs',
+           '/research', '/research/authors', '/research/map', '/research/places', '/research/compare-tafsir', '/research/verse-links', '/research/compare-narrations', '/research/narration-search',
            '/research/narrations', '/research/narrators', '/research/aqeedah_terms', '/research/fiqh_terms', '/research/tafsir', '/research/asbab', '/research/events', '/research/manuscripts', '/research/discussions', '/research/imam_quotes', '/research/imam_sirah', '/research/rulings', '/research/narrations/new', '/research/rulings/new',
            '/tadabbur', '/assistant', '/istifta', '/qada', '/worship', '/worship/calc', '/worship/khums', '/worship/zakat', '/worship/sawm', '/worship/taharah', '/worship/safar', '/worship/wudu', '/worship/salat',
-           '/daily', '/daily/wird', '/daily/reading', '/daily/mustahabb', '/daily/dhikr', '/daily/adhkar', '/daily/reminders', '/daily/gift', '/daily/audio', '/daily/tts', '/daily/sync', '/daily/occasions']
+           '/daily', '/daily/wird', '/daily/reading', '/daily/mustahabb', '/daily/dhikr', '/daily/adhkar', '/daily/reminders', '/daily/tts', '/daily/sync', '/daily/occasions']
 routes = a.routes or DEFAULT
 
 class H(http.server.SimpleHTTPRequestHandler):

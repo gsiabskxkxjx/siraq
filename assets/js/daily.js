@@ -27,7 +27,7 @@
       html: S.h`<div class="stack"><div class="card hero-mini"><b>يومك مع سِراج</b><p class="small nm">عدّادات وسجلات تحفظها على جهازك فقط. لا نصوص دينية مُختلَقة: الأذكار والأدعية تأتي موثقة بمصدرها أو لا تظهر.</p></div>
         <div class="grid2">${tile(1, 'check-circle', 'الورد اليومي', wird.length ? S.n(wd) + ' من ' + S.n(wird.length) + ' اليوم' : 'أضِف وردك', '/daily/wird')}${tile(2, 'target', 'تحدي القراءة', S.n(rd) + ' / ' + S.n(rt) + ' صفحة اليوم', '/daily/reading')}${tile(3, 'book-open', 'عشر صفحات يومياً', 'اضبط الهدف على 10', '/daily/reading?preset=10')}${tile(4, 'target', 'متابعة الختمة', kh && kh.plan ? 'ختمة جارية' : 'لم تبدأ ختمة', '/quran/khatma')}
           ${tile(5, 'notebook', 'دفتر التدبر', S.n(nTad) + ' تدبّراً', '/tadabbur')}${tile(6, 'star', 'الأعمال المستحبة', S.n(md) + ' من ' + S.n(must.length) + ' اليوم', '/daily/mustahabb')}${tile(7, 'beads', 'أهداف الذكر', dg ? S.n(ts.today) + ' / ' + S.n(dg) : 'اليوم ' + S.n(ts.today), '/daily/dhikr')}${tile(8, 'sun', 'أذكار الصباح والمساء', 'من الأدعية الموثقة', '/daily/adhkar')}
-          ${tile(9, 'bell', 'تنبيهات الأدعية', S.n(rem) + ' تنبيه مفعّل', '/daily/reminders')}${tile(11, 'volume', 'المكتبة الصوتية', 'تسجيلات مرخّصة', '/daily/audio')}${tile(12, 'mic', 'تحويل النص إلى صوت', 'صوت جهازك', '/daily/tts')}
+          ${tile(9, 'bell', 'تنبيهات الأدعية', S.n(rem) + ' تنبيه مفعّل', '/daily/reminders')}${tile(12, 'mic', 'تحويل النص إلى صوت', 'صوت جهازك', '/daily/tts')}
           ${tile(15, 'calendar', 'إشعارات المناسبات', up ? 'القادمة: ' + up.occ.title : 'عند فتح التطبيق', '/daily/occasions')}</div>
         <div class="card"><div class="setting"><div class="sd">14 • وضع كبار السن<small>خط أكبر وأزرار أوسع وتباين أعلى</small></div><label class="switch"><input type="checkbox" ${S.settings.elder ? S.raw('checked') : ''} data-chg="pref" data-k="elder" aria-label="وضع كبار السن"><i></i></label></div></div></div>`
     };
@@ -119,17 +119,6 @@
     a.forEach((r) => { if (r.enabled && r.time === hm && r.days.includes(now.getDay()) && fired[r.id] !== key) { fired[r.id] = key; S.kv.set('daily.fired', fired); const body = r.dua ? 'حان وقت قراءة الدعاء' : 'حان وقت تنبيهك'; S.toast(r.title + ' — ' + body, 'ok'); S.notify.add({ title: r.title, body, kind: 'dua', href: r.dua ? '/duas/item/' + r.dua : '' }); S.vibrate([120, 60, 120]); try { if (PERM() === 'granted') new Notification(r.title, { body, icon: 'assets/images/icon-192.png', tag: 'siraj-rem-' + r.id }); } catch (e) { /* قيد منصة */ } } });
   }
 
-
-  /* ---------------- 11: المكتبة الصوتية ---------------- */
-  S.router.add('/daily/audio', async () => {
-    const rows = (await S.db.all('audiolib')).sort((a, b) => b.ts - a.ts); const urls = rows.map((r) => (r.blob ? URL.createObjectURL(r.blob) : null)); const au = await S.db.count('audio');
-    return {
-      title: 'المكتبة الصوتية', nav: 'more', back: '/daily',
-      html: S.h`<div class="stack">${rows.length ? rows.map((r, i) => S.h`<div class="card"><b>${r.title}</b><div class="small muted">${r.by || ''} • ${({ recitation: 'تلاوة', dua: 'دعاء/زيارة', lecture: 'محاضرة', adhan: 'أذان' })[r.kind] || r.kind}</div><audio controls preload="none" src="${urls[i]}" style="width:100%;margin-top:6px"></audio><div class="tiny muted">الترخيص: ${r.license}</div></div>`) : S.ui.empty('volume', 'لا تسجيلات بعد', 'تظهر هنا تسجيلاتك الصوتية، مثل الأذان المخصص الذي تضيفه من إعدادات مواقيت الصلاة.')}
-        <div class="card"><div class="kv"><span>تلاوات قرآنية منزَّلة على جهازك</span><b>${S.n(au)}</b></div><a class="btn block mt-s" href="#/quran/download">إدارة التنزيلات</a></div></div>`,
-      unmount() { urls.forEach((u) => u && URL.revokeObjectURL(u)); }
-    };
-  });
 
   /* ---------------- 12: تحويل النص إلى صوت ---------------- */
   /* يمرّ عبر S.tts: إضافة المحرك الأصلي في تطبيق أندرويد، وspeechSynthesis في المتصفح */

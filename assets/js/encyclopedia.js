@@ -131,13 +131,13 @@
     [5, 'المصطلحات الفقهية', 'gavel', '/research/fiqh_terms', 'fiqh_terms'], [6, 'خريطة المعرفة الإسلامية', 'grid', '/research/map'], [7, 'الخط الزمني التاريخي', 'timeline', '/imams/timeline'], [8, 'الأماكن والمراقد', 'map-pin', '/research/places'],
     [9, 'أرشيف المخطوطات', 'file', '/research/manuscripts', 'manuscripts'], [10, 'مقارنة التفاسير', 'book-open', '/research/compare-tafsir', 'tafsir'], [11, 'مقارنة الروايات', 'scale', '/research/compare-narrations'], [12, 'البحث عن رواية بجزء من نصها', 'search', '/research/narration-search'],
     [13, 'تخريج الروايات', 'link', '/research/narrations?view=takhrij'], [14, 'اختلاف ألفاظ الرواية', 'repeat', '/research/narrations?view=variants'], [15, 'الأسانيد المتاحة', 'network', '/research/narrations?view=isnad'], [16, 'أحكام العلماء على الروايات', 'gavel', '/research/narrations?view=judgments'],
-    [17, 'ربط الآيات بالكتب والروايات', 'book-open', '/research/verse-links'], [18, 'ربط المؤلفين بمؤلفاتهم', 'library', '/research/authors'], [19, 'دفتر التدبر', 'notebook', '/tadabbur'], [20, 'نظام توثيق التراث', 'shield', '/research/docs']
+    [17, 'ربط الآيات بالكتب والروايات', 'book-open', '/research/verse-links'], [18, 'ربط المؤلفين بمؤلفاتهم', 'library', '/research/authors'], [19, 'دفتر التدبر', 'notebook', '/tadabbur']
   ];
   S.router.add('/research', async () => {
     const ents = await allEntries(); const cnt = (c) => ents.filter((e) => e.collection === c).length;
     return {
       title: 'الموسوعة العلمية والبحثية', nav: 'more', back: '/more',
-      html: S.h`<div class="stack"><div class="card hero-mini"><b>عشرون وحدة بحثية</b><p class="small nm">أدوات توثيق ومقارنة. كل مدخل بمصدره، والأحكام منسوبة لقائليها، ولا يصدر التطبيق أحكاماً آلية على صحة الروايات.</p></div>
+      html: S.h`<div class="stack"><div class="card hero-mini"><b>تسع عشرة وحدة بحثية</b><p class="small nm">أدوات توثيق ومقارنة. كل مدخل بمصدره، والأحكام منسوبة لقائليها، ولا يصدر التطبيق أحكاماً آلية على صحة الروايات.</p></div>
         <div class="grid2">${UNITS.map(([n, t, ic, href, col]) => S.h`<a class="card tap unit" href="#${href}"><div class="row between"><span class="unit-n">${S.n(n)}</span>${S.icon(ic)}</div><b>${t}</b>${col ? S.h`<div class="tiny muted">${S.n(cnt(col))} مدخلاً</div>` : ''}</a>`)}</div>
         <div class="card"><div class="card-t">${S.icon('plus')} مجموعات إضافية</div><div class="chips">${['asbab', 'events', 'discussions', 'imam_quotes', 'imam_sirah'].map((c) => S.h`<a class="chip" href="#/research/${c}">${COLS[c].title} (${S.n(cnt(c))})</a>`)}</div></div>
         ${S.ui.tip('info', 'مصدر المداخل', S.h`<span>المداخل الموثقة تصل إلى التطبيق عبر <a href="#/updates">تحديثات المحتوى</a> الموقّعة من الناشر؛ لا يمكن لأي مستخدم إضافة مداخل. التصفح والمقارنة متاحان للجميع.</span>`)}</div>`
@@ -243,14 +243,6 @@
   S.act('nsGo', () => S.router.go('/research/narration-search?q=' + encodeURIComponent(S.$('#nsq').value)));
 
   /* ---------- نظام توثيق التراث (20) ---------- */
-  S.router.add('/research/docs', async () => {
-    const ents = await allEntries(); const rows = Object.keys(COLS).map((c) => { const es = ents.filter((e) => e.collection === c); return { c, n: es.length, rev: es.filter((e) => e.status === 'reviewed').length }; });
-    return {
-      title: 'نظام توثيق التراث', nav: 'more', back: '/research',
-      html: S.h`<div class="stack"><div class="card"><div class="card-t">${S.icon('shield')} قواعد التوثيق</div><ul class="list-b small"><li>لا يُحفظ مدخل بلا مصدر: اسم الكتاب + (جزء/صفحة/رقم/رابط).</li><li>النص يُنسخ من طبعة معتمدة كما هو؛ لا تُكتب النصوص الدينية من الذاكرة.</li><li>أحكام العلماء تُنسب لقائلها ومصدرها، ولا يُصدر التطبيق حكماً آلياً.</li><li>الخلاف يُدخل أقوالاً منسوبة، لا حقيقةً واحدة.</li><li>لا يُضاف أي مدخل داخل هذا التطبيق: يصل من الناشر في حزمة موقّعة تُفحص بالقواعد نفسها قبل قبولها.</li></ul></div>
-        <div class="card"><div class="card-t">${S.icon('chart')} حالة المجموعات</div><div class="table-wrap"><table class="tbl"><tr><th>المجموعة</th><th>مداخل</th><th>مراجَعة</th></tr>${rows.map((r) => S.h`<tr><td><a href="#/research/${r.c}">${COLS[r.c].title}</a></td><td>${S.n(r.n)}</td><td>${S.n(r.rev)}</td></tr>`)}</table></div></div></div>`
-    };
-  });
   /* ---------- دفتر التدبر (19) ---------- */
   S.router.add('/tadabbur', async (p, q) => {
     const mine = (await S.db.where('notes', 'type', 'tadabbur')).sort((a, b) => b.ts - a.ts); const qn = (await S.db.where('notes', 'type', 'quran')).sort((a, b) => b.ts - a.ts); const term = S.norm(q.q || '');

@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
-import java.io.File;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -17,8 +16,9 @@ final class AdhanStore {
 
     private AdhanStore() {}
 
-    static File audioFile(Context c) {
-        return new File(c.getFilesDir(), "adhan_audio.bin");
+    /** صوت الأذان مضمَّن في التطبيق نفسه: res/raw/adhan (يُنسخ وقت البناء من android-resources/adhan.mp3). 0 = غير موجود. */
+    static int rawId(Context c) {
+        return c.getResources().getIdentifier("adhan", "raw", c.getPackageName());
     }
 
     static void saveItems(Context c, String json) {

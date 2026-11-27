@@ -26,17 +26,6 @@
   /* منبّه الأذان الأصلي (جافا، يُضاف وقت البناء): يشغّل الأذان على قناة صوت المنبّه فيُسمع في الصامت وعدم الإزعاج */
   const adh = () => { try { const P = window.Capacitor && window.Capacitor.Plugins; return (P && P.SirajAdhan) || null; } catch (e) { return null; } };
   let alarm = { on: false, hasAudio: false, exact: null, count: 0 };
-  const b64Slice = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
-  /* ينقل ملف الأذان (القادم من حزمة الناشر) إلى التخزين الأصلي على دفعات 384 ك.ب (مضاعف 3 ليبقى base64 سليماً) */
-  async function pushAudio(A) {
-    const rec = await S.db.get('audiolib', 'adhan_pack').catch(() => null);
-    const want = rec && rec.blob ? 'p:' + (rec.ts || 0) + ':' + rec.blob.size : '';
-    if (want === (S.kv.get('nn.audioSig') || '')) return;
-    if (!want) { await A.clearAdhan(); await S.kv.set('nn.audioSig', ''); return; }
-    const CH_SZ = 384 * 1024; let first = true;
-    for (let off = 0; off < rec.blob.size; off += CH_SZ) { await A.appendAdhan({ data: await b64Slice(rec.blob.slice(off, off + CH_SZ)), first }); first = false; }
-    await S.kv.set('nn.audioSig', want);
-  }
   const available = () => !!(S.isNative && plug());
 
   async function loadFlags() {
@@ -124,7 +113,6 @@
       const A = adh(); alarm.on = false;
       if (A) {
         try {
-          await pushAudio(A);
           const ad = items.filter((n) => n.ch === CH.adhan && n.at);
           const r = await A.schedule({ items: ad.map((n) => ({ id: n.id, at: n.at.getTime(), title: n.title, body: n.body })) });
           const st = await A.status(); alarm = { on: true, hasAudio: !!(st && st.hasAudio), exact: st ? st.exact : null, count: (r && r.count) || 0 };
@@ -166,7 +154,7 @@
       if (!available()) return { ok: false, reason: 'unavailable' };
       const A = adh();
       if (A && A.test) { /* اختبار المنبّه الحقيقي الذي يشغّل صوت الأذان (قناة المنبّه) */
-        try { await pushAudio(A); const r = await A.test({ sec: Math.max(5, sec || 10) }); return { ok: !!(r && r.ok), alarm: true, hasAudio: !!(r && r.hasAudio), sec: Math.max(5, sec || 10) }; }
+        try { const r = await A.test({ sec: Math.max(5, sec || 10) }); return { ok: !!(r && r.ok), alarm: true, hasAudio: !!(r && r.hasAudio), sec: Math.max(5, sec || 10) }; }
         catch (e) { /* يرجع إلى الإشعار العادي */ }
       }
       const LN = plug(); await refreshPerm(); if (perm !== 'granted') return { ok: false, reason: perm };

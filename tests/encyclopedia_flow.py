@@ -27,7 +27,7 @@ t.go('/aqeedah'); t.check('الموسوعة العقائدية تعرض المح
 t.go('/aqeedah/tawhid'); tx = t.txt(); t.check('محور: أدلة قرآنية وروائية ومناقشة وكتب', all(k in tx for k in ['الأدلة القرآنية', 'الأدلة الروائية', 'مناقشة المسائل', 'الكتب المتخصصة', 'الإخلاص']), tx[:300])
 
 # --- المركز البحثي: 20 وحدة
-t.go('/research'); t.check('عشرون وحدة', pg.locator('a.unit').count() == 20, pg.locator('a.unit').count())
+t.go('/research'); t.check('تسع عشرة وحدة', pg.locator('a.unit').count() == 19, pg.locator('a.unit').count())
 hrefs = pg.eval_on_selector_all('a.unit', 'els=>els.map(a=>a.getAttribute("href"))')
 bad = []
 for h in hrefs:
