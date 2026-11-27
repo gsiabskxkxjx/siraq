@@ -92,7 +92,7 @@
     },
     async removeTranslation(id) { await S.db.del('quran', 'tr:' + id); if (S.settings.translation === id) { S.set({ translation: '', showTranslation: false }); Q.tr = null; Q.trInfo = null; } },
     async translationList() { return (await S.db.all('quran')).filter((r) => r.id.startsWith('tr:')); },
-    reciters() { /* القرّاء المضمّنون يظهرون دائماً (ومنهم المنشاوي) وتُضاف إليهم قائمة الخادم إن جُلبت */ const base = D().api.defaultAudio.map(([id, name]) => ({ id, name })); const live = S.kv.get('quran.reciters') || []; const have = new Set(base.map((r) => r.id)); return base.concat(live.filter((r) => r && r.id && !have.has(r.id))); },
+    reciters() { /* القرّاء المضمّنون يظهرون دائماً (ومنهم المنشاوي) وتُضاف إليهم قائمة الخادم إن جُلبت */ const base = D().api.defaultAudio.map(([id, name]) => ({ id, name })); if (!base.some((r) => r.id === 'ar.minshawimujawwad')) base.push({ id: 'ar.minshawimujawwad', name: 'محمد صديق المنشاوي (المجوَّد)' }); const live = S.kv.get('quran.reciters') || []; const have = new Set(base.map((r) => r.id)); return base.concat(live.filter((r) => r && r.id && !have.has(r.id))); },
     async refreshReciters() {
       const r = await fetch(D().api.base + '/edition/format/audio', { cache: 'no-store' }); if (!r.ok) throw new Error('الرمز ' + r.status); const j = await r.json();
       const list = (j.data || []).filter((e) => e.language === 'ar' && e.type !== 'translation').map((e) => ({ id: e.identifier, name: e.name || e.englishName }));
@@ -219,7 +219,7 @@
     const su = Q.surah(n);
     if (!Q.hasText()) return { title: 'سورة ' + su.name, nav: 'quran', back: '/quran', html: noText() };
     const marks = await marksSet(); const startA = +(q.a || 0); Q.currentCtx = { type: 'surah', s: n };
-    const nav = S.h`<div class="grid2 mt">${n < 114 ? S.h`<a class="btn" href="#/quran/surah/${n + 1}">سورة ${Q.surahName(n + 1)} ${S.icon('chevron-left')}</a>` : '<span></span>'}${n > 1 ? S.h`<a class="btn" href="#/quran/surah/${n - 1}">${S.icon('chevron-right')} سورة ${Q.surahName(n - 1)}</a>` : '<span></span>'}</div>`;
+    const nav = S.h`<div class="grid2 mt">${n < 114 ? S.h`<a class="btn" href="#/quran/surah/${n + 1}">سورة ${Q.surahName(n + 1)} ${S.icon('chevron-left')}</a>` : S.raw('<span></span>')}${n > 1 ? S.h`<a class="btn" href="#/quran/surah/${n - 1}">${S.icon('chevron-right')} سورة ${Q.surahName(n - 1)}</a>` : S.raw('<span></span>')}</div>`;
     return {
       title: 'سورة ' + su.name, nav: 'quran', back: '/quran',
       actions: [{ icon: 'search', label: 'بحث', href: '#/quran/search?s=' + n }],
@@ -240,7 +240,7 @@
     const marks = await marksSet(); Q.currentCtx = { type: 'juz', s: a.s, a: a.a };
     return {
       title: 'الجزء ' + S.n(n), nav: 'quran', back: '/quran?tab=juz',
-      html: S.h`<div class="quran-page">${S.raw(barHtml({ s: a.s, a: a.a }))}${S.raw(renderSegments(segs, marks, S.settings.quranMode))}<div class="grid2 mt">${n < 30 ? S.h`<a class="btn" href="#/quran/juz/${n + 1}">الجزء التالي ${S.icon('chevron-left')}</a>` : '<span></span>'}${n > 1 ? S.h`<a class="btn" href="#/quran/juz/${n - 1}">${S.icon('chevron-right')} الجزء السابق</a>` : '<span></span>'}</div></div>`,
+      html: S.h`<div class="quran-page">${S.raw(barHtml({ s: a.s, a: a.a }))}${S.raw(renderSegments(segs, marks, S.settings.quranMode))}<div class="grid2 mt">${n < 30 ? S.h`<a class="btn" href="#/quran/juz/${n + 1}">الجزء التالي ${S.icon('chevron-left')}</a>` : S.raw('<span></span>')}${n > 1 ? S.h`<a class="btn" href="#/quran/juz/${n - 1}">${S.icon('chevron-right')} الجزء السابق</a>` : S.raw('<span></span>')}</div></div>`,
       mount(view) { lastPos = null; trackPosition(view); if (Q.audio && Q.audio.attach) Q.audio.attach(); }, unmount() { stopTrack(); }
     };
   });
@@ -250,7 +250,7 @@
     if (!(n >= 1 && n <= 604)) return { title: 'صفحة', back: '/quran', html: S.ui.empty('alert', 'رقم صفحة غير صحيح (1 - 604)') };
     const segs = []; Q.pages.forEach((arr, si) => { let from = 0, to = 0; arr.forEach((pg, ai) => { if (pg === n) { if (!from) from = ai + 1; to = ai + 1; } }); if (from) segs.push({ s: si + 1, from, to }); });
     const marks = await marksSet(); Q.currentCtx = { type: 'page', s: segs[0].s, a: segs[0].from };
-    return { title: 'صفحة ' + S.n(n), nav: 'quran', back: '/quran', html: S.h`<div class="quran-page">${S.raw(barHtml({ s: segs[0].s, a: segs[0].from }))}${S.raw(renderSegments(segs, marks, 'flow'))}<div class="grid2 mt">${n < 604 ? S.h`<a class="btn" href="#/quran/page/${n + 1}">الصفحة التالية ${S.icon('chevron-left')}</a>` : '<span></span>'}${n > 1 ? S.h`<a class="btn" href="#/quran/page/${n - 1}">${S.icon('chevron-right')} السابقة</a>` : '<span></span>'}</div></div>`, mount(v) { lastPos = null; trackPosition(v); if (Q.audio && Q.audio.attach) Q.audio.attach(); }, unmount() { stopTrack(); } };
+    return { title: 'صفحة ' + S.n(n), nav: 'quran', back: '/quran', html: S.h`<div class="quran-page">${S.raw(barHtml({ s: segs[0].s, a: segs[0].from }))}${S.raw(renderSegments(segs, marks, 'flow'))}<div class="grid2 mt">${n < 604 ? S.h`<a class="btn" href="#/quran/page/${n + 1}">الصفحة التالية ${S.icon('chevron-left')}</a>` : S.raw('<span></span>')}${n > 1 ? S.h`<a class="btn" href="#/quran/page/${n - 1}">${S.icon('chevron-right')} السابقة</a>` : S.raw('<span></span>')}</div></div>`, mount(v) { lastPos = null; trackPosition(v); if (Q.audio && Q.audio.attach) Q.audio.attach(); }, unmount() { stopTrack(); } };
   });
 
   /* أزرار الشريط */

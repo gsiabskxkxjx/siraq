@@ -14,19 +14,26 @@
     cur: null, state: 'idle', rate: 1, repeat: 'off',
     reciter: () => S.settings.reciter,
     reciterName() { const r = Q.reciters().find((x) => x.id === A.reciter()); return r ? r.name : A.reciter(); },
-    url(s, a) { const api = D().api; return api.audioCdn + '/' + api.audioBitrate + '/' + A.reciter() + '/' + Q.gid(s, a) + '.mp3'; },
+    /* بعض الإصدارات (مثل المنشاوي المجوّد) لا تتوفر إلا بـ64 كيلوبت على الشبكة */
+    bitrate(r) { return ({ 'ar.minshawimujawwad': 64 })[r] || D().api.audioBitrate; },
+    /* جودات الشبكة تختلف بين القرّاء: نجرّب المفضّلة ثم البقية، ونحفظ ما نجح لهذا القارئ */
+    good: {},
+    rates(r) { const f = A.good[r] || A.bitrate(r); return [f].concat([128, 64, 192, 48, 32].filter((x) => x !== f)); },
+    urlAt(s, a, i) { const api = D().api; const r = A.reciter(); return api.audioCdn + '/' + A.rates(r)[i] + '/' + r + '/' + Q.gid(s, a) + '.mp3'; },
+    url(s, a) { return A.urlAt(s, a, 0); },
     audioEl() {
       if (el) return el; el = new Audio(); el.preload = 'auto';
       el.addEventListener('ended', onEnded); el.addEventListener('timeupdate', onTime);
-      el.addEventListener('error', () => { if (A.state === 'idle') return; const off = !navigator.onLine; S.toast(off ? 'أنت دون اتصال، ولم تُنزَّل هذه التلاوة. نزّل السورة للاستماع دون إنترنت.' : 'تعذّر تشغيل التلاوة (تحقق من الاتصال أو اختر قارئاً آخر).', 'err'); A.setState('paused'); });
-      el.addEventListener('play', () => A.setState('playing')); el.addEventListener('pause', () => { if (A.state !== 'idle' && !el.ended) A.setState('paused'); });
+      el.addEventListener('error', () => { if (A.state === 'idle') return; const off = !navigator.onLine;
+        if (!off && A.cur && /^https?:/.test(el.src || '') && (A.tryI || 0) < A.rates(A.reciter()).length - 1) { A.tryI = (A.tryI || 0) + 1; el.src = A.urlAt(A.cur.s, A.cur.a, A.tryI); el.play().catch(() => {}); return; } S.toast(off ? 'أنت دون اتصال، ولم تُنزَّل هذه التلاوة. نزّل السورة للاستماع دون إنترنت.' : 'تعذّر تشغيل التلاوة (تحقق من الاتصال أو اختر قارئاً آخر).', 'err'); A.setState('paused'); });
+      el.addEventListener('play', () => { A.setState('playing'); if (A.tryI && A.cur && /^https?:/.test(el.src || '')) { A.good[A.reciter()] = A.rates(A.reciter())[A.tryI]; A.tryI = 0; } }); el.addEventListener('pause', () => { if (A.state !== 'idle' && !el.ended) A.setState('paused'); });
       return el;
     },
     setState(st) { A.state = st; const b = S.$('#pl-pp'); if (b) { b.innerHTML = S.icon(st === 'playing' ? 'pause' : 'play').s; b.setAttribute('aria-label', st === 'playing' ? 'إيقاف مؤقت' : 'تشغيل'); } if ('mediaSession' in navigator) navigator.mediaSession.playbackState = st === 'playing' ? 'playing' : 'paused'; },
     async play(s, a) {
       if (!Q.hasText()) return S.toast('حمّل نص المصحف أولاً', 'err');
       A.bar(); const my = ++token; A.cur = { s, a }; const gid = Q.gid(s, a); const e = A.audioEl();
-      let src = A.url(s, a);
+      A.tryI = 0; let src = A.url(s, a);
       try { const rec = await S.db.get('audio', A.reciter() + ':' + gid); if (rec && rec.blob) { if (blobUrl) URL.revokeObjectURL(blobUrl); blobUrl = URL.createObjectURL(rec.blob); src = blobUrl; } } catch (x) { /* بثّ مباشر */ }
       if (my !== token) return;
       e.src = src; e.playbackRate = A.rate; A.paint(); A.mark();
@@ -69,7 +76,7 @@
           const a = ids.shift(); const gid = Q.gid(s, a); const key = rc + ':' + gid;
           try {
             if (await S.db.get('audio', key)) { done++; onProg(done, fail, n); continue; }
-            const r = await fetch(A.url(s, a)); if (!r.ok) throw new Error('HTTP ' + r.status); const blob = await r.blob(); if (blob.size < 500) throw new Error('ملف صوتي غير صالح');
+            let r; for (let i = 0; i < A.rates(rc).length; i++) { r = await fetch(A.urlAt(s, a, i)); if (r.ok) { if (i) A.good[rc] = A.rates(rc)[i]; break; } } if (!r.ok) throw new Error('HTTP ' + r.status); const blob = await r.blob(); if (blob.size < 500) throw new Error('ملف صوتي غير صالح');
             await S.db.put('audio', { id: key, blob, size: blob.size, ts: Date.now(), reciter: rc, s, a }); done++;
           } catch (e) { fail++; if (e && /Quota|ممتلئة/.test(e.message || '')) { cancelRef.stop = true; cancelRef.quota = true; } }
           onProg(done, fail, n);

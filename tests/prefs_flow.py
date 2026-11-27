@@ -1,0 +1,25 @@
+"""اختيار الموقع (محافظة ← قضاء/ناحية) وتحديد صلوات التنبيه"""
+import sys, os, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from common import T
+t = T()
+t.go('/prayer/location', 900)
+tx = t.txt()
+t.check('قائمة المحافظات تظهر لا نص HTML خام', 'العراق — المحافظات' in tx and '<button' not in tx and 'data-act' not in tx, tx[:200])
+t.check('النجف ضمن المحافظات', 'النجف' in tx)
+t.go('/prayer/location?gov=' + 'النجف', 900)
+tx = t.txt(); t.check('صفحة المحافظة: عنوان وقائمة مواقع بلا HTML خام', 'اختر القضاء' in tx and '<button' not in tx, tx[:200])
+t.pg.click('#citylist .li >> nth=0'); t.pg.wait_for_timeout(500)
+t.check('اختيار موقع يحفظه ويرجع للصلاة', t.ev("SIRAJ.settings.cityName") != '' and '/prayer' in t.ev("location.hash"), t.ev("location.hash"))
+t.go('/quran/surah/114', 1200); t.check('لا <span> ظاهر آخر السورة', '<span' not in t.txt())
+# صلوات التنبيه
+t.ev("SIRAJ.set('adhanOn', true)")
+t.go('/prayer/settings', 900)
+t.check('خمسة أزرار صلوات مفعّلة افتراضياً', t.ev("document.querySelectorAll('[data-act=adhanPray].active').length") == 5)
+for p in ('dhuhr', 'maghrib', 'isha'): t.pg.click(f'[data-act=adhanPray][data-p={p}]'); t.pg.wait_for_timeout(250)
+t.check('الاختيار يُحفظ: فجر وعصر فقط', t.ev("SIRAJ.settings.adhanPrayers") == ['fajr', 'asr'], t.ev("SIRAJ.settings.adhanPrayers"))
+t.check('الأزرار تعكس الاختيار', t.ev("document.querySelectorAll('[data-act=adhanPray].active').length") == 2)
+titles = t.ev("SIRAJ.nativeNotify.plan().filter(n=>n.title.startsWith('حان وقت')).map(n=>n.title)")
+t.check('الجدولة تشمل الفجر والعصر فقط', titles and all(('الفجر' in x or 'العصر' in x) for x in titles), titles[:6])
+t.check('لا أخطاء JS', not t.errs, t.errs[:2])
+t.done()

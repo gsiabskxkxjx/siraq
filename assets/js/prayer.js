@@ -123,7 +123,7 @@
         const nx = P.next(now); S.$$('[data-countdown]').forEach((el) => { el.textContent = nx ? S.fmt.hm(nx.at - now) : '—'; });
         if (!nx) return;
         const st = S.settings; const left = nx.at - now;
-        const key = nx.key + nx.at.getTime();
+        const key = nx.key + nx.at.getTime(); if (!(Array.isArray(st.adhanPrayers) ? st.adhanPrayers : FIVE.map((x) => x[0])).includes(nx.key)) { fired['pre' + key] = fired['at' + key] = 1; }
         if (st.preMin > 0 && left <= st.preMin * 60000 && left > (st.preMin * 60000 - 1500) && !fired['pre' + key]) { fired['pre' + key] = 1; P.alert('اقترب وقت صلاة ' + nx.name, 'متبقٍّ ' + S.n(st.preMin) + ' دقيقة', false); }
         if (left <= 1000 && left > -1500 && !fired['at' + key]) { fired['at' + key] = 1; P.alert('حان وقت صلاة ' + nx.name, nx.loc.name, true); }
         if (Object.keys(fired).length > 50) fired = {};
@@ -177,21 +177,51 @@
   });
 
   /* ---------- الموقع ---------- */
-  S.router.add('/prayer/location', (p, q) => {
-    const cities = S.data.sample.cities; const cur = S.settings.cityId;
+  /* العراق: المحافظة ← القضاء/الناحية. المصدر: Wikidata وقت البناء (assets/data/iraq-places.json)، وإلا فالمدن المضمّنة موزّعة على محافظاتها */
+  const GOV_OF = { najaf: 'النجف', kufa: 'النجف', karbala: 'كربلاء', baghdad: 'بغداد', samarra: 'صلاح الدين', basra: 'البصرة', hilla: 'بابل', nasiriyah: 'ذي قار', mosul: 'نينوى', erbil: 'أربيل' };
+  let iraq = null;
+  async function iraqGovs() {
+    if (iraq) return iraq;
+    const by = {}; const add = (g, pl) => { const arr = (by[g] = by[g] || []); if (!arr.some((x) => x.name === pl.name)) arr.push(pl); };
+    (S.data.sample.cities || []).filter((c) => GOV_OF[c.id]).forEach((c) => add(GOV_OF[c.id], { id: c.id, name: c.name, kind: 'مركز', lat: c.lat, lng: c.lng, tz: c.tz }));
+    try {
+      const r = await fetch('assets/data/iraq-places.json', { cache: 'no-store' });
+      if (r.ok) { const j = await r.json(); (j.govs || []).forEach((g) => (g.places || []).forEach((pl) => { if (isFinite(pl.lat) && isFinite(pl.lng) && pl.name) add(g.name, { id: String(pl.id), name: String(pl.name), kind: pl.kind === 'ناحية' ? 'ناحية' : (pl.kind === 'قضاء' ? 'قضاء' : 'مركز'), lat: +pl.lat, lng: +pl.lng, tz: 'Asia/Baghdad' }); })); }
+    } catch (e) { /* لا ملف: تبقى المدن المضمّنة */ }
+    iraq = Object.keys(by).sort((a, b) => a.localeCompare(b, 'ar')).map((g) => ({ name: g, places: by[g] })); return iraq;
+  }
+  S.router.add('/prayer/location', async (p, q) => {
+    const cities = S.data.sample.cities; const cur = S.settings.cityId; const govs = await iraqGovs();
+    const gov = q && q.gov ? govs.find((g) => g.name === q.gov) : null;
+    if (gov) {
+      const order = ['قضاء', 'مركز', 'ناحية'];
+      return {
+        title: 'محافظة ' + gov.name, nav: 'more', back: '/prayer/location',
+        html: S.h`<div class="stack"><p class="small muted nm">اختر القضاء أو الناحية الأقرب لك.</p>
+          <div class="searchbox">${S.icon('search')}<input class="input" id="cityq" data-inp="cityFilter" placeholder="ابحث" autocomplete="off"></div>
+          <div id="citylist">${S.raw(order.map((k) => { const l = gov.places.filter((x) => x.kind === k).sort((a, b) => a.name.localeCompare(b.name, 'ar')); return l.length ? '<section class="cgrp"><h3 class="tiny muted cgrp-t">' + (k === 'قضاء' ? 'الأقضية' : k === 'ناحية' ? 'النواحي' : 'مركز المحافظة والمدن') + '</h3><div class="list">' + l.map((x) => placeItem(x, gov.name, cur)).join('') + '</div></section>' : ''; }).join(''))}</div></div>`
+      };
+    }
     return {
       title: 'اختيار الموقع', nav: 'more', back: '/prayer',
       html: S.h`<div class="stack">
         <button class="btn gold block" data-act="useGPS">${S.icon('map-pin')} استخدم موقعي الحالي (GPS)</button>
         <p class="tiny muted nm">يطلب المتصفح إذنك. يعمل GPS عبر HTTPS فقط. الإحداثيات تُحفظ في هذا الجهاز ولا تُرسل لأي جهة.</p>
-        <div class="searchbox">${S.icon('search')}<input class="input" id="cityq" data-inp="cityFilter" placeholder="ابحث عن مدينة" autocomplete="off"></div>
-        <div class="list" id="citylist">${cities.map((c) => cityItem(c, cur)).join('')}</div>
+        <div class="searchbox">${S.icon('search')}<input class="input" id="cityq" data-inp="cityFilter" placeholder="ابحث عن محافظة أو مدينة" autocomplete="off"></div>
+        <div id="citylist">${S.raw('<section class="cgrp"><h3 class="tiny muted cgrp-t">العراق — المحافظات</h3><div class="list">' + govs.map((g) => '<a class="li" href="#/prayer/location?gov=' + encodeURIComponent(g.name) + '" data-n="' + S.esc(S.norm(g.name + ' ' + g.places.map((x) => x.name).join(' '))) + '"><span class="li-ico">' + S.icon('map-pin') + '</span><span class="li-body"><span class="li-t">' + S.esc(g.name) + '</span><span class="li-s">' + S.esc(S.n(g.places.length) + ' موقع (أقضية ونواحٍ)') + '</span></span></a>').join('') + '</div></section>' + cityGroups(cities.filter((c) => c.country !== 'العراق'), cur))}</div>
         <details class="acc"><summary>إدخال إحداثيات يدوياً</summary><div class="acc-b" id="manual">${S.f.text('mname', 'اسم الموقع', S.settings.cityId ? '' : S.settings.cityName, {})}${S.f.text('mlat', 'خط العرض (مثال 32.0)', S.settings.cityId ? '' : S.settings.lat, { type: 'number', step: 'any', ltr: true })}${S.f.text('mlng', 'خط الطول (مثال 44.33)', S.settings.cityId ? '' : S.settings.lng, { type: 'number', step: 'any', ltr: true })}${S.f.text('mtz', 'المنطقة الزمنية IANA (مثال Asia/Baghdad)', S.settings.tz || Intl.DateTimeFormat().resolvedOptions().timeZone, { ltr: true })}<button class="btn primary block" data-act="saveManualLoc">حفظ</button></div></details>
       </div>`
     };
   });
+  function placeItem(x, g, cur) { return `<button class="li" data-act="pickPlace" data-id="${S.esc(x.id)}" data-g="${S.esc(g)}" data-nm="${S.esc(x.name)}" data-lat="${x.lat}" data-lng="${x.lng}" data-tz="${S.esc(x.tz)}" data-n="${S.esc(S.norm(x.name))}"><span class="li-ico">${S.icon('map-pin')}</span><span class="li-body"><span class="li-t">${S.esc(x.name)}</span><span class="li-s">${S.esc(x.kind)} — ${S.esc(g)}</span></span>${cur === x.id ? '<span class="li-end">' + S.icon('check') + '</span>' : ''}</button>`; }
+  S.act('pickPlace', (el) => { const d = el.dataset; S.set({ cityId: d.id, cityName: d.nm + '، ' + d.g, lat: +d.lat, lng: +d.lng, tz: d.tz }); S.toast('تم اختيار ' + d.nm, 'ok'); S.router.go('/prayer'); });
+  /* مدن بقية الدول مجمّعة حسب البلد */
+  function cityGroups(cities, cur) {
+    const by = {}; cities.forEach((c) => { (by[c.country] = by[c.country] || []).push(c); });
+    return Object.keys(by).map((k) => '<section class="cgrp"><h3 class="tiny muted cgrp-t">' + S.esc(k) + '</h3><div class="list">' + by[k].map((c) => cityItem(c, cur)).join('') + '</div></section>').join('');
+  }
   function cityItem(c, cur) { return `<button class="li" data-act="pickCity" data-id="${S.esc(c.id)}" data-n="${S.esc(S.norm(c.name + ' ' + c.country))}"><span class="li-ico">${S.icon('map-pin')}</span><span class="li-body"><span class="li-t">${S.esc(c.name)}</span><span class="li-s">${S.esc(c.country)}</span></span>${cur === c.id ? '<span class="li-end">' + S.icon('check') + '</span>' : ''}</button>`; }
-  S.onInput('cityFilter', (el) => { const q = S.norm(el.value); S.$$('#citylist .li').forEach((b) => (b.hidden = q && !b.dataset.n.includes(q))); });
+  S.onInput('cityFilter', (el) => { const q = S.norm(el.value); S.$$('#citylist .li').forEach((b) => (b.hidden = !!q && !b.dataset.n.includes(q))); S.$$('#citylist .cgrp').forEach((g) => (g.hidden = !S.$$('.li', g).some((b) => !b.hidden))); });
   S.act('pickCity', (el) => { const c = S.data.sample.cities.find((x) => x.id === el.dataset.id); S.set({ cityId: c.id, cityName: c.name, lat: c.lat, lng: c.lng, tz: c.tz }); S.toast('تم اختيار ' + c.name, 'ok'); S.router.go('/prayer'); });
   S.act('saveManualLoc', (el) => {
     const d = S.f.read(el.closest('#manual')); const lat = +d.mlat, lng = +d.mlng;
@@ -219,10 +249,11 @@
         ${S.f.select('asr', 'وقت العصر', [{ v: 'Standard', t: 'ظل المثل (الجمهور والجعفري)' }, { v: 'Hanafi', t: 'ظل المثلين (الحنفي)' }], st.asr, { chg: 'psChange' })}
         <div class="field"><label>ضبط الدقائق لكل وقت (احتياط)</label><div class="grid3">${['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'].map((k) => S.h`<div class="field nm"><label class="tiny">${({ fajr: 'الفجر', sunrise: 'الشروق', dhuhr: 'الظهر', asr: 'العصر', maghrib: 'المغرب', isha: 'العشاء' })[k]}</label><input class="input ltr" type="number" step="1" min="-30" max="30" value="${st.tune[k] || 0}" data-chg="psTune" data-k="${k}"></div>`)}</div><span class="hint">تُضاف الدقائق إلى الوقت المحسوب (مثلاً +3 للمغرب احتياطاً عند من يرى ذلك).</span></div>
         <div class="setting"><div class="sd">التنبيه عند دخول الوقت<small>${S.isNative ? 'يصل كإشعار نظام عند كل صلاة حتى والتطبيق مغلق' : 'يعمل أثناء فتح التطبيق فقط (قيد من المتصفح)؛ ثبّت تطبيق أندرويد ليصلك والتطبيق مغلق'}</small></div><label class="switch"><input type="checkbox" ${st.adhanOn ? S.raw('checked') : ''} data-chg="psAdhan"><i></i></label></div>
+        <div class="field"><label>الصلوات التي يصلك تنبيهها (اختر ما تريد)</label><div class="chips" style="flex-wrap:wrap;overflow:visible;margin:0;padding:0">${FIVE.map(([k, n]) => S.h`<button class="chip ${(Array.isArray(st.adhanPrayers) ? st.adhanPrayers : FIVE.map((x) => x[0])).includes(k) ? 'active' : ''}" data-act="adhanPray" data-p="${k}" aria-pressed="${(Array.isArray(st.adhanPrayers) ? st.adhanPrayers : FIVE.map((x) => x[0])).includes(k)}">${n}</button>`)}</div><span class="hint">يشمل الأذان والتنبيه المسبق. اختر الفجر فقط، أو الفجر والعصر، أو أي مجموعة تناسبك.</span></div>
         <div class="field"><label>التنبيه المسبق (بالدقائق، 0 للإيقاف)</label><input class="input ltr" type="number" min="0" max="60" value="${st.preMin}" data-chg="psPre"></div>
         ${S.isNative ? S.h`<div id="nnBox" class="card tint"><div class="card-t">${S.icon('bell')} حالة إشعارات النظام</div><div id="nnStatus" class="small muted">جارٍ الفحص…</div><button class="btn primary block mt-s" data-act="nnEnable">${S.icon('bell')} تفعيل الإشعارات</button><button class="btn block mt-s" data-act="nnTest">${S.icon('volume')} تجربة الأذان بعد 10 ثوانٍ</button><button class="btn block mt-s" data-act="nnExact" id="nnExact" hidden>${S.icon('clock')} فتح إعداد «المنبّهات والتذكيرات»</button><p class="tiny muted nm mt-s">للوصول في الوقت بالضبط على أندرويد 12 فما فوق يلزم السماح بـ«المنبّهات والتذكيرات». وإن أخّرت بعض الهواتف (شاومي، هواوي، سامسونغ…) الإشعارات فاستثنِ سِراج من «توفير البطارية/تحسين البطارية» في إعدادات الهاتف.</p></div>` : ''}
         ${S.isNative ? '' : S.h`<div class="stack-s"><button class="btn block" data-act="notifPerm">${S.icon('bell')} السماح بإشعارات النظام</button></div>`}
-        <p class="tiny muted nm">صوت الأذان يحدّده الناشر ويصلك ضمن تحديثات المحتوى الموقّعة.</p>
+        <p class="tiny muted nm">صوت الأذان مضمَّن في التطبيق ويُشغَّل عند وقت كل صلاة تختارها أعلاه.</p>
       </div></div>`,
       mount: () => { nnRender(); }
     };
@@ -245,6 +276,13 @@
     S.set('adhanOn', el.checked);
     if (el.checked && S.nativeNotify && S.nativeNotify.available()) { const r = await S.nativeNotify.enable(); if (r.perm !== 'granted') S.toast('لن يصل الأذان والتطبيق مغلق قبل السماح بالإشعارات', 'err'); else if (r.needExact) S.toast('اسمح بـ«المنبّهات والتذكيرات» ليصل في الوقت بالضبط', 'ok'); else S.toast('فُعّل: سيصلك الأذان كإشعار نظام', 'ok'); nnRender(); }
     else if (S.nativeNotify) { await S.nativeNotify.sync(true); nnRender(); }
+  });
+  S.act('adhanPray', async (el) => {
+    const all = FIVE.map((x) => x[0]); const cur = new Set(Array.isArray(S.settings.adhanPrayers) ? S.settings.adhanPrayers : all); const k = el.dataset.p;
+    if (cur.has(k)) cur.delete(k); else cur.add(k);
+    S.set('adhanPrayers', all.filter((x) => cur.has(x)));
+    if (S.nativeNotify) { await S.nativeNotify.sync(true); }
+    S.router.refresh();
   });
   S.onChange('psPre', (el) => { S.set('preMin', S.clamp(Math.round(+el.value || 0), 0, 60)); if (S.nativeNotify) S.nativeNotify.later(300); });
   S.act('nnQuick', async () => { S.set('adhanOn', true); const r = await S.nativeNotify.enable(); S.toast(r.perm === 'granted' ? (r.needExact ? 'فُعّل — اسمح بـ«المنبّهات والتذكيرات» من إعدادات الصلاة ليصل بالضبط' : 'فُعّل: سيصلك الأذان كإشعار نظام') : 'لم يُسمح بالإشعارات؛ يمكنك السماح بها من إعدادات الهاتف', r.perm === 'granted' ? 'ok' : 'err'); S.router.refresh(); });

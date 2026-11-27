@@ -49,7 +49,7 @@
       for (let i = 0; i < DAYS; i++) {
         const t = i === 0 ? t0 : P.times(day); const ymd = day.y * 10000 + day.m * 100 + day.d;
         P.FIVE.forEach(([k, n], idx) => {
-          const raw = t && t.at && t.at[k]; if (!raw) return; const at = round1m(raw);
+          if (!(Array.isArray(st.adhanPrayers) ? st.adhanPrayers : ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']).includes(k)) return; const raw = t && t.at && t.at[k]; if (!raw) return; const at = round1m(raw);
           if (at.getTime() > min) out.push({ id: ymd * 100 + idx, title: 'حان وقت صلاة ' + n, body: loc.name, at, ch: CH.adhan, extra: { route: '/prayer', kind: 'prayer' } });
           if (st.preMin > 0) { const pre = new Date(at.getTime() - st.preMin * 60000); if (pre.getTime() > min) out.push({ id: ymd * 100 + 10 + idx, title: 'اقترب وقت صلاة ' + n, body: 'متبقٍّ ' + S.n(st.preMin) + ' دقيقة — ' + loc.name, at: pre, ch: CH.pre, extra: { route: '/prayer', kind: 'prayer-pre' } }); }
         });

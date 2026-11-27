@@ -8,7 +8,7 @@
    - يُعاد توليد قائمة PRECACHE والنسخة بواسطة: python3 tools/build_sw.py
    ===================================================================== */
 /*__BEGIN_GENERATED__*/
-const VERSION = 'da0787c7b6';
+const VERSION = '5dcfc35ae8';
 const PRECACHE = [
   './',
   './android-resources/adhan.mp3',
@@ -23,6 +23,7 @@ const PRECACHE = [
   './assets/css/style.css',
   './assets/data/duas-data.js',
   './assets/data/duas-data.json',
+  './assets/data/iraq-places.json',
   './assets/data/publisher-keys.js',
   './assets/data/quran-data.js',
   './assets/data/quran-data.json',

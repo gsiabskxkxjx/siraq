@@ -186,7 +186,7 @@
     theme: 'auto', fontScale: 1, quranScale: 1, elder: false, digits: 'en', userName: '', marja: '',
     cityId: '', cityName: '', lat: null, lng: null, tz: '', calcMethod: 'Jafari', asr: 'Standard', madhab: 'jafari',
     hijriCal: 'umalqura', hijriOffset: 0, tune: { imsak: 0, fajr: 0, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
-    adhanOn: false, preMin: 10, notifyOcc: true, vibrate: true, sound: true,
+    adhanOn: false, adhanPrayers: ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'], preMin: 10, notifyOcc: true, vibrate: true, sound: true,
     reciter: 'ar.alafasy', quranMode: 'flow', translation: '', showTranslation: false, readerTheme: 'dark', maxPdfMB: 80,
     remoteAi: { enabled: false, endpoint: '' }, onboarded: false, lang: 'ar'
   };

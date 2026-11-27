@@ -58,6 +58,10 @@ jobs:
         continue-on-error: true
         run: node scripts/fetch-thaqalayn.mjs
 
+      - name: تضمين أقضية ونواحي العراق من Wikidata (اختياري)
+        continue-on-error: true
+        run: node scripts/fetch-iraq-places.mjs
+
       - name: إنشاء مشروع أندرويد
         run: npx cap add android
 
